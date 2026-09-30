@@ -25,3 +25,26 @@ test('the 2026 plan registers onto its own venue as identity', async () => {
   expect(Math.abs(t.dy)).toBeLessThan(10);
   expect(t.score).toBeGreaterThan(0.9);
 });
+
+test('the score measures shape overlap, not just matching proportions', () => {
+  const W = 200,
+    H = 150,
+    data = new Uint8Array(W * H * 3);
+  for (let i = 0; i < W * H; i++) data.set([60, 60, 60], i * 3);
+  for (let y = 20; y < 130; y++) for (let x = 20; x < 180; x++) data.set([255, 253, 240], (y * W + x) * 3);
+  const venue = {
+    walls: [
+      [
+        [0, 0],
+        [160, 0],
+        [160, 55],
+        [80, 55],
+        [80, 110],
+        [0, 110],
+      ],
+    ],
+  } as unknown as Parameters<typeof autoRegister>[1];
+  const t = autoRegister({ width: W, height: H, data }, venue);
+  expect(t.score).toBeLessThan(0.9);
+  expect(t.score).toBeGreaterThan(0.6);
+});
