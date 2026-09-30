@@ -16,12 +16,14 @@
     "legacy:test": "node --test legacy/tests/*.test.js"
   },
   "devDependencies": {
+    "@playwright/test": "^1.63.0",
     "@sveltejs/adapter-static": "^3.0.10",
     "@sveltejs/kit": "^2.70.3",
     "@sveltejs/vite-plugin-svelte": "^7.3.1",
     "@types/bun": "^1.4.2",
     "oxfmt": "^0.71.0",
     "oxlint": "^1.86.0",
+    "serve": "^14.2.6",
     "svelte": "^5.57.1",
     "svelte-check": "^4.7.6",
     "typescript": "~6",
