@@ -6,7 +6,7 @@ import { parseCSV } from '../src/lib/core/csv';
 import { createSearch, type SearchItem } from '../src/lib/core/search';
 
 const bundle = loadEvent('bkkibf-2026');
-const data = loadData(bundle);
+const data = loadData({ ...bundle, exhibitors: [] });
 const golden = JSON.parse(readFileSync('tests/golden/v1.json', 'utf8'));
 const key = (it: SearchItem) => {
   if (it.type === 'place') return `place:${it.lm.id}`;

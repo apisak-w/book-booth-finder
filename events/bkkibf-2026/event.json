@@ -388,7 +388,10 @@
     "H31 appears twice on the printed plan. The second B44 was renamed D44 and the second D15 became E15 by column position.",
     "M11 sits where the column pattern predicts N11. Kept as printed.",
     "U04 and U06 have placeholder names. A10 and A15 are best-effort readings of small print.",
-    "The exhibitor list is empty. Get it from the organiser as a spreadsheet.",
+    "Exhibitors come from the thailandbookfair.com exhibitor table (363 rows). Each row gives one booth code, so exhibitors with several booths are listed on one booth only.",
+    "The exhibitor list puts Read With Me Bookshop at N11, which is not on the plan (see M11 above). Left out until the organiser confirms.",
+    "The exhibitor list puts PLAN PLUS INNOVATION at I25, which is not on the printed plan. Left out until the organiser confirms.",
+    "H15, H16 and K44 each have two exhibitors in the list.",
     "Toilet door positions on the back wall are approximate."
   ],
   "text": {
