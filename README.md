@@ -56,11 +56,20 @@ https://<your-site>/#to=K16&from=door6
 
 Print a QR code for `#from=<id>` at each door or information desk. Guests who scan it only have to search for their booth.
 
-## Deploy to GitHub Pages
+## Deploy to Cloudflare Pages
 
-1. Push to `main`.
-2. In the repository, open **Settings → Pages** and set **Source** to **GitHub Actions**.
-3. The workflow in `.github/workflows/deploy.yml` runs the tests and then publishes `index.html`, `src/` and `data/`.
+The workflow in `.github/workflows/deploy.yml` runs the tests on every push and pull request. On `main` it publishes `index.html`, `src/` and `data/` to the Cloudflare Pages project `book-booth-finder`, and creates the project on the first run.
+
+It needs two repository secrets (**Settings → Secrets and variables → Actions**):
+
+- `CLOUDFLARE_API_TOKEN`: an API token with the **Account → Cloudflare Pages → Edit** permission.
+- `CLOUDFLARE_ACCOUNT_ID`: shown on the Cloudflare dashboard overview.
+
+To deploy from your own machine, run `npx wrangler login` once and then:
+
+```bash
+npm run deploy
+```
 
 Any other static host works too. Upload `index.html`, `src/` and `data/`.
 

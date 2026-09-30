@@ -8,12 +8,14 @@ on:
 
 permissions:
   contents: read
-  pages: write
-  id-token: write
+  deployments: write
 
 concurrency:
-  group: pages
+  group: deploy-${{ github.ref }}
   cancel-in-progress: true
+
+env:
+  PAGES_PROJECT: book-booth-finder
 
 jobs:
   test:
@@ -29,16 +31,14 @@ jobs:
     if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
     needs: test
     runs-on: ubuntu-latest
-    environment:
-      name: github-pages
-      url: ${{ steps.deployment.outputs.page_url }}
     steps:
       - uses: actions/checkout@v4
       - name: Collect site files
         run: mkdir _site && cp -r index.html src data _site/
-      - uses: actions/configure-pages@v5
-      - uses: actions/upload-pages-artifact@v3
+      - uses: cloudflare/wrangler-action@v4
         with:
-          path: _site
-      - id: deployment
-        uses: actions/deploy-pages@v4
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          # Creates the Pages project on the first run; fails harmlessly once it exists.
+          preCommands: wrangler pages project create ${{ env.PAGES_PROJECT }} --production-branch main || true
+          command: pages deploy _site --project-name=${{ env.PAGES_PROJECT }} --branch=main

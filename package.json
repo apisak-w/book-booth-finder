@@ -6,7 +6,8 @@
   "type": "module",
   "scripts": {
     "dev": "npx --yes serve@14 -l 5173 .",
-    "test": "node --test"
+    "test": "node --test",
+    "deploy": "rm -rf _site && mkdir _site && cp -r index.html src data _site/ && npx --yes wrangler@4 pages deploy _site --project-name=book-booth-finder --branch=main"
   },
   "engines": {
     "node": ">=18"

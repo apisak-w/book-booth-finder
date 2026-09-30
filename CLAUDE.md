@@ -17,6 +17,7 @@ The users are fair visitors on their phones, in a crowded hall, often on poor mo
 ```bash
 npm run dev     # static server on :5173 (npx serve). `python3 -m http.server 5173` also works
 npm test        # node --test, Node 18+, zero dependencies
+npm run deploy  # manual deploy to Cloudflare Pages (needs `npx wrangler login`)
 ```
 
 - There is no build step, bundler or framework. Don't add one unless asked.
@@ -40,7 +41,7 @@ data/booths.json      369 booths + 16 pillar cells, traced from the official pla
 data/exhibitors.csv   booth,name_th,name_en. EMPTY: waiting for the official exhibitor list
 tests/core.test.js    data integrity, search, routing reachability, directions
 tools/digitize/       Python/OpenCV pipeline that produced booths.json (see its README)
-.github/workflows/    tests on every push/PR; deploys to GitHub Pages from main
+.github/workflows/    tests on every push/PR; deploys to Cloudflare Pages from main
 ```
 
 Keep the pure/DOM split. Anything a test should cover goes in a DOM-free module.
