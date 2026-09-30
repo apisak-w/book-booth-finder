@@ -1,6 +1,6 @@
-import { writeFileSync, mkdirSync, copyFileSync } from 'node:fs';
+import { writeFileSync, mkdirSync, copyFileSync, readFileSync } from 'node:fs';
 import * as C from '../../legacy/src/config.js';
-import { LANDMARKS } from '../../legacy/src/content.js';
+import { LANDMARKS, STRINGS, CATEGORIES, ZONES, QUICK_PICKS } from '../../legacy/src/content.js';
 
 const VENUE_IDS = ['mrt', 'west', 'door5', 'door6', 'door7', 'door8', 'wc1', 'wc2', 'wc3', 'wc4', 'wc5', 'wc6', 'lift'];
 const W = C.WALKABLE;
@@ -90,3 +90,69 @@ mkdirSync('venues/qsncc-lg-5-8', { recursive: true });
 writeFileSync('venues/qsncc-lg-5-8/venue.json', JSON.stringify(venue, null, 2) + '\n');
 copyFileSync('tools/digitize/source/floorplan-2026.jpg', 'venues/qsncc-lg-5-8/reference.jpg');
 console.log('venue written');
+
+const raw = JSON.parse(readFileSync('legacy/data/booths.json', 'utf8'));
+const rectOf = ([x, y, w, h]: number[]) => ({ x, y, w, h });
+const booths = {
+  booths: raw.booths.map(({ hall: _hall, extra, ...b }: { hall: number; extra?: number[][] }) =>
+    extra ? { ...b, extra: extra.map(rectOf) } : b,
+  ),
+  pillars: raw.pillars.map(({ px, py, pw, ph, ...p }: Record<string, number | string>) => ({
+    ...p,
+    inner: { x: px, y: py, w: pw, h: ph },
+  })),
+};
+
+const [sx, sy, sw, sh] = C.STAGE;
+const event = {
+  id: 'bkkibf-2026',
+  name: {
+    th: 'สัปดาห์หนังสือแห่งชาติ ครั้งที่ 54 และสัปดาห์หนังสือนานาชาติ ครั้งที่ 24',
+    en: '54th National Book Fair & 24th Bangkok International Book Fair',
+  },
+  subtitle: { th: STRINGS.th.subtitle, en: STRINGS.en.subtitle },
+  dates: { start: '2026-03-26', end: '2026-04-06' },
+  venue: 'qsncc-lg-5-8',
+  codePattern: '^[A-U]\\d{2}$',
+  categories: CATEGORIES,
+  zones: ZONES,
+  foyerZones: C.FOYER_ZONES.map(([c, x, y, w, h, vertical]: [string, number, number, number, number, boolean?]) =>
+    vertical ? { c, x, y, w, h, vertical: true } : { c, x, y, w, h },
+  ),
+  obstacles: [
+    ...C.INFO_DESKS.map(([x, y, w, h]: number[]) => ({ kind: 'info', x, y, w, h })),
+    { kind: 'stage', x: sx, y: sy, w: sw, h: sh, note: 'Interview Area' },
+  ],
+  aisles: { signY: C.AISLE_SIGN_Y, boothMinY: 340, x: C.AISLE_X },
+  landmarks: LANDMARKS.filter((l: { id: string }) => !VENUE_IDS.includes(l.id)),
+  quickPicks: QUICK_PICKS,
+  allowedDuplicateCodes: ['H31'],
+  notes: [
+    'Hall boundaries are inferred from wall recesses and door positions (x = 749 / 1300 / 1852). Confirm with PUBAT.',
+    'H31 appears twice on the printed plan. The second B44 was renamed D44 and the second D15 became E15 by column position.',
+    'M11 sits where the column pattern predicts N11. Kept as printed.',
+    'U04 and U06 have placeholder names. A10 and A15 are best-effort readings of small print.',
+    'The exhibitor list is empty. Get it from the organiser as a spreadsheet.',
+    'Toilet door positions on the back wall are approximate.',
+  ],
+  text: {
+    ph: { th: STRINGS.th.ph, en: STRINGS.en.ph },
+    searchLabel: { th: STRINGS.th.searchLabel, en: STRINGS.en.searchLabel },
+    exhibitors: { th: STRINGS.th.publishers, en: STRINGS.en.publishers },
+  },
+};
+
+mkdirSync('events/bkkibf-2026/source', { recursive: true });
+writeFileSync('events/bkkibf-2026/event.json', JSON.stringify(event, null, 2) + '\n');
+const line = (o: unknown) => '    ' + JSON.stringify(o);
+writeFileSync(
+  'events/bkkibf-2026/booths.json',
+  '{\n  "booths": [\n' +
+    booths.booths.map(line).join(',\n') +
+    '\n  ],\n  "pillars": [\n' +
+    booths.pillars.map(line).join(',\n') +
+    '\n  ]\n}\n',
+);
+copyFileSync('legacy/data/exhibitors.csv', 'events/bkkibf-2026/exhibitors.csv');
+copyFileSync('tools/digitize/source/floorplan-2026.jpg', 'events/bkkibf-2026/source/plan.jpg');
+console.log('event written');

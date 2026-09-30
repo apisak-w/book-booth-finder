@@ -1,0 +1,408 @@
+{
+  "id": "bkkibf-2026",
+  "name": {
+    "th": "สัปดาห์หนังสือแห่งชาติ ครั้งที่ 54 และสัปดาห์หนังสือนานาชาติ ครั้งที่ 24",
+    "en": "54th National Book Fair & 24th Bangkok International Book Fair"
+  },
+  "subtitle": {
+    "th": "สัปดาห์หนังสือแห่งชาติ ครั้งที่ 54 · ศูนย์ฯ สิริกิติ์ ฮอลล์ 5–8",
+    "en": "54th National Book Fair · QSNCC Halls 5–8"
+  },
+  "dates": {
+    "start": "2026-03-26",
+    "end": "2026-04-06"
+  },
+  "venue": "qsncc-lg-5-8",
+  "codePattern": "^[A-U]\\d{2}$",
+  "categories": {
+    "kids": {
+      "color": "#F58BB8",
+      "th": "หนังสือเด็กและการศึกษา",
+      "en": "Children's & educational"
+    },
+    "fiction": {
+      "color": "#E3452F",
+      "th": "นิยายและวรรณกรรม",
+      "en": "Fiction & literature"
+    },
+    "bl": {
+      "color": "#9C7DBA",
+      "th": "หนังสือ Boy's Love / Girl's Love",
+      "en": "Boy's Love & Girl's Love"
+    },
+    "intl": {
+      "color": "#FFCB05",
+      "th": "หนังสือต่างประเทศ",
+      "en": "International books",
+      "darkText": true
+    },
+    "rare": {
+      "color": "#C4884A",
+      "th": "หนังสือเก่า",
+      "en": "Rare books"
+    },
+    "general": {
+      "color": "#1F84C6",
+      "th": "หนังสือทั่วไป",
+      "en": "General books"
+    },
+    "comic": {
+      "color": "#F68C22",
+      "th": "หนังสือการ์ตูนและวัยรุ่น",
+      "en": "Comics & light novels"
+    },
+    "nonbook": {
+      "color": "#5DBB6D",
+      "th": "Non Books (สื่อการศึกษา/บอร์ดเกม)",
+      "en": "Non-books & board games"
+    },
+    "special": {
+      "color": "#1D2442",
+      "th": "นิทรรศการและเวที",
+      "en": "Exhibitions & stages"
+    }
+  },
+  "zones": {
+    "A02": {
+      "th": "เวที Author's Salon",
+      "en": "Author's Salon stage",
+      "short": "AUTHOR'S SALON"
+    },
+    "T02": {
+      "th": "เวที Meet the Legends",
+      "en": "Meet the Legends stage",
+      "short": "MEET THE LEGENDS"
+    },
+    "A26": {
+      "th": "PUBAT Shop",
+      "en": "PUBAT Shop"
+    },
+    "A31": {
+      "th": "นิทรรศการ Y Book Journey ย้อนรอยตำนานวายจากไทยสู่โลก",
+      "en": "Y Book Journey exhibition"
+    },
+    "A15": {
+      "th": "โครงการประกวดหนังสือระดับชาติ",
+      "en": "National book award exhibition"
+    },
+    "A16": {
+      "th": "นิทรรศการอ่านพุทธ ตำนานผ่านบรรณพิภพ",
+      "en": "Buddhist literature exhibition"
+    },
+    "B15": {
+      "th": "นิทรรศการวรรณกรรมแห่งชาติ",
+      "en": "National literature exhibition"
+    },
+    "A10": {
+      "th": "นิทรรศการจากวิถีแห่งศรัทธา สู่ภูมิปัญญาของยุคสมัย",
+      "en": "Faith and wisdom exhibition"
+    },
+    "U01": {
+      "th": "มูลนิธิหนึ่งอ่านล้านตื่น × เจ้าขุนทองและผองเพื่อน",
+      "en": "One Read Million Wake Foundation × Khun Thong & friends"
+    },
+    "U02": {
+      "th": "Little Read Universe: Legend Alive จักรวาลตำนานมีชีวิต",
+      "en": "Little Read Universe: Legend Alive"
+    },
+    "U03": {
+      "th": "จุดประชาสัมพันธ์ / จุดฝากของ (ฝั่ง MRT)",
+      "en": "Information & bag drop (MRT side)"
+    },
+    "U04": {
+      "th": "นิทรรศการ U04",
+      "en": "Exhibition U04"
+    },
+    "U05": {
+      "th": "นิทรรศการ Read the Legend: หนังสือต้องห้าม (ลืม)",
+      "en": "Read the Legend: the forbidden (forgotten) books"
+    },
+    "U06": {
+      "th": "นิทรรศการ U06",
+      "en": "Exhibition U06"
+    },
+    "U07": {
+      "th": "นิทรรศการ Read the Legend: หนังสือต้องห้าม (ลืม)",
+      "en": "Read the Legend: the forbidden (forgotten) books"
+    },
+    "U08": {
+      "th": "นิทรรศการเส้นทางวรรณกรรม รางวัลพานแว่นฟ้า 25 ปี",
+      "en": "25 years of the Phan Waen Fa literary award"
+    },
+    "U09": {
+      "th": "Press / Information · กิจกรรม Legend Trail Bingo",
+      "en": "Press & information · Legend Trail Bingo"
+    },
+    "U10": {
+      "th": "นิทรรศการแสงแห่งปัญญาในสมเด็จพระพันปีหลวง",
+      "en": "Royal exhibition: Light of Wisdom"
+    },
+    "U11": {
+      "th": "นิทรรศการหนังสือดีเด่น ประจำปี 2569",
+      "en": "Outstanding Books of 2026"
+    }
+  },
+  "foyerZones": [
+    {
+      "c": "U01",
+      "x": 324,
+      "y": 591,
+      "w": 39,
+      "h": 126,
+      "vertical": true
+    },
+    {
+      "c": "U02",
+      "x": 324,
+      "y": 994,
+      "w": 39,
+      "h": 91,
+      "vertical": true
+    },
+    {
+      "c": "U03",
+      "x": 323,
+      "y": 1096,
+      "w": 40,
+      "h": 40
+    },
+    {
+      "c": "U04",
+      "x": 746,
+      "y": 1398,
+      "w": 27,
+      "h": 58,
+      "vertical": true
+    },
+    {
+      "c": "U06",
+      "x": 1305,
+      "y": 1398,
+      "w": 26,
+      "h": 58,
+      "vertical": true
+    },
+    {
+      "c": "U05",
+      "x": 779,
+      "y": 1511,
+      "w": 191,
+      "h": 40
+    },
+    {
+      "c": "U07",
+      "x": 1333,
+      "y": 1511,
+      "w": 192,
+      "h": 39
+    },
+    {
+      "c": "U08",
+      "x": 1541,
+      "y": 1511,
+      "w": 80,
+      "h": 40
+    },
+    {
+      "c": "U09",
+      "x": 1624,
+      "y": 1511,
+      "w": 81,
+      "h": 40
+    },
+    {
+      "c": "U10",
+      "x": 1884,
+      "y": 1511,
+      "w": 90,
+      "h": 39
+    },
+    {
+      "c": "U11",
+      "x": 1977,
+      "y": 1511,
+      "w": 91,
+      "h": 39
+    }
+  ],
+  "obstacles": [
+    {
+      "kind": "info",
+      "x": 535,
+      "y": 1514,
+      "w": 73,
+      "h": 36
+    },
+    {
+      "kind": "info",
+      "x": 1083,
+      "y": 1513,
+      "w": 72,
+      "h": 35
+    },
+    {
+      "kind": "info",
+      "x": 2162,
+      "y": 1511,
+      "w": 98,
+      "h": 39
+    },
+    {
+      "kind": "stage",
+      "x": 2105,
+      "y": 738,
+      "w": 229,
+      "h": 168,
+      "note": "Interview Area"
+    }
+  ],
+  "aisles": {
+    "signY": 322,
+    "boothMinY": 340,
+    "x": {
+      "A": 471,
+      "B": 562,
+      "C": 654,
+      "D": 746,
+      "E": 839,
+      "F": 932,
+      "G": 1022,
+      "H": 1113,
+      "I": 1205,
+      "J": 1298,
+      "K": 1390,
+      "L": 1482,
+      "M": 1574,
+      "N": 1665,
+      "O": 1758,
+      "P": 1849,
+      "Q": 1942,
+      "R": 2033,
+      "S": 2125,
+      "T": 2218
+    }
+  },
+  "landmarks": [
+    {
+      "id": "info1",
+      "group": "info",
+      "x": 571,
+      "y": 1532,
+      "th": "จุดประชาสัมพันธ์/ฝากของ หน้าฮอลล์ 5",
+      "en": "Information & bag drop, Hall 5",
+      "icon": "info"
+    },
+    {
+      "id": "info2",
+      "group": "info",
+      "x": 1119,
+      "y": 1530,
+      "th": "จุดประชาสัมพันธ์/ฝากของ หน้าฮอลล์ 6",
+      "en": "Information & bag drop, Hall 6",
+      "icon": "info"
+    },
+    {
+      "id": "info3",
+      "group": "info",
+      "x": 1664,
+      "y": 1531,
+      "th": "Press / Information (U09)",
+      "en": "Press & information (U09)",
+      "icon": "info"
+    },
+    {
+      "id": "info4",
+      "group": "info",
+      "x": 2211,
+      "y": 1530,
+      "th": "จุดประชาสัมพันธ์/ฝากของ หน้าฮอลล์ 8",
+      "en": "Information & bag drop, Hall 8",
+      "icon": "info"
+    },
+    {
+      "id": "info5",
+      "group": "info",
+      "x": 343,
+      "y": 1116,
+      "th": "จุดประชาสัมพันธ์/ฝากของ ฝั่ง MRT (U03)",
+      "en": "Information & bag drop, MRT side (U03)",
+      "icon": "info"
+    },
+    {
+      "id": "ch1",
+      "group": "charge",
+      "x": 663,
+      "y": 1136,
+      "th": "Charge Spot ฮอลล์ 5 (กลางฮอลล์)",
+      "en": "Charge spot, middle of Hall 5",
+      "icon": "charge"
+    },
+    {
+      "id": "ch2",
+      "group": "charge",
+      "x": 618,
+      "y": 1446,
+      "th": "Charge Spot ฮอลล์ 5",
+      "en": "Charge spot, Hall 5 lakeside",
+      "icon": "charge"
+    },
+    {
+      "id": "ch3",
+      "group": "charge",
+      "x": 1163,
+      "y": 1450,
+      "th": "Charge Spot ฮอลล์ 6",
+      "en": "Charge spot, Hall 6 lakeside",
+      "icon": "charge"
+    },
+    {
+      "id": "ch4",
+      "group": "charge",
+      "x": 1714,
+      "y": 1450,
+      "th": "Charge Spot ฮอลล์ 7",
+      "en": "Charge spot, Hall 7 lakeside",
+      "icon": "charge"
+    },
+    {
+      "id": "stage",
+      "group": "stage",
+      "x": 2219,
+      "y": 822,
+      "th": "เวทีกลาง (ฮอลล์ 8)",
+      "en": "Main stage (Hall 8)",
+      "icon": "stage"
+    }
+  ],
+  "quickPicks": [
+    ["booth", "A02"],
+    ["booth", "T02"],
+    ["place", "stage"],
+    ["booth", "A26"],
+    ["place", "wc2"],
+    ["place", "info2"]
+  ],
+  "allowedDuplicateCodes": ["H31"],
+  "notes": [
+    "Hall boundaries are inferred from wall recesses and door positions (x = 749 / 1300 / 1852). Confirm with PUBAT.",
+    "H31 appears twice on the printed plan. The second B44 was renamed D44 and the second D15 became E15 by column position.",
+    "M11 sits where the column pattern predicts N11. Kept as printed.",
+    "U04 and U06 have placeholder names. A10 and A15 are best-effort readings of small print.",
+    "The exhibitor list is empty. Get it from the organiser as a spreadsheet.",
+    "Toilet door positions on the back wall are approximate."
+  ],
+  "text": {
+    "ph": {
+      "th": "เลขบูธ (เช่น K16) หรือชื่อสำนักพิมพ์",
+      "en": "Booth code (e.g. K16) or publisher"
+    },
+    "searchLabel": {
+      "th": "ค้นหาบูธหรือสำนักพิมพ์",
+      "en": "Search booths or publishers"
+    },
+    "exhibitors": {
+      "th": "สำนักพิมพ์ในบูธนี้",
+      "en": "At this booth"
+    }
+  }
+}
