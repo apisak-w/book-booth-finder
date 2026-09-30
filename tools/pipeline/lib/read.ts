@@ -104,8 +104,7 @@ export async function readCells(img: RGB, cells: Cell[], t: Transform, codePatte
   const reads: Read[] = [];
   try {
     for (const cell of cells) {
-      const v = rectToVenue(t, cell);
-      const at: [number, number] = [v.x + v.w / 2, v.y + v.h / 2];
+      const at: [number, number] = [cell.x + cell.w / 2, cell.y + cell.h / 2];
       let best = { text: '', conf: 0, code: null as string | null };
       for (const rotate of cell.h > cell.w * 2 ? [false, true] : [false]) {
         const { data } = await worker.recognize(await prep(img, readBox(cell), rotate));

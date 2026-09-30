@@ -47,3 +47,30 @@ test('a thin dark outline touching two booths does not merge them', () => {
     expect(c.h).toBeLessThanOrEqual(22);
   }
 });
+
+test('derived detect params are recomputed after re-registration; hand-set ones are kept', async () => {
+  const { resolveDetectParams } = await import('../tools/pipeline/lib/detect');
+  const base = {
+    roi: [0, 0, 10, 10] as [number, number, number, number],
+    floor: [255, 253, 240] as [number, number, number],
+    threshold: 55,
+    lineLength: 18,
+    lighterDelta: 35,
+    minIsland: 18,
+    minCell: { w: 14, h: 12, area: 200 },
+    exclude: [],
+  };
+  const t1 = { sx: 1, sy: 1, dx: 0, dy: 0, score: 0.5, method: 'auto' as const };
+  const t2 = { sx: 2, sy: 2, dx: 5, dy: 5, score: 1, method: 'manual' as const };
+  const fresh = {
+    ...base,
+    roi: [1, 1, 5, 5] as [number, number, number, number],
+    derivedFrom: { sx: 2, sy: 2, dx: 5, dy: 5 },
+  };
+  expect(resolveDetectParams(null, t2, () => fresh)).toBe(fresh);
+  expect(resolveDetectParams({ ...base, derivedFrom: { sx: 1, sy: 1, dx: 0, dy: 0 } }, t2, () => fresh)).toBe(fresh);
+  expect(resolveDetectParams({ ...base, derivedFrom: { sx: 1, sy: 1, dx: 0, dy: 0 } }, t1, () => fresh).roi).toEqual([
+    0, 0, 10, 10,
+  ]);
+  expect(resolveDetectParams(base, t2, () => fresh).roi).toEqual([0, 0, 10, 10]);
+});

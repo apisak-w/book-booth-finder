@@ -23,6 +23,7 @@ export type DetectParams = {
   minIsland: number;
   minCell: { w: number; h: number; area: number };
   exclude: Box[];
+  derivedFrom?: { sx: number; sy: number; dx: number; dy: number };
 };
 
 export type Cell = Rect & { rgb: [number, number, number]; inner?: Rect; outer?: [number, number, number] };
@@ -39,6 +40,7 @@ export function defaultDetectParams(img: RGB, venue: Venue, t: Transform): Detec
   ];
   return {
     roi,
+    derivedFrom: { sx: t.sx, sy: t.sy, dx: t.dx, dy: t.dy },
     floor: modeColour(crop(img, roi)),
     threshold: 55,
     lineLength: 18,
@@ -47,6 +49,18 @@ export function defaultDetectParams(img: RGB, venue: Venue, t: Transform): Detec
     minCell: { w: 14, h: 12, area: 200 },
     exclude: [],
   };
+}
+
+const same = (a: { sx: number; sy: number; dx: number; dy: number }, b: Transform) =>
+  Math.abs(a.sx - b.sx) < 1e-9 &&
+  Math.abs(a.sy - b.sy) < 1e-9 &&
+  Math.abs(a.dx - b.dx) < 1e-6 &&
+  Math.abs(a.dy - b.dy) < 1e-6;
+
+export function resolveDetectParams(saved: DetectParams | null, t: Transform, fresh: () => DetectParams): DetectParams {
+  if (!saved) return fresh();
+  if (saved.derivedFrom && !same(saved.derivedFrom, t)) return fresh();
+  return saved;
 }
 
 export function detectCells(img: RGB, p: DetectParams): Cell[] {

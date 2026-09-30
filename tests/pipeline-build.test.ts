@@ -115,3 +115,19 @@ test('checkBuild reports schema and integrity problems before anything is writte
   expect(problems.join('\n')).toContain('booths.369.cat');
   expect(checkBuild(bundle.venue, bundle.event, bundle.booths, [])).toEqual([]);
 }, 60_000);
+
+test('reads are stored in plan pixels and follow a new registration', () => {
+  const t = { sx: 2, sy: 2, dx: 100, dy: 50, score: 1, method: 'manual' as const };
+  const cell = { x: 10, y: 10, w: 20, h: 20, rgb: [0, 0, 0] as [number, number, number] };
+  const read = { at: [20, 20] as [number, number], text: 'A01', conf: 95, code: 'A01', flags: [] };
+  const { booths, problems } = buildBooths({
+    cells: [cell],
+    reads: [read],
+    corrections: { cells: [], add: [], categoryColours: { general: [0, 0, 0] } },
+    t,
+    sample: () => [0, 0, 0],
+    codePattern: '^[A-Z]\\d{2}$',
+  });
+  expect(problems).toEqual([]);
+  expect(booths.booths[0]).toMatchObject({ c: 'A01', x: 120, y: 70, w: 40, h: 40 });
+});

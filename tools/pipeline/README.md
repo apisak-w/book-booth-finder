@@ -14,7 +14,7 @@ Turns an organiser's floor-plan image (and exhibitor spreadsheet) into `events/<
 
 ## Registration
 
-The plan is mapped onto the venue's reference image with a per-axis scale and offset. `event:detect` fits it automatically from the floor outline. If the score is below 0.9, open the review tool, choose Register, click a wall corner on the plan and then the same corner on the reference, twice or more, far apart, and apply. Then run `event:detect` again.
+The plan is mapped onto the venue's reference image with a per-axis scale and offset. `event:detect` fits it automatically from the floor outline. If the score is below 0.9, open the review tool, choose Register, click a wall corner on the plan and then the same corner on the reference, twice or more, far apart, and apply. Then run `event:detect` and `event:read` again. Detection settings that the pipeline derived are recomputed for the new registration, and OCR reads are stored in plan pixels, so they follow it. Register before fixing cells: cell fixes are keyed by position on the venue, so a later registration change can orphan them.
 
 ## Detection
 

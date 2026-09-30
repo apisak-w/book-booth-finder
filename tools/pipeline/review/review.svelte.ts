@@ -4,7 +4,7 @@ import type { EventBundle } from '$lib/server/catalog';
 import type { Cell } from '../lib/detect';
 import type { Read } from '../lib/build';
 import type { Corrections } from '../lib/corrections';
-import { IDENTITY, fitAxes, rectToVenue, toPlan, type Transform } from '../lib/transform';
+import { IDENTITY, fitAxes, rectToVenue, toPlan, toVenue, type Transform } from '../lib/transform';
 import { cellStatus, upsertFix, type CellStatus } from './status';
 
 export type Mode = 'select' | 'booth' | 'stage' | 'info' | 'foyer' | 'landmark' | 'register';
@@ -31,7 +31,8 @@ export class Review {
   planSize = $state({ w: 0, h: 0 });
 
   venueCells = $derived(this.cells.map((c) => rectToVenue(this.t, c)));
-  statuses = $derived(this.venueCells.map((r) => cellStatus(r, this.reads, this.corrections, this.venueCells)));
+  venueReads = $derived(this.reads.map((r) => ({ ...r, at: toVenue(this.t, r.at) })));
+  statuses = $derived(this.venueCells.map((r) => cellStatus(r, this.venueReads, this.corrections, this.venueCells)));
   problems = $derived(
     this.statuses
       .map((s, k) => ({ s, k }))

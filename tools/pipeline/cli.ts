@@ -3,8 +3,8 @@ import { loadEvent, loadVenue } from '../../src/lib/server/catalog';
 import { EventSchema } from '../../src/lib/server/schema';
 import { loadData } from '../../src/lib/core/prepare';
 import { crop, loadImage, median, type RGB } from './lib/image';
-import { autoRegister, type Transform } from './lib/register';
-import { defaultDetectParams, detectCells, type Cell } from './lib/detect';
+import { autoRegister, toVenue, type Transform } from './lib/register';
+import { defaultDetectParams, detectCells, resolveDetectParams, type Cell } from './lib/detect';
 import { EMPTY_CORRECTIONS, parseCorrections, mergeEvent } from './lib/corrections';
 import { buildBooths, checkBuild, computeAisles, type Read } from './lib/build';
 import { ZodError } from 'zod';
@@ -39,7 +39,7 @@ export async function detect(id: string) {
   writeJson(p.registration, t);
   if (t.score < 0.9)
     console.warn(`Registration score ${t.score.toFixed(2)} is low. Fix it in the review tool (register mode).`);
-  const params = readJson(p.detect) ?? defaultDetectParams(img, venue, t);
+  const params = resolveDetectParams(readJson(p.detect, null), t, () => defaultDetectParams(img, venue, t));
   writeJson(p.detect, params);
   const cells = detectCells(img, params);
   writeJson(p.cells, cells);
@@ -162,11 +162,15 @@ export async function ocrReport(id: string) {
   const p = eventPaths(id);
   const { booths } = loadEvent(id);
   const reads: Read[] = readJson(p.reads);
+  const t: Transform = readJson(p.registration);
   let right = 0,
     wrong = 0,
     none = 0;
   for (const b of booths.booths) {
-    const r = reads.find((x) => x.at[0] >= b.x && x.at[0] < b.x + b.w && x.at[1] >= b.y && x.at[1] < b.y + b.h);
+    const r = reads.find((x) => {
+      const [vx, vy] = toVenue(t, x.at);
+      return vx >= b.x && vx < b.x + b.w && vy >= b.y && vy < b.y + b.h;
+    });
     if (!r?.code) none++;
     else if (r.code === b.c) right++;
     else wrong++;

@@ -14,7 +14,7 @@ import { prepareData } from '../../../src/lib/core/prepare';
 import type { Cell } from './detect';
 import type { Corrections } from './corrections';
 import { nearestCategory } from './categorise';
-import { ownerIndex, rectToVenue, type Transform } from './transform';
+import { ownerIndex, rectToVenue, toVenue, type Transform } from './transform';
 
 export { ownerIndex };
 
@@ -46,7 +46,7 @@ export function buildBooths(input: BuildInput): { booths: BoothsFile; problems: 
 
   const vrs = cells.map((c) => roundRect(rectToVenue(t, c)));
   const fixOwner = corrections.cells.map((c) => ownerIndex(c.at, vrs));
-  const readOwner = reads.map((r) => ownerIndex(r.at, vrs));
+  const readOwner = reads.map((r) => ownerIndex(toVenue(t, r.at), vrs));
 
   for (const [k, cell] of cells.entries()) {
     const vr = vrs[k];
