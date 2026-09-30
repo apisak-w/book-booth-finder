@@ -41,9 +41,9 @@ export function farFromColour(img: RGB, [r, g, b]: [number, number, number], thr
   return { width: img.width, height: img.height, data: out };
 }
 
-export function gray(img: RGB): Float32Array {
+export function gray(img: RGB): Float64Array {
   const n = img.width * img.height,
-    out = new Float32Array(n);
+    out = new Float64Array(n);
   for (let i = 0; i < n; i++) out[i] = (img.data[i * 3] + img.data[i * 3 + 1] + img.data[i * 3 + 2]) / 3;
   return out;
 }
@@ -143,3 +143,30 @@ export function modeColour(img: RGB, quant = 8): [number, number, number] {
   const best = [...counts.values()].sort((a, b) => b.n - a.n)[0];
   return [Math.round(best.r / best.n), Math.round(best.g / best.n), Math.round(best.b / best.n)];
 }
+
+function morph3(mask: Mask, erode: boolean): Mask {
+  const { width: w, height: h, data } = mask,
+    out = new Uint8Array(w * h);
+  for (let y = 0; y < h; y++)
+    for (let x = 0; x < w; x++) {
+      let v = erode ? 1 : 0;
+      for (let dy = -1; dy <= 1 && v === (erode ? 1 : 0); dy++)
+        for (let dx = -1; dx <= 1; dx++) {
+          const xx = x + dx,
+            yy = y + dy;
+          const p = xx < 0 || yy < 0 || xx >= w || yy >= h ? 0 : data[yy * w + xx];
+          if (erode && !p) {
+            v = 0;
+            break;
+          }
+          if (!erode && p) {
+            v = 1;
+            break;
+          }
+        }
+      out[y * w + x] = v;
+    }
+  return { width: w, height: h, data: out };
+}
+
+export const open3 = (mask: Mask): Mask => morph3(morph3(mask, true), false);

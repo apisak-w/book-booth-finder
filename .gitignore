@@ -9,3 +9,5 @@ __pycache__/
 test-results/
 playwright-report/
 events/*/source/*.tmp.*
+events/*/source/cells.json
+events/*/source/reads.json

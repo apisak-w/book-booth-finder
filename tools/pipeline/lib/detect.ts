@@ -6,6 +6,7 @@ import {
   gray,
   median,
   modeColour,
+  open3,
   openLine,
   type Mask,
   type RGB,
@@ -91,24 +92,54 @@ export function detectCells(img: RGB, p: DetectParams): Cell[] {
   const cc = components(eroded);
 
   const [ox, oy] = p.roi;
-  const cells: Cell[] = [];
+  const pieces: { x: number; y: number; w: number; h: number; px: number[] }[] = [];
+  const pixelsOf = (
+    labels: Int32Array,
+    width: number,
+    id: number,
+    x: number,
+    y: number,
+    w: number,
+    h: number,
+    dx = 0,
+    dy = 0,
+  ) => {
+    const px: number[] = [];
+    for (let yy = y; yy < y + h; yy++)
+      for (let xx = x; xx < x + w; xx++) if (labels[yy * width + xx] === id) px.push((yy + dy) * W + xx + dx);
+    return px;
+  };
   for (let id = 1; id < cc.stats.length; id++) {
     const { x, y, w, h, area } = cc.stats[id];
-    if (w < p.minCell.w || h < p.minCell.h || area < p.minCell.area) continue;
+    if (area >= 0.8 * w * h) {
+      pieces.push({ x, y, w, h, px: pixelsOf(cc.labels, W, id, x, y, w, h) });
+      continue;
+    }
+    const sub: Mask = { width: w, height: h, data: new Uint8Array(w * h) };
+    for (let yy = 0; yy < h; yy++)
+      for (let xx = 0; xx < w; xx++) sub.data[yy * w + xx] = cc.labels[(y + yy) * W + x + xx] === id ? 1 : 0;
+    const split = components(open3(sub));
+    for (let k = 1; k < split.stats.length; k++) {
+      const s2 = split.stats[k];
+      pieces.push({
+        x: x + s2.x,
+        y: y + s2.y,
+        w: s2.w,
+        h: s2.h,
+        px: pixelsOf(split.labels, w, k, s2.x, s2.y, s2.w, s2.h, x, y),
+      });
+    }
+  }
+
+  const cells: Cell[] = [];
+  for (const { x, y, w, h, px } of pieces) {
+    if (w < p.minCell.w || h < p.minCell.h || px.length < p.minCell.area) continue;
     const gx = x + ox,
       gy = y + oy;
     if (p.exclude.some(([a, b, c, d]) => a < gx && gx < c && b < gy && gy < d)) continue;
-    const rs: number[] = [],
-      gs: number[] = [],
-      bs: number[] = [];
-    for (let yy = y; yy < y + h; yy++)
-      for (let xx = x; xx < x + w; xx++)
-        if (cc.labels[yy * W + xx] === id) {
-          const i = (yy * W + xx) * 3;
-          rs.push(roi.data[i]);
-          gs.push(roi.data[i + 1]);
-          bs.push(roi.data[i + 2]);
-        }
+    const rs = px.map((i) => roi.data[i * 3]),
+      gs = px.map((i) => roi.data[i * 3 + 1]),
+      bs = px.map((i) => roi.data[i * 3 + 2]);
     const c: Cell = {
       x: gx,
       y: gy,
