@@ -1,0 +1,58 @@
+<!doctype html>
+<html lang="th">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>Booth Finder · Book Fair 2026 · QSNCC</title>
+  <meta name="description" content="Find any booth at the National Book Fair & Bangkok International Book Fair, QSNCC Halls 5–8, and get walking directions.">
+  <meta name="theme-color" content="#13306B">
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>📚</text></svg>">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Mitr:wght@400;500;600&family=Anuphan:wght@400;500;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="src/styles.css">
+  <script type="module" src="src/main.js"></script>
+</head>
+<body>
+<div class="app">
+  <header>
+    <div class="brand">
+      <b data-t="title">ค้นหาบูธ</b>
+      <span data-t="subtitle"></span>
+    </div>
+    <div class="lang" role="group" aria-label="Language">
+      <button type="button" data-lang="th" aria-pressed="true">ไทย</button>
+      <button type="button" data-lang="en" aria-pressed="false">EN</button>
+    </div>
+  </header>
+
+  <div class="mapwrap">
+    <svg id="map" xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="xMidYMid meet" role="img" aria-label="Floor plan"></svg>
+    <div class="zoombar">
+      <button type="button" id="zin" data-aria="zoomIn">+</button>
+      <button type="button" id="zout" data-aria="zoomOut">−</button>
+      <button type="button" id="zfit" data-aria="fit">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5"/></svg>
+      </button>
+    </div>
+    <div class="toast" id="toast" role="status" aria-live="polite"></div>
+  </div>
+
+  <section class="sheet" id="sheet">
+    <div class="sheet-head">
+      <div class="search">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
+        <label class="sr" for="q" data-t="searchLabel"></label>
+        <input id="q" type="search" autocomplete="off" autocapitalize="characters" spellcheck="false" enterkeyhint="search">
+        <button type="button" class="iconbtn" id="qclear" hidden data-aria="clearSearch">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18"/></svg>
+        </button>
+      </div>
+      <button type="button" class="toggle" id="sheetToggle" aria-expanded="true"></button>
+    </div>
+    <div class="body" id="body" aria-live="polite"></div>
+  </section>
+</div>
+<noscript><p style="padding:16px">This map needs JavaScript. / แผนที่นี้ต้องเปิด JavaScript</p></noscript>
+</body>
+</html>
