@@ -11,5 +11,5 @@
     "skipLibCheck": true,
     "types": ["bun"]
   },
-  "exclude": ["legacy", "_site", "node_modules", "tools/golden", "tools/migrate"]
+  "exclude": ["_site", "node_modules"]
 }

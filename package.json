@@ -13,7 +13,6 @@
     "fmt": "oxfmt",
     "fmt:check": "oxfmt --check",
     "check": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json",
-    "legacy:test": "node --test legacy/tests/*.test.js",
     "event:detect": "bun tools/pipeline/cli.ts detect",
     "event:build": "bun tools/pipeline/cli.ts build",
     "event:new": "bun tools/pipeline/cli.ts new",

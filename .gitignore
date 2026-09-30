@@ -2,12 +2,10 @@ node_modules/
 _site/
 .DS_Store
 *.log
-tools/digitize/out/
-__pycache__/
-.venv/
 .svelte-kit/
 test-results/
 playwright-report/
 events/*/source/*.tmp.*
 events/*/source/cells.json
 events/*/source/reads.json
+*.traineddata
