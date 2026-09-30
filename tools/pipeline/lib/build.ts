@@ -2,7 +2,7 @@ import type { BoothRaw, BoothsFile, EventFile, Pillar, Point, Rect, Venue } from
 import type { Cell } from './detect';
 import type { Corrections } from './corrections';
 import { nearestCategory } from './categorise';
-import { rectToVenue, type Transform } from './register';
+import { rectToVenue, type Transform } from './transform';
 
 export type Read = { at: Point; text: string; conf: number; code: string | null; flags: string[] };
 export type BuildInput = {

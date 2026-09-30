@@ -18,7 +18,8 @@
     "event:build": "bun tools/pipeline/cli.ts build",
     "event:new": "bun tools/pipeline/cli.ts new",
     "event:read": "bun tools/pipeline/cli.ts read",
-    "event:ocr-report": "bun tools/pipeline/cli.ts ocr-report"
+    "event:ocr-report": "bun tools/pipeline/cli.ts ocr-report",
+    "event:review": "bun tools/pipeline/cli.ts review"
   },
   "devDependencies": {
     "@playwright/test": "^1.63.0",

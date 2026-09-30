@@ -15,6 +15,7 @@ import { copyFileSync, mkdirSync } from 'node:fs';
 import { extname } from 'node:path';
 import { readCells } from './lib/read';
 import { clusterColours, assignCategories } from './lib/categorise';
+import { spawn } from 'node:child_process';
 
 const readJson = <T>(path: string, fallback?: T): T =>
   existsSync(path) ? JSON.parse(readFileSync(path, 'utf8')) : (fallback as T);
@@ -172,6 +173,16 @@ export async function ocrReport(id: string) {
   console.log(`right ${right}, wrong ${wrong}, unread ${none} of ${booths.booths.length}`);
 }
 
+export async function review(id: string) {
+  loadEvent(id);
+  if (!existsSync(eventPaths(id).cells)) fail([`Run bun run event:detect ${id} first`]);
+  const child = spawn('bunx', ['vite', '--config', 'tools/pipeline/review/vite.config.ts'], {
+    stdio: 'inherit',
+    env: { ...process.env, EVENT_ID: id },
+  });
+  await new Promise((resolve) => child.on('exit', resolve));
+}
+
 const commands: Record<string, (id: string) => Promise<unknown>> = {
   new: create,
   detect,
@@ -179,6 +190,7 @@ const commands: Record<string, (id: string) => Promise<unknown>> = {
   categorise,
   build,
   'ocr-report': ocrReport,
+  review,
 };
 if (!cmd || !commands[cmd] || !target)
   fail([`usage: bun tools/pipeline/cli.ts <${Object.keys(commands).join('|')}> <event-id>`]);
