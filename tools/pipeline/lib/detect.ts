@@ -108,7 +108,7 @@ export function detectCells(img: RGB, p: DetectParams): Cell[] {
   const [ox, oy] = p.roi;
   const pieces: { x: number; y: number; w: number; h: number; px: number[] }[] = [];
   const pixelsOf = (
-    labels: Int32Array,
+    lab: Int32Array,
     width: number,
     id: number,
     x: number,
@@ -120,7 +120,7 @@ export function detectCells(img: RGB, p: DetectParams): Cell[] {
   ) => {
     const px: number[] = [];
     for (let yy = y; yy < y + h; yy++)
-      for (let xx = x; xx < x + w; xx++) if (labels[yy * width + xx] === id) px.push((yy + dy) * W + xx + dx);
+      for (let xx = x; xx < x + w; xx++) if (lab[yy * width + xx] === id) px.push((yy + dy) * W + xx + dx);
     return px;
   };
   for (let id = 1; id < cc.stats.length; id++) {

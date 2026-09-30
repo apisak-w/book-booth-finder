@@ -13,8 +13,8 @@ const mask = (rows: string[]): Mask => {
   return { width: w, height: h, data };
 };
 const rows = (m: Mask) =>
-  Array.from({ length: m.height }, (_, y) =>
-    Array.from({ length: m.width }, (_, x) => (m.data[y * m.width + x] ? '#' : '.')).join(''),
+  Array.from({ length: m.height }, (_row, y) =>
+    Array.from({ length: m.width }, (_col, x) => (m.data[y * m.width + x] ? '#' : '.')).join(''),
   );
 
 test('median follows NumPy', () => {

@@ -27,3 +27,16 @@ test('sort puts live first, then upcoming soonest, then past latest', () => {
   ];
   expect(sortEvents(list, now).map((e) => e.id)).toEqual(['live', 'soon', 'later', 'recent', 'old']);
 });
+
+test('todayIn does not depend on a locale date format', () => {
+  const orig = Intl.DateTimeFormat;
+  // @ts-expect-error force a locale that formats dates differently
+  Intl.DateTimeFormat = function (_l: string, o: Intl.DateTimeFormatOptions) {
+    return new orig('en-US', o);
+  };
+  try {
+    expect(todayIn('Asia/Bangkok', new Date('2026-04-06T16:30:00Z'))).toBe('2026-04-06');
+  } finally {
+    Intl.DateTimeFormat = orig;
+  }
+});

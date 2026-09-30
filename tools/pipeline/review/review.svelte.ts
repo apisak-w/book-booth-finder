@@ -66,7 +66,11 @@ export class Review {
   }
 
   async save() {
-    const r = await fetch(`/api/corrections?id=${this.id}`, { method: 'POST', body: JSON.stringify(this.corrections) });
+    const r = await fetch(`/api/corrections?id=${this.id}`, {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify(this.corrections),
+    });
     const body = await r.json();
     this.message = r.ok ? 'Saved. Run event:build when every cell is resolved.' : body.error;
     if (r.ok) this.dirty = false;
@@ -143,7 +147,11 @@ export class Review {
 
   async applyRegistration() {
     const t = fitAxes(this.pairs);
-    const r = await fetch(`/api/registration?id=${this.id}`, { method: 'POST', body: JSON.stringify(t) });
+    const r = await fetch(`/api/registration?id=${this.id}`, {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify(t),
+    });
     this.message = r.ok ? 'Registration saved. Run event:detect again, then reload.' : (await r.json()).error;
     this.pairs = [];
   }

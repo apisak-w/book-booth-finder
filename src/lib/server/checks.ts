@@ -33,7 +33,7 @@ export function checkEvent(data: EventData): string[] {
   for (const c of Object.keys(event.zones)) if (!data.byCode[c]) problems.push(`zone ${c} is not on the map`);
 
   const ids = [...venue.landmarks, ...event.landmarks].map((l) => l.id);
-  for (const id of new Set(ids.filter((id, k) => ids.indexOf(id) !== k)))
+  for (const id of new Set(ids.filter((x, k) => ids.indexOf(x) !== k)))
     problems.push(`landmark id ${id} is used twice`);
   for (const l of data.landmarks)
     if (!ICON_NAMES.includes(l.icon)) problems.push(`landmark ${l.id} has unknown icon ${l.icon}`);

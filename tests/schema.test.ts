@@ -51,3 +51,9 @@ test('formatIssues names the path', () => {
   expect(r.success).toBe(false);
   if (!r.success) expect(formatIssues(r.error)).toContain('name');
 });
+
+test('an invalid codePattern is rejected by name', () => {
+  const r = EventSchema.safeParse({ ...minimalEvent, codePattern: '^[A-Z' });
+  expect(r.success).toBe(false);
+  if (!r.success) expect(formatIssues(r.error)).toContain('codePattern');
+});

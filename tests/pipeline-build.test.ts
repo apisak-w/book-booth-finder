@@ -9,6 +9,9 @@ import { loadEvent } from '../src/lib/server/catalog';
 import type { Rect } from '../src/lib/core/types';
 
 const bundle = loadEvent('bkkibf-2026');
+const byKey = <T extends { c: string; x: number; y: number }>(list: T[]) =>
+  [...list].sort((a, b) => a.c.localeCompare(b.c) || a.x - b.x || a.y - b.y);
+const pk = (p: Rect) => p.x * 10000 + p.y;
 
 test('the 2026 plan plus committed corrections reproduces booths.json', async () => {
   const img = await loadImage('events/bkkibf-2026/source/plan.jpg');
@@ -36,8 +39,6 @@ test('the 2026 plan plus committed corrections reproduces booths.json', async ()
   expect(problems).toEqual([]);
 
   const want = bundle.booths;
-  const byKey = <T extends { c: string; x: number; y: number }>(list: T[]) =>
-    [...list].sort((a, b) => a.c.localeCompare(b.c) || a.x - b.x || a.y - b.y);
   const got = byKey(booths.booths),
     exp = byKey(want.booths);
   expect(got.map((b) => b.c)).toEqual(exp.map((b) => b.c));
@@ -52,7 +53,6 @@ test('the 2026 plan plus committed corrections reproduces booths.json', async ()
   expect(off).toEqual([]);
 
   expect(booths.pillars.length).toBe(want.pillars.length);
-  const pk = (p: Rect) => p.x * 10000 + p.y;
   const gp = [...booths.pillars].sort((a, b) => pk(a) - pk(b)),
     ep = [...want.pillars].sort((a, b) => pk(a) - pk(b));
   gp.forEach((p, k) => {

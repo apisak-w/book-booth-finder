@@ -15,10 +15,11 @@ import { readCells } from './lib/read';
 import { clusterColours, assignCategories } from './lib/categorise';
 import { spawn } from 'node:child_process';
 import { guessColumns, parseMap, readSheet, toCsv, toExhibitorRows } from './lib/exhibitors';
+import { stringifyJson } from './lib/json';
 
 const readJson = <T>(path: string, fallback?: T): T =>
   existsSync(path) ? JSON.parse(readFileSync(path, 'utf8')) : (fallback as T);
-const writeJson = (path: string, v: unknown) => writeFileSync(path, JSON.stringify(v, null, 2) + '\n');
+const writeJson = (path: string, v: unknown) => writeFileSync(path, stringifyJson(v));
 const fail = (lines: string[]) => {
   console.error(lines.map((l) => `- ${l}`).join('\n'));
   process.exit(1);

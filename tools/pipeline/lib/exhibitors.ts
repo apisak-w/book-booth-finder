@@ -53,14 +53,15 @@ export function expandCodes(cell: string, known: Set<string>): { codes: string[]
   return { codes, unknown };
 }
 
+const get = (r: Record<string, string>, col?: string) => {
+  if (!col) return '';
+  const key = Object.keys(r).find((k) => k.toLowerCase() === col.toLowerCase());
+  return key ? String(r[key] ?? '').trim() : '';
+};
+
 export function toExhibitorRows(rows: Record<string, string>[], map: ColumnMap, known: Set<string>) {
   const out: { booth: string; name_th: string; name_en: string }[] = [],
     unknown = new Set<string>();
-  const get = (r: Record<string, string>, col?: string) => {
-    if (!col) return '';
-    const key = Object.keys(r).find((k) => k.toLowerCase() === col.toLowerCase());
-    return key ? String(r[key] ?? '').trim() : '';
-  };
   for (const r of rows) {
     const th = get(r, map.th),
       en = get(r, map.en);

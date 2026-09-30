@@ -62,7 +62,16 @@ export const EventSchema: z.ZodType<EventFile, unknown> = z
     subtitle: i18n.optional(),
     dates: z.object({ start: isoDate, end: isoDate }),
     venue: slug,
-    codePattern: z.string().default('^[A-Z]\\d{2}$'),
+    codePattern: z
+      .string()
+      .refine((p) => {
+        try {
+          return new RegExp(p) instanceof RegExp;
+        } catch {
+          return false;
+        }
+      }, 'not a valid regular expression')
+      .default('^[A-Z]\\d{2}$'),
     categories: z.record(z.string(), i18n.extend({ color: hex, darkText: z.boolean().optional() })),
     zones: z.record(z.string(), i18n.extend({ short: z.string().optional() })),
     foyerZones: z.array(rect.extend({ c: z.string(), vertical: z.boolean().optional() })),

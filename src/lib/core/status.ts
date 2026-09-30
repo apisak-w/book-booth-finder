@@ -1,10 +1,16 @@
 export type Status = 'live' | 'upcoming' | 'past';
 export const LEGACY_EVENT = 'bkkibf-2026';
 
-export const todayIn = (timezone: string, now = new Date()) =>
-  new Intl.DateTimeFormat('en-CA', { timeZone: timezone, year: 'numeric', month: '2-digit', day: '2-digit' }).format(
-    now,
-  );
+export function todayIn(timezone: string, now = new Date()): string {
+  const parts = new Intl.DateTimeFormat('en-US', {
+    timeZone: timezone,
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+  }).formatToParts(now);
+  const get = (t: string) => parts.find((p) => p.type === t)?.value ?? '';
+  return `${get('year')}-${get('month')}-${get('day')}`;
+}
 
 export function eventStatus(dates: { start: string; end: string }, timezone: string, now = new Date()): Status {
   const today = todayIn(timezone, now);
