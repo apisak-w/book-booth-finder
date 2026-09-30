@@ -46,7 +46,8 @@ Success criteria:
 | Schemas | Zod, used at build time and in the pipeline only (not shipped to guests) |
 | Image processing | `sharp` plus hand-written morphology on raw buffers |
 | OCR | `tesseract.js` (downloads English traineddata on first run) |
-| Spreadsheets | an XLSX reader chosen at plan time; CSV via the existing parser |
+| Spreadsheets | `read-excel-file`; CSV via the existing parser |
+| End-to-end | Playwright (Chromium) smoke tests against `vite preview` |
 | Hosting | Cloudflare Pages Git integration. Build `bun run build`, output `build` |
 
 Scripts: `dev`, `build`, `preview`, `test`, `lint`, `fmt`, `fmt:check`, `check`, `event:new`, `event:review`, `event:build`, `event:exhibitors`.
@@ -72,7 +73,6 @@ src/
     +page.ts            event summaries for the list
     e/[id]/+page.svelte finder
     e/[id]/+page.ts     loads one event; entries() yields every events/* id
-    review/[id]/        pipeline review tool, dev only (§7.6)
   lib/
     venues/             build-time loading of /venues/*
     core/               pure TS: grid, routing, search, directions, csv, codes, prepare, schema
@@ -97,6 +97,7 @@ Each venue has its own coordinate space: pixels of its `reference.jpg`. Every ev
 
 ```ts
 type Point = [number, number];
+type Box = [number, number, number, number];   // x0, y0, x1, y1
 
 type VenueFile = {
   id: string;                               // equals folder name, never renamed
@@ -104,23 +105,31 @@ type VenueFile = {
   timezone: string;                         // IANA, e.g. "Asia/Bangkok"
   reference: { width: number; height: number };
   view: Rect;                               // fully zoomed-out viewBox
+  overview: { narrow: { box: Box; pad: number }; wide: { box: Box; pad: number } };
   metersPerPx: number;
   gridCell?: number;                        // routing cell size in px, default 6
   walls: Point[][];                         // polygons drawn as the building outline
-  walkable: Rect[];                         // union forms the walkable floor
-  areas: { id: string; name: I18n; label: { x: number; y: number }; bounds: Point[] }[];
-  doors: { id: string; x: number; y: number; area: string; axis: 'h' | 'v'; width: number }[];
+  floor: { op: 'add' | 'remove'; box: Box }[];   // applied in order to build the walkable floor
+  areas: { id: string; name: I18n; label: { x: number; y: number; text: string }; bounds: Point[] }[];
+  outside: I18n;                            // label for points in no area
+  doors: { id: string; area: string; punch: Box; gap: Box }[];
+  depth?: {                                 // aisle position phrasing
+    back: number; front: number;            // y of the back and front walls
+    text: { back: I18n; mid: I18n; front: I18n };
+    aisleHint: I18n;
+  };
   landmarks: Landmark[];                    // same shape as event landmarks
   origin: string;                           // landmark id used as the reachability root in tests
-  backWallY?: number;                       // optional; aisle signs are drawn here
 };
 ```
 
 - `areas` replace `HALL_SPLITS`. A point's area is the polygon that contains it. Directions say "Go to <area name>" using the venue's names, so nothing says "Hall" in code.
-- Doors are punched through `walls` at `(x, y)` along `axis` with `width`. The map draws the gap from the same data, which removes today's hard-coded gap coordinates and the `west` special case.
+- `floor` reproduces today's walkable set exactly, including the recess pockets in the lakeside wall.
+- Each door has a `punch` box (opened and tagged in the routing grid) and a `gap` box (drawn over the wall). Door landmarks share the door id. This removes today's hard-coded gap coordinates and the `west` special case; the west door's landmark uses a `doorSide` icon.
+- Venue-specific wording ("back wall", "lakeside") lives in `depth.text` and `depth.aisleHint`, not in app strings.
 - Walking speed (55 m/min) is an app constant, not venue data.
 
-`venues/qsncc-lg-5-8/` is migrated from `config.js` and the venue part of `LANDMARKS` with identical values: `VIEW`, `M_PER_PX`, `GRID_CELL`, `HALL_OUTLINE` as `walls`, `WALKABLE` flattened, `HALL_SPLITS` and `HALL_LABELS` as four `areas` (Hall 5–8), `DOORS` with axis and width, landmarks `mrt`, `west`, `door5`–`door8`, `wc1`–`wc6`, `lift`, `origin: "mrt"`, `backWallY: 322`, timezone `Asia/Bangkok`. `reference.jpg` is the 2026 plan (2560 × 1932).
+`venues/qsncc-lg-5-8/` is migrated from `config.js`, `routing.js`, `directions.js`, `map.js` and the venue part of `LANDMARKS` with identical behaviour: `VIEW`, the two overview boxes, `M_PER_PX`, `GRID_CELL`, `HALL_OUTLINE` as `walls`, `WALKABLE` plus `RECESSES` as ordered `floor` ops, `HALL_SPLITS`, the side-bay rule and `HALL_LABELS` as four `areas` (Hall 5–8), `DOORS` with punch and gap boxes, depth 284–1460 with the back/mid/front and aisle-letter phrases, landmarks `mrt`, `west`, `door5`–`door8`, `wc1`–`wc6`, `lift`, `origin: "mrt"`, timezone `Asia/Bangkok`. `reference.jpg` is the 2026 plan (2560 × 1932).
 
 ### 4.2 Event (`events/<id>/event.json`)
 
@@ -144,8 +153,9 @@ type EventFile = {
   categories: Record<string, I18n & { color: string; darkText?: boolean }>;
   zones: Record<string, I18n & { short?: string }>;   // keyed by booth code
   foyerZones: (Rect & { c: string; vertical?: boolean })[];
-  obstacles: (Rect & { kind: 'stage' | 'info' | 'other' })[];
-  aisles: Record<string, number>;           // letter -> x, signs drawn at venue backWallY
+  obstacles: (Rect & { kind: 'stage' | 'info' | 'other'; note?: string })[];
+  aisles?: { signY: number; boothMinY: number; x: Record<string, number> };  // letter -> x
+  text?: Partial<Record<'ph' | 'searchLabel' | 'exhibitors', I18n>>;          // overrides generic wording
   landmarks: Landmark[];
   quickPicks: (['booth', string] | ['place', string])[];
   codePattern?: string;                     // regex, default "^[A-Z]\\d{2}$"
@@ -161,7 +171,7 @@ Same shape as today without `hall`:
 ```ts
 type BoothsFile = {
   booths: (Rect & { c: string; cat: string; extra?: Rect[] })[];
-  pillars: Rect[];
+  pillars: (Rect & { cat: string; inner: Rect })[];
 };
 ```
 
@@ -175,6 +185,8 @@ type BoothsFile = {
 - Every user-facing string has `th` and `en`.
 - Booth codes must match the event's `codePattern`. When a code starts with a letter found in `aisles`, directions say "Turn into aisle X". Otherwise they omit the aisle phrase. OCR whitelist and consistency checks derive from the same pattern.
 - If an event has `foyerZones`, it must define a `special` category.
+- App strings are generic ("exhibitor"). The 2026 event sets `text` to keep its "publisher" wording.
+- v1 behaviour is pinned by a golden snapshot taken from the v1 code before porting (routes, steps in both languages, search results, hall lookup). v2 must match it exactly for the 2026 event.
 
 ### 4.5 Migration of the 2026 event
 
@@ -263,7 +275,7 @@ Samples each cell's fill, clusters colours, and maps clusters to `event.json` ca
 
 ### 7.6 Review
 
-A Svelte route `src/routes/review/[id]/`, available only under `bun run event:review` (dev server). Production builds exclude it; the build smoke test asserts it is absent. It reuses the map components on top of the plan image and shows cells coloured by read confidence and flags. Actions:
+A small Vite + Svelte app in `tools/pipeline/review/`, started by `bun run event:review <id>`. It imports the app's map components through the `$lib` alias and saves through a Vite dev-server middleware. It is outside `src/routes`, so production builds never include it. It reuses the map components on top of the plan image and shows cells coloured by read confidence and flags. Actions:
 
 - edit a code, mark as pillar, merge, split, draw a missed cell, delete a false cell
 - register via four corner clicks when needed
@@ -275,7 +287,7 @@ Saves to `source/corrections.json` through a dev-only endpoint. The file is the 
 
 ### 7.7 Build
 
-Applies corrections to cells and reads. Writes `booths.json`. Fills `event.json`: categories, zones, foyer zones, obstacles, landmarks and aisle letters computed from booth island columns (letter from the booths' codes, x of the aisle left of the island). Validates with the schemas and runs the per-event checks from §9. Exits non-zero with a readable list on failure.
+Corrections are keyed by points in venue coordinates (a correction applies to the detected cell containing its point), so they survive detector changes. Applies corrections to cells and reads. Writes `booths.json`. Fills `event.json`: categories, zones, foyer zones, obstacles, landmarks and aisle letters computed from booth island columns (letter from the booths' codes, x of the aisle left of the island). Validates with the schemas and runs the per-event checks from §9. Exits non-zero with a readable list on failure.
 
 ### 7.8 Exhibitors
 
@@ -303,7 +315,9 @@ All with `bun test`. CI runs `lint`, `fmt:check`, `check`, `test`, then `build` 
 - Core: search, directions, CSV, `normCode`, `prepare`, `panzoom`. The 14 current tests are ported and pass.
 - i18n: app strings th/en key parity; every event `I18n` field has both.
 - Pipeline: morphology helpers, column guessing, range expansion, registration on the 2026 plan, and the 2026 reproduction test (§1 criterion 5).
-- Build smoke: `build/index.html` and `build/e/bkkibf-2026/index.html` exist; nothing from `events/*/source/`, `venues/*/reference.jpg` or `review/` appears in `build/`.
+- Golden parity: v2 routes, steps (th and en), search results and area lookup equal the v1 snapshot.
+- End-to-end (Playwright): finder deep link renders card and steps; tapping a booth selects it; language toggle; share link round-trip; event list; legacy redirect; unknown event 404.
+- Build smoke: `build/index.html` and `build/e/bkkibf-2026/index.html` exist; nothing from `events/*/source/`, `venues/*/reference.jpg` or `tools/` appears in `build/`; Zod is not in the client bundle.
 
 ## 10. Rollout
 
