@@ -11,6 +11,10 @@ import { defaultDetectParams, detectCells, type Cell } from './lib/detect';
 import { EMPTY_CORRECTIONS, parseCorrections, mergeEvent } from './lib/corrections';
 import { buildBooths, computeAisles, type Read } from './lib/build';
 import { eventPaths } from './lib/paths';
+import { copyFileSync, mkdirSync } from 'node:fs';
+import { extname } from 'node:path';
+import { readCells } from './lib/read';
+import { clusterColours, assignCategories } from './lib/categorise';
 
 const readJson = <T>(path: string, fallback?: T): T =>
   existsSync(path) ? JSON.parse(readFileSync(path, 'utf8')) : (fallback as T);
@@ -79,8 +83,103 @@ export async function build(id: string) {
   );
 }
 
-const [cmd, id] = process.argv.slice(2);
-const commands: Record<string, (id: string) => Promise<unknown>> = { detect, build };
-if (!cmd || !commands[cmd] || !id)
+const [cmd, target] = process.argv.slice(2);
+const flag = (name: string) => {
+  const k = process.argv.indexOf(`--${name}`);
+  return k > 0 ? process.argv[k + 1] : undefined;
+};
+
+export async function read(id: string) {
+  const p = eventPaths(id);
+  const { event } = loadEvent(id);
+  const img = await loadImage(p.plan);
+  const t: Transform = readJson(p.registration);
+  const cells: Cell[] = readJson(p.cells);
+  console.log(`Reading ${cells.length} cells. This takes a minute or two.`);
+  const reads = await readCells(img, cells, t, event.codePattern);
+  writeJson(p.reads, reads);
+  const flagged = reads.filter((r) => r.flags.length).length;
+  console.log(`${reads.length - flagged} read cleanly, ${flagged} need review`);
+}
+
+export async function categorise(id: string) {
+  const p = eventPaths(id);
+  const cells: Cell[] = readJson(p.cells);
+  const corrections = parseCorrections(readJson(p.corrections, EMPTY_CORRECTIONS));
+  const { categoryColours, created } = assignCategories(
+    clusterColours(cells.map((c) => c.rgb)),
+    corrections.categoryColours,
+  );
+  corrections.categoryColours = categoryColours;
+  corrections.event = { ...corrections.event, categories: { ...corrections.event?.categories, ...created } };
+  writeJson(p.corrections, corrections);
+  console.log(`${Object.keys(created).length} new categories to name in review`);
+}
+
+export async function create(id: string) {
+  const plan = flag('plan'),
+    nameTh = flag('name-th'),
+    nameEn = flag('name-en'),
+    start = flag('start'),
+    end = flag('end');
+  const venue = flag('venue') ?? 'qsncc-lg-5-8';
+  const missing = Object.entries({ plan, 'name-th': nameTh, 'name-en': nameEn, start, end })
+    .filter(([, v]) => !v)
+    .map(([k]) => `--${k} is required`);
+  if (missing.length) fail(missing);
+  if (!existsSync(plan!)) fail([`plan file ${plan} does not exist`]);
+  const p = eventPaths(id);
+  if (existsSync(p.event)) fail([`events/${id} already exists. Pick a new id or run event:detect ${id}`]);
+  loadVenue(venue);
+  mkdirSync(p.source, { recursive: true });
+  copyFileSync(plan!, `${p.source}/plan${extname(plan!).toLowerCase()}`);
+  writeJson(
+    p.event,
+    EventSchema.parse({
+      id,
+      name: { th: nameTh, en: nameEn },
+      dates: { start, end },
+      venue,
+      categories: {},
+      zones: {},
+      foyerZones: [],
+      obstacles: [],
+      landmarks: [],
+      quickPicks: [],
+    }),
+  );
+  writeJson(p.booths, { booths: [], pillars: [] });
+  writeJson(p.corrections, EMPTY_CORRECTIONS);
+  await detect(id);
+  await read(id);
+  await categorise(id);
+  console.log(`Next: bun run event:review ${id}, then bun run event:build ${id}`);
+}
+
+export async function ocrReport(id: string) {
+  const p = eventPaths(id);
+  const { booths } = loadEvent(id);
+  const reads: Read[] = readJson(p.reads);
+  let right = 0,
+    wrong = 0,
+    none = 0;
+  for (const b of booths.booths) {
+    const r = reads.find((x) => x.at[0] >= b.x && x.at[0] < b.x + b.w && x.at[1] >= b.y && x.at[1] < b.y + b.h);
+    if (!r?.code) none++;
+    else if (r.code === b.c) right++;
+    else wrong++;
+  }
+  console.log(`right ${right}, wrong ${wrong}, unread ${none} of ${booths.booths.length}`);
+}
+
+const commands: Record<string, (id: string) => Promise<unknown>> = {
+  new: create,
+  detect,
+  read,
+  categorise,
+  build,
+  'ocr-report': ocrReport,
+};
+if (!cmd || !commands[cmd] || !target)
   fail([`usage: bun tools/pipeline/cli.ts <${Object.keys(commands).join('|')}> <event-id>`]);
-await commands[cmd](id);
+await commands[cmd](target);

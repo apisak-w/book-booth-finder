@@ -15,7 +15,10 @@
     "check": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json",
     "legacy:test": "node --test legacy/tests/*.test.js",
     "event:detect": "bun tools/pipeline/cli.ts detect",
-    "event:build": "bun tools/pipeline/cli.ts build"
+    "event:build": "bun tools/pipeline/cli.ts build",
+    "event:new": "bun tools/pipeline/cli.ts new",
+    "event:read": "bun tools/pipeline/cli.ts read",
+    "event:ocr-report": "bun tools/pipeline/cli.ts ocr-report"
   },
   "devDependencies": {
     "@playwright/test": "^1.63.0",
@@ -29,6 +32,7 @@
     "sharp": "^0.35.5",
     "svelte": "^5.57.1",
     "svelte-check": "^4.7.6",
+    "tesseract.js": "^7.0.0",
     "typescript": "~6",
     "vite": "^8.3.1",
     "zod": "^4.6.5"
