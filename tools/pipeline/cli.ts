@@ -1,7 +1,7 @@
 import { existsSync, readFileSync, writeFileSync } from 'node:fs';
 import { loadEvent, loadVenue } from '../../src/lib/server/catalog';
 import { EventSchema } from '../../src/lib/server/schema';
-import { loadData, prepareData } from '../../src/lib/core/prepare';
+import { prepareData } from '../../src/lib/core/prepare';
 import { createGrid, obstaclesOf } from '../../src/lib/core/grid';
 import { findRoute } from '../../src/lib/core/routing';
 import { isRouteOk } from '../../src/lib/core/types';

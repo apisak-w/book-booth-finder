@@ -36,7 +36,7 @@ test('the 2026 plan plus committed corrections reproduces booths.json', async ()
   expect(problems).toEqual([]);
 
   const want = bundle.booths;
-  const byKey = (list: { c: string; x: number; y: number }[]) =>
+  const byKey = <T extends { c: string; x: number; y: number }>(list: T[]) =>
     [...list].sort((a, b) => a.c.localeCompare(b.c) || a.x - b.x || a.y - b.y);
   const got = byKey(booths.booths),
     exp = byKey(want.booths);
