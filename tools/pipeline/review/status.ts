@@ -15,6 +15,7 @@ export function cellStatus(
   reads: Read[],
   c: Corrections,
   all: Rect[] = [rect],
+  pillarLike = false,
 ): { status: CellStatus; code?: string; fix: number; read?: Read } {
   const fix = c.cells.findIndex((f) => owns(f.at, rect, all));
   const f = fix >= 0 ? c.cells[fix] : undefined;
@@ -24,6 +25,7 @@ export function cellStatus(
   if (f?.code) return { status: 'code', code: f.code, fix, read };
   if (read?.code && !read.flags.length) return { status: 'read', code: read.code, fix, read };
   if (read?.code) return { status: 'flagged', code: read.code, fix, read };
+  if (pillarLike) return { status: 'pillar', fix, read };
   return { status: 'missing', fix, read };
 }
 
@@ -39,4 +41,12 @@ export function upsertFix(
   for (const key of Object.keys(next) as (keyof typeof next)[]) if (next[key] === undefined) delete next[key];
   const cells = k >= 0 ? c.cells.map((f, j) => (j === k ? next : f)) : [...c.cells, next];
   return { ...c, cells };
+}
+
+export function nextId(prefix: string, taken: string[], pad = 0): string {
+  const used = new Set(taken);
+  for (let n = 1; ; n++) {
+    const id = prefix + String(n).padStart(pad, '0');
+    if (!used.has(id)) return id;
+  }
 }

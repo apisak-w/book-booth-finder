@@ -1,13 +1,13 @@
 import { loadData } from '$lib/core/prepare';
 import type { EventData, Landmark, Obstacle, FoyerZone, Point, Rect } from '$lib/core/types';
-import type { EventBundle } from '$lib/server/catalog';
+import type { EventBundle } from '$lib/core/types';
 import type { Cell } from '../lib/detect';
 import type { Read } from '../lib/build';
 import type { Corrections } from '../lib/corrections';
 import { IDENTITY, fitAxes, rectToVenue, toPlan, toVenue, type Transform } from '../lib/transform';
-import { cellStatus, upsertFix, type CellStatus } from './status';
+import { cellStatus, nextId, upsertFix, type CellStatus } from './status';
 
-export type Mode = 'select' | 'booth' | 'stage' | 'info' | 'foyer' | 'landmark' | 'register';
+export type Mode = 'select' | 'booth' | 'stage' | 'info' | 'other' | 'foyer' | 'landmark' | 'register';
 export type Selection =
   | { kind: 'cell'; index: number }
   | { kind: 'add'; index: number }
@@ -32,7 +32,11 @@ export class Review {
 
   venueCells = $derived(this.cells.map((c) => rectToVenue(this.t, c)));
   venueReads = $derived(this.reads.map((r) => ({ ...r, at: toVenue(this.t, r.at) })));
-  statuses = $derived(this.venueCells.map((r) => cellStatus(r, this.venueReads, this.corrections, this.venueCells)));
+  statuses = $derived(
+    this.venueCells.map((r, k) =>
+      cellStatus(r, this.venueReads, this.corrections, this.venueCells, !!this.cells[k].pillarLike),
+    ),
+  );
   problems = $derived(
     this.statuses
       .map((s, k) => ({ s, k }))
@@ -63,6 +67,14 @@ export class Review {
     this.planSize = { w: img.naturalWidth, h: img.naturalHeight };
     this.dirty = false;
     this.message = `${this.cells.length} cells, ${this.problems.length} to check`;
+  }
+
+  removeLandmark(index: number) {
+    const ev = { ...this.corrections.event };
+    const list = ev.landmarks ?? this.data!.event.landmarks;
+    this.corrections = { ...this.corrections, event: { ...ev, landmarks: list.filter((_l, k) => k !== index) } };
+    this.selection = null;
+    this.dirty = true;
   }
 
   async save() {
@@ -96,7 +108,7 @@ export class Review {
     if (this.mode === 'booth') {
       this.corrections = { ...this.corrections, add: [...this.corrections.add, { code: '', rect: r }] };
       this.selection = { kind: 'add', index: this.corrections.add.length - 1 };
-    } else if (this.mode === 'stage' || this.mode === 'info') {
+    } else if (this.mode === 'stage' || this.mode === 'info' || this.mode === 'other') {
       const o: Obstacle = { ...r, kind: this.mode };
       this.corrections = {
         ...this.corrections,
@@ -105,7 +117,11 @@ export class Review {
     } else if (this.mode === 'foyer') {
       const z: FoyerZone = {
         ...r,
-        c: `U${String((ev.foyerZones ?? this.data!.event.foyerZones).length + 1).padStart(2, '0')}`,
+        c: nextId(
+          'U',
+          [...(ev.foyerZones ?? this.data!.event.foyerZones).map((fz) => fz.c), ...Object.keys(this.data!.byCode)],
+          2,
+        ),
       };
       this.corrections = {
         ...this.corrections,
@@ -119,7 +135,7 @@ export class Review {
     const ev = { ...this.corrections.event };
     const list = ev.landmarks ?? this.data!.event.landmarks;
     const lm: Landmark = {
-      id: `place${list.length + 1}`,
+      id: nextId('place', [...list.map((l) => l.id), ...this.data!.venue.landmarks.map((l) => l.id)]),
       group: 'other',
       icon: 'info',
       x: Math.round(x),

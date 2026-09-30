@@ -26,7 +26,12 @@ export type DetectParams = {
   derivedFrom?: { sx: number; sy: number; dx: number; dy: number };
 };
 
-export type Cell = Rect & { rgb: [number, number, number]; inner?: Rect; outer?: [number, number, number] };
+export type Cell = Rect & {
+  rgb: [number, number, number];
+  inner?: Rect;
+  outer?: [number, number, number];
+  pillarLike?: boolean;
+};
 
 export function defaultDetectParams(img: RGB, venue: Venue, t: Transform): DetectParams {
   const hall = venue.walls[0];
@@ -169,7 +174,8 @@ export function detectCells(img: RGB, p: DetectParams): Cell[] {
   return cells;
 }
 
-function whiteSquare(img: RGB, c: Rect): { inner: Rect; outer: [number, number, number] } | null {
+function whiteSquare(img: RGB, c: Rect): { inner: Rect; outer: [number, number, number]; pillarLike: boolean } | null {
+  let white = 0;
   let x0 = Infinity,
     y0 = Infinity,
     x1 = -1,
@@ -184,6 +190,7 @@ function whiteSquare(img: RGB, c: Rect): { inner: Rect; outer: [number, number, 
         g = img.data[i + 1],
         b = img.data[i + 2];
       if (Math.min(r, g, b) > 225) {
+        white++;
         if (x < x0) x0 = x;
         if (x > x1) x1 = x;
         if (y < y0) y0 = y;
@@ -195,8 +202,12 @@ function whiteSquare(img: RGB, c: Rect): { inner: Rect; outer: [number, number, 
       }
     }
   if (x1 < 0) return null;
+  const iw = x1 - x0 + 1,
+    ih = y1 - y0 + 1;
+  const pillarLike = white / (iw * ih) >= 0.75 && iw / ih >= 0.8 && iw / ih <= 1.25 && iw >= 10 && ih >= 10;
   return {
-    inner: { x: x0, y: y0, w: x1 - x0 + 1, h: y1 - y0 + 1 },
+    pillarLike,
+    inner: { x: x0, y: y0, w: iw, h: ih },
     outer: [Math.trunc(median(rs)), Math.trunc(median(gs)), Math.trunc(median(bs))],
   };
 }

@@ -2,15 +2,16 @@
 
 Turns an organiser's floor-plan image (and exhibitor spreadsheet) into `events/<id>/`. Every stage reads and writes `events/<id>/source/`, so any stage can be rerun alone.
 
-| Command                                                                         | Stage                                       | Writes                                                                |
-| ------------------------------------------------------------------------------- | ------------------------------------------- | --------------------------------------------------------------------- |
-| `event:new <id> --plan … --name-th … --name-en … --start … --end … [--venue …]` | init, then detect, read, categorise         | `event.json`, `source/plan.*`, and everything below                   |
-| `event:detect <id>`                                                             | register onto the venue, detect booth cells | `source/registration.json`, `source/detect.json`, `source/cells.json` |
-| `event:read <id>`                                                               | OCR each cell, flag suspicious reads        | `source/reads.json`                                                   |
-| `event:review <id>`                                                             | browser tool to fix everything by hand      | `source/corrections.json`, `source/registration.json`                 |
-| `event:build <id>`                                                              | apply corrections, write the event          | `booths.json`, `event.json`                                           |
-| `event:exhibitors <id> <file> [--map booth=Col,th=Col,en=Col]`                  | import exhibitors                           | `exhibitors.csv`                                                      |
-| `event:ocr-report <id>`                                                         | compare reads with the built booths         | nothing                                                               |
+| Command                                                                         | Stage                                                 | Writes                                                                     |
+| ------------------------------------------------------------------------------- | ----------------------------------------------------- | -------------------------------------------------------------------------- |
+| `event:new <id> --plan … --name-th … --name-en … --start … --end … [--venue …]` | init, then detect, read, categorise                   | `event.json`, `source/plan.*`, and everything below                        |
+| `event:detect <id>`                                                             | register onto the venue, detect booth cells           | `source/registration.json`, `source/detect.json`, `source/cells.json`      |
+| `event:read <id>`                                                               | OCR each cell, flag suspicious reads                  | `source/reads.json` (committed, so rebuilds don't depend on rerunning OCR) |
+| `event:categorise <id>`                                                         | group booth colours into categories to name in review | `source/corrections.json`                                                  |
+| `event:review <id>`                                                             | browser tool to fix everything by hand                | `source/corrections.json`, `source/registration.json`                      |
+| `event:build <id>`                                                              | apply corrections, write the event                    | `booths.json`, `event.json`                                                |
+| `event:exhibitors <id> <file> [--map booth=Col,th=Col,en=Col]`                  | import exhibitors                                     | `exhibitors.csv`                                                           |
+| `event:ocr-report <id>`                                                         | compare reads with the built booths                   | nothing                                                                    |
 
 ## Registration
 
@@ -33,3 +34,9 @@ If tesseract.js fails to start under Bun, run the read stage with Node: `npx tsx
 ## Reproduction check
 
 `tests/pipeline-build.test.ts` runs detection on the 2026 plan and applies the committed corrections. The output must match `events/bkkibf-2026/booths.json`: same codes, rectangles within 2 px, same categories. Keep it passing when changing the detector.
+
+## Review tool notes
+
+- Cells with a solid white square and no code are treated as pillars by detection. `event:build` lists them as notes so you can check them.
+- There is no merge or split action. To merge cells, mark each as "Not a booth" and draw one booth with Add booth. To split one, mark it "Not a booth" and draw each booth.
+- Saving pretty-prints `corrections.json` with number pairs kept on one line, so diffs stay readable.

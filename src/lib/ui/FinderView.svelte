@@ -19,7 +19,7 @@
   import ResultCard from '$lib/ui/ResultCard.svelte';
   import Toast from '$lib/ui/Toast.svelte';
 
-  import type { EventBundle } from '$lib/server/catalog';
+  import type { EventBundle } from '$lib/core/types';
 
   let { bundle }: { bundle: EventBundle } = $props();
   const data = untrack(() => loadData(bundle));

@@ -19,7 +19,8 @@
     "event:read": "bun tools/pipeline/cli.ts read",
     "event:ocr-report": "bun tools/pipeline/cli.ts ocr-report",
     "event:review": "bun tools/pipeline/cli.ts review",
-    "event:exhibitors": "bun tools/pipeline/cli.ts exhibitors"
+    "event:exhibitors": "bun tools/pipeline/cli.ts exhibitors",
+    "event:categorise": "bun tools/pipeline/cli.ts categorise"
   },
   "devDependencies": {
     "@playwright/test": "^1.63.0",

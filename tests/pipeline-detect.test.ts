@@ -74,3 +74,31 @@ test('derived detect params are recomputed after re-registration; hand-set ones 
   ]);
   expect(resolveDetectParams(base, t2, () => fresh).roi).toEqual([0, 0, 10, 10]);
 });
+
+test('a cell with a solid white square is marked pillar-like, one with text is not', () => {
+  const W = 80,
+    H = 40,
+    data = new Uint8Array(W * H * 3);
+  const paint = (x0: number, y0: number, x1: number, y1: number, c: number[]) => {
+    for (let y = y0; y < y1; y++) for (let x = x0; x < x1; x++) data.set(c, (y * W + x) * 3);
+  };
+  paint(0, 0, W, H, [255, 253, 240]);
+  paint(5, 5, 33, 34, [245, 139, 184]);
+  paint(11, 11, 27, 27, [255, 255, 255]);
+  paint(45, 5, 73, 34, [245, 139, 184]);
+  for (const x of [50, 54, 58, 62, 66]) paint(x, 16, x + 2, 24, [255, 255, 255]);
+  const cells = detectCells(
+    { width: W, height: H, data },
+    {
+      roi: [0, 0, W, H],
+      floor: [255, 253, 240],
+      threshold: 55,
+      lineLength: 18,
+      lighterDelta: 35,
+      minIsland: 18,
+      minCell: { w: 14, h: 12, area: 150 },
+      exclude: [],
+    },
+  );
+  expect(cells.map((c) => !!c.pillarLike)).toEqual([true, false]);
+});

@@ -38,3 +38,10 @@ test('a fix inside an L-shaped bounding box belongs to the smaller cell', () => 
   expect(cellStatus(big, [], c, all).code).toBe('D30');
   expect(cellStatus(small, [], c, all).code).toBe('D28');
 });
+
+test('new ids never collide with existing ones', async () => {
+  const { nextId } = await import('../tools/pipeline/review/status');
+  expect(nextId('place', ['place1', 'place2', 'mrt'])).toBe('place3');
+  expect(nextId('place', ['place2'])).toBe('place1');
+  expect(nextId('U', ['U01', 'U02', 'U04'], 2)).toBe('U03');
+});

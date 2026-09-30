@@ -92,3 +92,13 @@ export type RouteOk = {
 };
 export type RouteResult = RouteOk | { same: true } | { fail: true };
 export const isRouteOk = (r: RouteResult | null | undefined): r is RouteOk => !!r && 'P' in r;
+
+export type EventBundle = { venue: Venue; event: EventFile; booths: BoothsFile; exhibitors: ExhibitorRow[] };
+export type EventSummary = {
+  id: string;
+  name: I18n;
+  subtitle?: I18n;
+  dates: { start: string; end: string };
+  venueName: I18n;
+  timezone: string;
+};

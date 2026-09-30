@@ -35,13 +35,14 @@ const roundRect = (r: Rect): Rect => ({
   h: Math.round(r.h),
 });
 
-export function buildBooths(input: BuildInput): { booths: BoothsFile; problems: string[] } {
+export function buildBooths(input: BuildInput): { booths: BoothsFile; problems: string[]; notes: string[] } {
   const { cells, reads, corrections, t, codePattern } = input;
   const re = new RegExp(codePattern),
     colours = corrections.categoryColours;
   const booths: BoothRaw[] = [],
     pillars: Pillar[] = [],
-    problems: string[] = [];
+    problems: string[] = [],
+    notes: string[] = [];
   const used = new Set<number>();
 
   const vrs = cells.map((c) => roundRect(rectToVenue(t, c)));
@@ -65,6 +66,11 @@ export function buildBooths(input: BuildInput): { booths: BoothsFile; problems: 
     }
     const read = reads[readOwner.indexOf(k)];
     const code = fix?.code ?? (read && read.code && !read.flags.length ? read.code : undefined);
+    if (!code && cell.pillarLike && cell.inner && cell.outer) {
+      pillars.push({ ...vr, cat: nearestCategory(cell.outer, colours), inner: roundRect(rectToVenue(t, cell.inner)) });
+      notes.push(`cell at ${centre.join(',')} treated as a pillar (white square, no code)`);
+      continue;
+    }
     if (!code) {
       problems.push(`cell at ${centre.join(',')} has no code. Set one in the review tool`);
       continue;
@@ -94,7 +100,7 @@ export function buildBooths(input: BuildInput): { booths: BoothsFile; problems: 
     if (a.extra) b.extra = a.extra.map(roundRect);
     booths.push(b);
   }
-  return { booths: { booths, pillars }, problems };
+  return { booths: { booths, pillars }, problems, notes };
 }
 
 export function computeAisles(booths: BoothRaw[], venue: Venue, codePattern: string): EventFile['aisles'] {

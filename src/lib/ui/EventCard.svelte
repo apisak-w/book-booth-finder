@@ -1,5 +1,5 @@
 <script lang="ts">
-  import type { EventSummary } from '$lib/server/catalog';
+  import type { EventSummary } from '$lib/core/types';
   import type { Status } from '$lib/core/status';
   import { STRINGS, fmtRange, nameIn, type Lang } from '$lib/i18n/strings';
   let { event, status, lang }: { event: EventSummary; status: Status | null; lang: Lang } = $props();

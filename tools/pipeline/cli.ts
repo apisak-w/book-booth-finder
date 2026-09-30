@@ -16,11 +16,17 @@ import { clusterColours, assignCategories } from './lib/categorise';
 import { spawn } from 'node:child_process';
 import { guessColumns, parseMap, readSheet, toCsv, toExhibitorRows } from './lib/exhibitors';
 import { stringifyJson } from './lib/json';
+import { validateNewEvent } from './lib/new-event';
 
+const need = <T>(path: string, hint: string): T => {
+  if (!existsSync(path))
+    fail([`${path.split('/events/')[1] ? 'events/' + path.split('/events/')[1] : path} is missing. ${hint}`]);
+  return JSON.parse(readFileSync(path, 'utf8'));
+};
 const readJson = <T>(path: string, fallback?: T): T =>
   existsSync(path) ? JSON.parse(readFileSync(path, 'utf8')) : (fallback as T);
 const writeJson = (path: string, v: unknown) => writeFileSync(path, stringifyJson(v));
-const fail = (lines: string[]) => {
+const fail = (lines: string[]): never => {
   console.error(lines.map((l) => `- ${l}`).join('\n'));
   process.exit(1);
 };
@@ -52,11 +58,11 @@ export async function build(id: string) {
   const p = eventPaths(id);
   const bundle = loadEvent(id);
   const img = await loadImage(p.plan);
-  const t: Transform = readJson(p.registration);
-  const cells: Cell[] = readJson(p.cells);
+  const t: Transform = need(p.registration, 'Run bun run event:detect <id> first.');
+  const cells: Cell[] = need(p.cells, 'Run bun run event:detect <id> first.');
   const reads: Read[] = readJson(p.reads, []);
   const corrections = parseCorrections(readJson(p.corrections, EMPTY_CORRECTIONS));
-  const { booths, problems } = buildBooths({
+  const { booths, problems, notes } = buildBooths({
     cells,
     reads,
     corrections,
@@ -65,6 +71,7 @@ export async function build(id: string) {
     codePattern: bundle.event.codePattern,
   });
   if (problems.length) fail(problems);
+  for (const n of notes) console.log(`note: ${n}`);
 
   let event;
   try {
@@ -96,8 +103,8 @@ export async function read(id: string) {
   const p = eventPaths(id);
   const { event } = loadEvent(id);
   const img = await loadImage(p.plan);
-  const t: Transform = readJson(p.registration);
-  const cells: Cell[] = readJson(p.cells);
+  const t: Transform = need(p.registration, 'Run bun run event:detect <id> first.');
+  const cells: Cell[] = need(p.cells, 'Run bun run event:detect <id> first.');
   console.log(`Reading ${cells.length} cells. This takes a minute or two.`);
   const reads = await readCells(img, cells, t, event.codePattern);
   writeJson(p.reads, reads);
@@ -107,7 +114,7 @@ export async function read(id: string) {
 
 export async function categorise(id: string) {
   const p = eventPaths(id);
-  const cells: Cell[] = readJson(p.cells);
+  const cells: Cell[] = need(p.cells, 'Run bun run event:detect <id> first.');
   const corrections = parseCorrections(readJson(p.corrections, EMPTY_CORRECTIONS));
   const { categoryColours, created } = assignCategories(
     clusterColours(cells.map((c) => c.rgb)),
@@ -120,37 +127,22 @@ export async function categorise(id: string) {
 }
 
 export async function create(id: string) {
-  const plan = flag('plan'),
-    nameTh = flag('name-th'),
-    nameEn = flag('name-en'),
-    start = flag('start'),
-    end = flag('end');
   const venue = flag('venue') ?? 'qsncc-lg-5-8';
-  const missing = Object.entries({ plan, 'name-th': nameTh, 'name-en': nameEn, start, end })
-    .filter(([, v]) => !v)
-    .map(([k]) => `--${k} is required`);
-  if (missing.length) fail(missing);
-  if (!existsSync(plan!)) fail([`plan file ${plan} does not exist`]);
+  const plan = flag('plan');
+  const { event, problems } = validateNewEvent({
+    id,
+    plan,
+    nameTh: flag('name-th'),
+    nameEn: flag('name-en'),
+    start: flag('start'),
+    end: flag('end'),
+    venue,
+  });
+  if (!event) return fail(problems);
   const p = eventPaths(id);
-  if (existsSync(p.event)) fail([`events/${id} already exists. Pick a new id or run event:detect ${id}`]);
-  loadVenue(venue);
   mkdirSync(p.source, { recursive: true });
   copyFileSync(plan!, `${p.source}/plan${extname(plan!).toLowerCase()}`);
-  writeJson(
-    p.event,
-    EventSchema.parse({
-      id,
-      name: { th: nameTh, en: nameEn },
-      dates: { start, end },
-      venue,
-      categories: {},
-      zones: {},
-      foyerZones: [],
-      obstacles: [],
-      landmarks: [],
-      quickPicks: [],
-    }),
-  );
+  writeJson(p.event, event);
   writeJson(p.booths, { booths: [], pillars: [] });
   writeJson(p.corrections, EMPTY_CORRECTIONS);
   await detect(id);
@@ -162,8 +154,8 @@ export async function create(id: string) {
 export async function ocrReport(id: string) {
   const p = eventPaths(id);
   const { booths } = loadEvent(id);
-  const reads: Read[] = readJson(p.reads);
-  const t: Transform = readJson(p.registration);
+  const reads: Read[] = need(p.reads, 'Run bun run event:read <id> first.');
+  const t: Transform = need(p.registration, 'Run bun run event:detect <id> first.');
   let right = 0,
     wrong = 0,
     none = 0;

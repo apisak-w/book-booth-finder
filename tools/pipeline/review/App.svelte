@@ -9,7 +9,7 @@
   let vp: Viewport | null = null;
   let drag = $state<{ a: Point; b: Point } | null>(null);
   const COLOURS = { code: '#2E9E5B', read: '#7FC98F', flagged: '#F2A900', missing: '#D64545', pillar: '#2F7FD1', drop: '#888' };
-  const MODES: [Mode, string][] = [['select', 'Select'], ['booth', 'Add booth'], ['stage', 'Stage'], ['info', 'Info desk'], ['foyer', 'Foyer zone'], ['landmark', 'Landmark'], ['register', 'Register']];
+  const MODES: [Mode, string][] = [['select', 'Select'], ['booth', 'Add booth'], ['stage', 'Stage'], ['info', 'Info desk'], ['other', 'Other obstacle'], ['foyer', 'Foyer zone'], ['landmark', 'Landmark'], ['register', 'Register']];
 
   const toMap = (e: PointerEvent): Point => {
     const p = svg.createSVGPoint();
@@ -128,6 +128,7 @@
     {:else if sel?.kind === 'landmark'}
       {@const l = landmarks[sel.index]}
       <h2>Landmark</h2>
+      <button type="button" onclick={() => r.removeLandmark(sel.index)}>Delete landmark</button>
       {#each ['id', 'th', 'en'] as f (f)}
         <label>{f} <input value={l[f as 'id']} onchange={(e) => {
           const list = landmarks.map((x, k) => (k === sel.index ? { ...x, [f]: e.currentTarget.value } : x));

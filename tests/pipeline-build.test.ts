@@ -131,3 +131,27 @@ test('reads are stored in plan pixels and follow a new registration', () => {
   expect(problems).toEqual([]);
   expect(booths.booths[0]).toMatchObject({ c: 'A01', x: 120, y: 70, w: 40, h: 40 });
 });
+
+test('an unresolved pillar-like cell becomes a pillar and is listed in the notes', () => {
+  const cell = {
+    x: 0,
+    y: 0,
+    w: 28,
+    h: 28,
+    rgb: [0, 0, 0] as [number, number, number],
+    inner: { x: 6, y: 6, w: 16, h: 16 },
+    outer: [0, 0, 0] as [number, number, number],
+    pillarLike: true,
+  };
+  const r = buildBooths({
+    cells: [cell],
+    reads: [],
+    corrections: { cells: [], add: [], categoryColours: { general: [0, 0, 0] } },
+    t: IDENTITY,
+    sample: () => [0, 0, 0],
+    codePattern: '^[A-Z]\\d{2}$',
+  });
+  expect(r.problems).toEqual([]);
+  expect(r.booths.pillars.length).toBe(1);
+  expect(r.notes[0]).toContain('14,14');
+});

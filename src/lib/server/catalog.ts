@@ -5,17 +5,9 @@ import { BoothsFileSchema, EventSchema, VenueSchema, formatIssues } from './sche
 import { parseCSV } from '../core/csv';
 import { loadData } from '../core/prepare';
 import { checkEvent } from './checks';
-import type { BoothsFile, EventFile, ExhibitorRow, I18n, Venue } from '../core/types';
+import type { EventBundle, EventSummary, Venue } from '../core/types';
 
-export type EventBundle = { venue: Venue; event: EventFile; booths: BoothsFile; exhibitors: ExhibitorRow[] };
-export type EventSummary = {
-  id: string;
-  name: I18n;
-  subtitle?: I18n;
-  dates: { start: string; end: string };
-  venueName: I18n;
-  timezone: string;
-};
+export type { EventBundle, EventSummary } from '../core/types';
 
 export class CatalogError extends Error {}
 
