@@ -4,11 +4,12 @@ Date: 2026-09-30 · Status: draft for review · Branch: `v2`
 
 ## 1. Intent
 
-The app today serves one event (54th National Book Fair & 24th BKKIBF 2026) at QSNCC Level LG, Halls 5–8. v2 makes it serve many events at that same venue, each with its own booth map, and adds a pipeline that turns an organiser's floor plan and exhibitor list into a ready event.
+The app today serves one event (54th National Book Fair & 24th BKKIBF 2026) at QSNCC Level LG, Halls 5–8. v2 makes it serve many events, each with its own booth map, on venues described as data. Only QSNCC exists for now, but a new venue must not need app code changes. v2 also adds a pipeline that turns an organiser's floor plan and exhibitor list into a ready event.
 
 What the owner said:
 
 - A book fair is one event among many. Only the venue is fixed for now.
+- Keep in mind the venue could be somewhere else later.
 - Each event has its own booth map.
 - Each event has its own URL. The root lists events.
 - A developer adds events as repo folders. The conversion from organiser input should be automated.
@@ -19,7 +20,8 @@ What the owner said:
 
 Assumptions (confirm or correct during review):
 
-- Categories, zones, stage, info desks, foyer zones, charge spots and aisle letter positions change per event. Hall outline, walls, doors, walkable areas, hall boundaries, scale, MRT, doors and toilets belong to the venue.
+- Categories, zones, stage, info desks, foyer zones, charge spots and aisle letter positions change per event. Walls, doors, walkable areas, area (hall) boundaries, scale, time zone, MRT, doors and toilets belong to the venue.
+- A second venue is authored by hand as `venues/<id>/venue.json` against its own reference image. A venue authoring tool is out of scope.
 - The app keeps its current look, fonts, tokens, languages (th default, en) and guest flow.
 - Hosting stays on Cloudflare Pages via its Git integration.
 
@@ -28,7 +30,7 @@ Success criteria:
 1. `/e/bkkibf-2026/` matches the current live site in behaviour (search, start point, route, steps, share links, pan/zoom, dark mode, reduced motion) on phone and desktop.
 2. `/` lists every event in `events/` with live/upcoming/past status.
 3. Old links `/#to=…&from=…` still land on the 2026 event.
-4. Adding an event needs only a new `events/<id>/` folder; no app code changes.
+4. Adding an event needs only a new `events/<id>/` folder, and adding a venue only a new `venues/<id>/` folder; no app code changes.
 5. The pipeline, run on the 2026 plan with the committed corrections, reproduces today's `booths.json` (identical codes, rectangles within ±2 px).
 6. Lint, format check, `svelte-check` and all tests pass in CI.
 
@@ -54,6 +56,9 @@ Code style: no verbose comments. A short note only where the code cannot say it.
 ## 3. Repository layout
 
 ```
+venues/<id>/
+  venue.json            venue geometry and landmarks (schema in §4.1)
+  reference.jpg         reference plan defining the coordinate space. Never published
 events/<id>/
   event.json            event metadata and content (schema in §4)
   booths.json           booths and pillars
@@ -69,9 +74,9 @@ src/
     e/[id]/+page.ts     loads one event; entries() yields every events/* id
     review/[id]/        pipeline review tool, dev only (§7.6)
   lib/
-    venue/              QSNCC LG Halls 5–8 geometry and venue landmarks
+    venues/             build-time loading of /venues/*
     core/               pure TS: grid, routing, search, directions, csv, codes, prepare, schema
-    events/             build-time loading via import.meta.glob of /events/*
+    events/             build-time loading of /events/*, joined with their venue
     map/                Map.svelte, layer components, panzoom.ts, panzoom action
     ui/                 Header, LangToggle, Sheet, SearchBox, Results, IdleView, ResultCard, StartPicker, Toast, EventCard
     i18n/               app strings th/en, lang state
@@ -86,17 +91,36 @@ tests/                  bun tests (§9)
 
 ## 4. Data model
 
-### 4.1 Venue (`src/lib/venue/`)
+### 4.1 Venue (`venues/<id>/venue.json`)
 
-Moved from `config.js` and the venue part of `LANDMARKS`, unchanged in values:
+Each venue has its own coordinate space: pixels of its `reference.jpg`. Every event on that venue uses the same space.
 
-- `VIEW`, `M_PER_PX`, `WALK_M_PER_MIN`, `GRID_CELL`
-- `HALL_SPLITS`, `HALL_OUTLINE`, `RECESSES`, `HALL_LABELS`, `AISLE_SIGN_Y`
-- `WALKABLE`, `DOORS`
-- venue landmarks: `mrt`, `west`, `door5`–`door8`, `wc1`–`wc6`, `lift`
-- `GROUP_ORDER`
+```ts
+type Point = [number, number];
 
-Coordinates stay in pixels of the 2026 reference plan (2560 × 1932). That image becomes the venue reference, kept at `src/lib/venue/reference/floorplan-2026.jpg` for pipeline registration, and is not published.
+type VenueFile = {
+  id: string;                               // equals folder name, never renamed
+  name: I18n;
+  timezone: string;                         // IANA, e.g. "Asia/Bangkok"
+  reference: { width: number; height: number };
+  view: Rect;                               // fully zoomed-out viewBox
+  metersPerPx: number;
+  gridCell?: number;                        // routing cell size in px, default 6
+  walls: Point[][];                         // polygons drawn as the building outline
+  walkable: Rect[];                         // union forms the walkable floor
+  areas: { id: string; name: I18n; label: { x: number; y: number }; bounds: Point[] }[];
+  doors: { id: string; x: number; y: number; area: string; axis: 'h' | 'v'; width: number }[];
+  landmarks: Landmark[];                    // same shape as event landmarks
+  origin: string;                           // landmark id used as the reachability root in tests
+  backWallY?: number;                       // optional; aisle signs are drawn here
+};
+```
+
+- `areas` replace `HALL_SPLITS`. A point's area is the polygon that contains it. Directions say "Go to <area name>" using the venue's names, so nothing says "Hall" in code.
+- Doors are punched through `walls` at `(x, y)` along `axis` with `width`. The map draws the gap from the same data, which removes today's hard-coded gap coordinates and the `west` special case.
+- Walking speed (55 m/min) is an app constant, not venue data.
+
+`venues/qsncc-lg-5-8/` is migrated from `config.js` and the venue part of `LANDMARKS` with identical values: `VIEW`, `M_PER_PX`, `GRID_CELL`, `HALL_OUTLINE` as `walls`, `WALKABLE` flattened, `HALL_SPLITS` and `HALL_LABELS` as four `areas` (Hall 5–8), `DOORS` with axis and width, landmarks `mrt`, `west`, `door5`–`door8`, `wc1`–`wc6`, `lift`, `origin: "mrt"`, `backWallY: 322`, timezone `Asia/Bangkok`. `reference.jpg` is the 2026 plan (2560 × 1932).
 
 ### 4.2 Event (`events/<id>/event.json`)
 
@@ -104,23 +128,25 @@ Coordinates stay in pixels of the 2026 reference plan (2560 × 1932). That image
 type I18n = { th: string; en: string };
 type Rect = { x: number; y: number; w: number; h: number };
 
+type Landmark = I18n & {
+  id: string;
+  group: 'entry' | 'wc' | 'info' | 'charge' | 'stage' | 'other';
+  x: number; y: number;
+  icon: string;                             // one of the map's icon set
+};
+
 type EventFile = {
   id: string;                               // equals folder name, [a-z0-9-]+, never renamed
   name: I18n;
   subtitle?: I18n;
-  dates: { start: string; end: string };    // YYYY-MM-DD, Asia/Bangkok
-  venue: 'qsncc-lg-5-8';
+  dates: { start: string; end: string };    // YYYY-MM-DD in the venue's timezone
+  venue: string;                            // venues/<id>
   categories: Record<string, I18n & { color: string; darkText?: boolean }>;
   zones: Record<string, I18n & { short?: string }>;   // keyed by booth code
   foyerZones: (Rect & { c: string; vertical?: boolean })[];
   obstacles: (Rect & { kind: 'stage' | 'info' | 'other' })[];
-  aisles: Record<string, number>;           // letter -> x
-  landmarks: (I18n & {
-    id: string;
-    group: 'entry' | 'wc' | 'info' | 'charge' | 'stage' | 'other';
-    x: number; y: number;
-    icon: string;                           // one of the map's icon set
-  })[];
+  aisles: Record<string, number>;           // letter -> x, signs drawn at venue backWallY
+  landmarks: Landmark[];
   quickPicks: (['booth', string] | ['place', string])[];
   codePattern?: string;                     // regex, default "^[A-Z]\\d{2}$"
   allowedDuplicateCodes?: string[];         // e.g. ["H31"]
@@ -139,7 +165,7 @@ type BoothsFile = {
 };
 ```
 
-`hall` is computed from the venue `HALL_SPLITS` in `prepare`. Foyer zones become booths with `cat: 'special'`, `hall: null`, `foyer: true`, as today.
+`area` is computed from the venue `areas` in `prepare`. Foyer zones become booths with `cat: 'special'`, `area: null`, `foyer: true`, as today.
 
 ### 4.4 Rules
 
@@ -155,6 +181,7 @@ type BoothsFile = {
 `events/bkkibf-2026/` receives:
 
 - `booths.json` from `data/booths.json` minus `hall`
+- `venue: "qsncc-lg-5-8"`
 - `exhibitors.csv` from `data/exhibitors.csv`
 - in `event.json`: name and subtitle from `STRINGS`, dates 2026-03-26 to 2026-04-06, `CATEGORIES`, `ZONES`, `FOYER_ZONES`, `STAGE` and `INFO_DESKS` as obstacles, `AISLE_X`, event landmarks (`info1`–`info5`, `ch1`–`ch4`, `stage`), `QUICK_PICKS`, `allowedDuplicateCodes: ["H31"]`, and the known-issue notes from `CLAUDE.md`
 - `source/floorplan.jpg` and `source/corrections.json` converted once from `labels.txt`, `MANUAL_CELLS`, `RECT_OVERRIDES` and `EXTRA_PARTS`
@@ -163,7 +190,7 @@ type BoothsFile = {
 
 ### 5.1 Routes
 
-**`/` event list.** Header with app name and language toggle. One card per event: name, dates, status badge, link. Sorted live, upcoming (soonest first), past (latest first). Prerendered with all events. Status is computed in the browser in Asia/Bangkok time, so a stale build still shows the right badge. If the URL hash contains `to` or `from`, the page redirects to `/e/bkkibf-2026/` with the same hash (`LEGACY_EVENT` constant).
+**`/` event list.** Header with app name and language toggle. One card per event: name, venue name, dates, status badge, link. Sorted live, upcoming (soonest first), past (latest first). Prerendered with all events. Status is computed in the browser in the venue's timezone, so a stale build still shows the right badge. If the URL hash contains `to` or `from`, the page redirects to `/e/bkkibf-2026/` with the same hash (`LEGACY_EVENT` constant).
 
 **`/e/[id]/` finder.** Same flow and layout as today, plus a back link to `/`. `<title>`, meta description and theme colour come from the event. Event data is inlined at prerender, so there are no runtime fetches. `entries()` lists every folder in `events/`. An unknown id is a 404 page with a link to `/`. A past event shows an "ended on <date>" note and otherwise works.
 
@@ -180,7 +207,7 @@ Accessibility carried over: real buttons, labelled search, `aria-live` results a
 ### 5.4 Map
 
 - `Map.svelte` owns the `<svg>` and viewBox. The viewBox aspect ratio always equals the element's (`clamp`). `vb.h` is never set on its own.
-- Layers as components, ids unchanged: `#layer-base` (venue), `#layer-booths`, `#layer-zones`, `#layer-marks`, `#layer-route`, `#layer-pins`.
+- Layers as components, ids unchanged: `#layer-base` (venue walls, door gaps, area labels, aisle signs, event obstacles), `#layer-booths`, `#layer-zones`, `#layer-marks`, `#layer-route`, `#layer-pins`.
 - `panzoom.ts` is pure: clamp, zoom at point, fit box, overview, easing. Unit tested.
 - A `panzoom` action wires pointer drag, pinch and wheel. It writes the viewBox attribute directly during gestures rather than through reactive state, and commits to state at gesture end.
 - Taps are recorded at `pointerdown` under pointer capture.
@@ -194,11 +221,11 @@ Accessibility carried over: real buttons, labelled search, `aria-live` results a
 
 Ported to TypeScript with behaviour unchanged, but parameterised by venue and event instead of importing globals:
 
-- `grid.ts`: `buildGrid(venue, obstacles)` where obstacles are booths, pillars and event obstacles
-- `routing.ts`: A*, clearance cost, string-pulling, `route(grid, from, dest)` returning `{P, len, meters, minutes, doorsUsed, halls} | {same: true} | {fail: true}`
+- `grid.ts`: `buildGrid(venue, obstacles)` where obstacles are booths, pillars and event obstacles; doors tagged from venue data
+- `routing.ts`: A*, clearance cost, string-pulling, `route(grid, from, dest)` returning `{P, len, meters, minutes, doorsUsed, areas} | {same: true} | {fail: true}`; `areaAt(venue, x, y)` by polygon containment
 - `search.ts`: over booth codes, zone names, exhibitors, landmarks
-- `directions.ts`: route to written steps, using event `aisles`
-- `csv.ts`, `codes.ts` (`normCode`), `prepare.ts` (adds `i`, `cx`, `cy`, `hall`, `byCode`, foyer booths, exhibitors)
+- `directions.ts`: route to written steps, using venue area names, venue doors and event `aisles`. The aisle phrase applies when the booth is inside an area and its code starts with a letter in `aisles` (replaces today's `y > 340` check)
+- `csv.ts`, `codes.ts` (`normCode`), `prepare.ts` (adds `i`, `cx`, `cy`, `area`, `byCode`, foyer booths, exhibitors)
 - `schema.ts`: Zod schemas for `EventFile`, `BoothsFile`, exhibitor rows, `corrections.json`; TS types inferred from them
 
 Performance budget stays as today: grid build about 40 ms and route about 6 ms average on a laptop.
@@ -220,7 +247,7 @@ Creates `events/<id>/`, copies the plan to `source/plan.<ext>`, writes an `event
 
 ### 7.2 Register
 
-Maps plan pixels to venue coordinates. Detects the hall floor region and fits scale and offset so its bounding outline matches the venue `HALL_OUTLINE`. Writes `source/registration.json` with the transform and a fit score. Below a score threshold, `event:review` asks for four hall-corner clicks and computes the transform from them. All later stages work in venue coordinates.
+Maps plan pixels to the event venue's coordinates. Detects the floor region and fits scale and offset so its outline matches the venue `walls`. Writes `source/registration.json` with the transform and a fit score. Below a score threshold, `event:review` asks for four clicks on matching wall corners in the plan and the venue reference, and computes the transform from them. All later stages work in venue coordinates.
 
 ### 7.3 Detect
 
@@ -256,7 +283,7 @@ Reads CSV or XLSX. Guesses columns from headers (`booth`, `บูธ`, `name`, `
 
 ### 7.9 Not in scope
 
-Vector PDF input (Detect accepts cells from any source, so it can be added later). Organiser self-service or any backend.
+Vector PDF input (Detect accepts cells from any source, so it can be added later). Venue authoring tooling (venues are hand-written JSON checked by schema and tests). Organiser self-service or any backend.
 
 ## 8. Error handling
 
@@ -270,12 +297,13 @@ Vector PDF input (Detect accepts cells from any source, so it can be added later
 
 All with `bun test`. CI runs `lint`, `fmt:check`, `check`, `test`, then `build` and the build smoke test.
 
-- Per event, for every folder in `events/`: schema valid; codes match `codePattern` (foyer zones included); duplicates only from `allowedDuplicateCodes`; no booth overlaps; every booth and landmark reachable from `mrt`; exhibitor rows point at existing booths; booth categories defined; landmark ids unique across venue and event; landmark icons exist in the map icon set; `special` defined when foyer zones exist; quick picks resolve.
-- Venue: grid builds, door cells tagged, aisles at least 4 cells wide after padding.
+- Per event, for every folder in `events/`: schema valid; codes match `codePattern` (foyer zones included); duplicates only from `allowedDuplicateCodes`; no booth overlaps; venue exists; every booth and landmark reachable from the venue `origin`; exhibitor rows point at existing booths; booth categories defined; landmark ids unique across venue and event; landmark icons exist in the map icon set; `special` defined when foyer zones exist; quick picks resolve.
+- Per venue, for every folder in `venues/`: schema valid; `origin` is a venue landmark; every door lies on a wall and inside a walkable rect after punching; every area label is inside its bounds; areas don't overlap; the grid builds and every venue landmark is reachable from `origin`.
+- QSNCC regression: walkable aisles at least 4 cells wide after padding; `areaAt` gives the same hall as today's `HALL_SPLITS` for every 2026 booth.
 - Core: search, directions, CSV, `normCode`, `prepare`, `panzoom`. The 14 current tests are ported and pass.
 - i18n: app strings th/en key parity; every event `I18n` field has both.
 - Pipeline: morphology helpers, column guessing, range expansion, registration on the 2026 plan, and the 2026 reproduction test (§1 criterion 5).
-- Build smoke: `build/index.html` and `build/e/bkkibf-2026/index.html` exist; nothing from `events/*/source/`, `src/lib/venue/reference/` or `review/` appears in `build/`.
+- Build smoke: `build/index.html` and `build/e/bkkibf-2026/index.html` exist; nothing from `events/*/source/`, `venues/*/reference.jpg` or `review/` appears in `build/`.
 
 ## 10. Rollout
 
@@ -283,7 +311,7 @@ Work on branch `v2`. Cloudflare Pages builds a preview for it automatically. Pro
 
 1. Scaffold SvelteKit, Bun, TS, oxlint, oxfmt, `svelte-check`, CI.
 2. Port core to TS with the venue split. Tests green.
-3. Create `events/bkkibf-2026/` and build-time loading.
+3. Create `venues/qsncc-lg-5-8/`, `events/bkkibf-2026/` and build-time loading.
 4. Port UI and map to Svelte.
 5. Parity checkpoint against the live site on phone and desktop, light and dark.
 6. Event list page and legacy redirect.
@@ -292,6 +320,6 @@ Work on branch `v2`. Cloudflare Pages builds a preview for it automatically. Pro
 
 ## 11. Docs
 
-- `CLAUDE.md` rewritten for v2: structure, commands, venue vs event, coordinate system (venue section), gotchas carried over, per-event known issues living in each `event.json` `notes`.
-- `README.md`: run, test, add an event, deploy.
+- `CLAUDE.md` rewritten for v2: structure, commands, venue vs event, per-venue coordinate systems, how to add a venue by hand, gotchas carried over, per-event known issues living in each `event.json` `notes`.
+- `README.md`: run, test, add an event, add a venue, deploy.
 - `tools/pipeline/README.md`: new-event walkthrough.
