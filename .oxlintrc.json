@@ -1,0 +1,5 @@
+{
+  "$schema": "./node_modules/oxlint/configuration_schema.json",
+  "categories": { "correctness": "error", "suspicious": "warn" },
+  "ignorePatterns": ["legacy/**", "_site/**", ".svelte-kit/**", "tools/golden/**", "tools/migrate/**"]
+}

@@ -1,15 +1,31 @@
 {
-  "name": "bkkibf-booth-finder",
-  "version": "1.0.0",
+  "name": "booth-finder",
+  "version": "2.0.0",
   "private": true,
-  "description": "Booth finder and walking directions for the National Book Fair & Bangkok International Book Fair at QSNCC (Halls 5–8).",
   "type": "module",
   "scripts": {
-    "dev": "npx --yes serve@14 -l 5173 legacy",
-    "test": "node --test legacy/tests/*.test.js",
-    "build": "rm -rf _site && mkdir _site && cp -r legacy/index.html legacy/src legacy/data _site/"
+    "dev": "vite dev",
+    "build": "vite build",
+    "preview": "vite preview",
+    "test": "bun test ./tests",
+    "test:e2e": "playwright test",
+    "lint": "oxlint",
+    "fmt": "oxfmt",
+    "fmt:check": "oxfmt --check",
+    "check": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json",
+    "legacy:test": "node --test legacy/tests/*.test.js"
   },
-  "engines": {
-    "node": ">=18"
+  "devDependencies": {
+    "@sveltejs/adapter-static": "^3.0.10",
+    "@sveltejs/kit": "^2.70.3",
+    "@sveltejs/vite-plugin-svelte": "^7.3.1",
+    "@types/bun": "^1.4.2",
+    "oxfmt": "^0.71.0",
+    "oxlint": "^1.86.0",
+    "svelte": "^5.57.1",
+    "svelte-check": "^4.7.6",
+    "typescript": "~6",
+    "vite": "^8.3.1",
+    "zod": "^4.6.5"
   }
 }

@@ -63,7 +63,7 @@ To add or move something, measure it on the source image. Crop and zoom with Ope
 A booth in `booths.json`:
 
 ```json
-{"c":"K16","x":1409,"y":939,"w":59,"h":151,"cat":"general","hall":7}
+{ "c": "K16", "x": 1409, "y": 939, "w": 59, "h": 151, "cat": "general", "hall": 7 }
 ```
 
 - `c`: booth code, `[A-T]\d\d`. Foyer zones `U01`–`U11` are added at runtime from `FOYER_ZONES` in `config.js`.

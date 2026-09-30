@@ -5,3 +5,7 @@ _site/
 tools/digitize/out/
 __pycache__/
 .venv/
+.svelte-kit/
+test-results/
+playwright-report/
+events/*/source/*.tmp.*

@@ -99,23 +99,30 @@ tests/e2e/*.spec.ts                   Playwright
 ### Task 1: Move v1 to `legacy/` and capture the golden snapshot
 
 **Files:**
+
 - Move: `index.html`, `src/`, `data/`, `tests/core.test.js` → `legacy/index.html`, `legacy/src/`, `legacy/data/`, `legacy/tests/core.test.js`
 - Create: `tools/golden/snapshot-v1.mjs`
 - Create: `tests/golden/v1.json`
 - Modify: `package.json` (v1 scripts point at `legacy/`)
 
 **Interfaces:**
+
 - Produces: `tests/golden/v1.json` with shape
+
   ```ts
   type Golden = {
     lattice: { x0: number; y0: number; step: number; cols: number; rows: number; halls: string }; // one char per cell: '0' none, '5'..'8'
     routes: {
-      from: string;                       // landmark id
-      to: string;                         // "booth:<code>#<n>" or "place:<id>"
-      r: { same: true } | { fail: true } | { P: [number, number][]; len: number; meters: number; minutes: number; doors: string[]; halls: number[] };
-      en?: string[]; th?: string[];       // steps, only when r has P
+      from: string; // landmark id
+      to: string; // "booth:<code>#<n>" or "place:<id>"
+      r:
+        | { same: true }
+        | { fail: true }
+        | { P: [number, number][]; len: number; meters: number; minutes: number; doors: string[]; halls: number[] };
+      en?: string[];
+      th?: string[]; // steps, only when r has P
     }[];
-    search: { q: string; hits: string[] }[];   // "booth:<code>#<n>", "exh:<code>#<n>:<name>", "place:<id>"
+    search: { q: string; hits: string[] }[]; // "booth:<code>#<n>", "exh:<code>#<n>:<name>", "place:<id>"
     boothHalls: Record<string, number | null>; // "<code>#<n>" -> hall
   };
   ```
@@ -167,21 +174,34 @@ const grid = createGrid(data);
 const key = (b) => `${b.c}#${data.byCode[b.c].indexOf(b)}`;
 const round = (v) => Math.round(v * 10) / 10;
 
-const cols = Math.ceil(VIEW.w / GRID_CELL), rows = Math.ceil(VIEW.h / GRID_CELL);
+const cols = Math.ceil(VIEW.w / GRID_CELL),
+  rows = Math.ceil(VIEW.h / GRID_CELL);
 let halls = '';
-for (let r = 0; r < rows; r++) for (let c = 0; c < cols; c++) {
-  const h = hallAt(VIEW.x + (c + 0.5) * GRID_CELL, VIEW.y + (r + 0.5) * GRID_CELL);
-  halls += h ? String(h) : '0';
-}
+for (let r = 0; r < rows; r++)
+  for (let c = 0; c < cols; c++) {
+    const h = hallAt(VIEW.x + (c + 0.5) * GRID_CELL, VIEW.y + (r + 0.5) * GRID_CELL);
+    halls += h ? String(h) : '0';
+  }
 
 const routes = [];
 const record = (from, dest) => {
   const r = findRoute(grid, from, dest);
   const to = dest.kind === 'booth' ? `booth:${key(dest.b)}` : `place:${dest.lm.id}`;
-  if (!r.P) { routes.push({ from: from.id, to, r }); return; }
+  if (!r.P) {
+    routes.push({ from: from.id, to, r });
+    return;
+  }
   routes.push({
-    from: from.id, to,
-    r: { P: r.P.map(([x, y]) => [round(x), round(y)]), len: round(r.len), meters: r.meters, minutes: r.minutes, doors: r.doorsUsed.map((k) => DOORS[k].id), halls: r.halls },
+    from: from.id,
+    to,
+    r: {
+      P: r.P.map(([x, y]) => [round(x), round(y)]),
+      len: round(r.len),
+      meters: r.meters,
+      minutes: r.minutes,
+      doors: r.doorsUsed.map((k) => DOORS[k].id),
+      halls: r.halls,
+    },
     en: buildSteps(r, from, dest, STRINGS.en, (o) => o.en),
     th: buildSteps(r, from, dest, STRINGS.th, (o) => o.th),
   });
@@ -189,21 +209,53 @@ const record = (from, dest) => {
 const lm = (id) => LANDMARKS.find((l) => l.id === id);
 for (const id of ['mrt', 'door6', 'info4']) for (const b of data.booths) record(lm(id), { kind: 'booth', b });
 const sample = ['A42', 'D20', 'G16', 'K16', 'P16', 'T02', 'A31', 'U07', 'C17', 'E20', 'D30', 'H31'];
-for (const from of LANDMARKS) for (const c of sample) for (const b of data.byCode[c]) record(from, { kind: 'booth', b });
+for (const from of LANDMARKS)
+  for (const c of sample) for (const b of data.byCode[c]) record(from, { kind: 'booth', b });
 for (const from of LANDMARKS) for (const to of LANDMARKS) record(from, { kind: 'place', lm: to });
 
 const search = createSearch(data);
-const queries = ['K16', 'k 16', 'k1', 'k', 'a0', 'author', 'ห้องน้ำ', 'stage', 'เวที', 'info', 'u07', 'h31', 't', 'legend', 'mrt', 'door', 'ประตู', 'charge', 'ชาร์จ', 'xyz', 'hall', 'read the'];
-const hitKey = (it) => it.type === 'place' ? `place:${it.lm.id}` : it.type === 'exh' ? `exh:${key(it.b)}:${it.ex.en || it.ex.th}` : `booth:${key(it.b)}`;
+const queries = [
+  'K16',
+  'k 16',
+  'k1',
+  'k',
+  'a0',
+  'author',
+  'ห้องน้ำ',
+  'stage',
+  'เวที',
+  'info',
+  'u07',
+  'h31',
+  't',
+  'legend',
+  'mrt',
+  'door',
+  'ประตู',
+  'charge',
+  'ชาร์จ',
+  'xyz',
+  'hall',
+  'read the',
+];
+const hitKey = (it) =>
+  it.type === 'place'
+    ? `place:${it.lm.id}`
+    : it.type === 'exh'
+      ? `exh:${key(it.b)}:${it.ex.en || it.ex.th}`
+      : `booth:${key(it.b)}`;
 
 const boothHalls = Object.fromEntries(data.booths.map((b) => [key(b), b.hall]));
 mkdirSync(new URL('../../tests/golden/', import.meta.url), { recursive: true });
-writeFileSync(new URL('../../tests/golden/v1.json', import.meta.url), JSON.stringify({
-  lattice: { x0: VIEW.x, y0: VIEW.y, step: GRID_CELL, cols, rows, halls },
-  routes,
-  search: queries.map((q) => ({ q, hits: search(q).map(hitKey) })),
-  boothHalls,
-}));
+writeFileSync(
+  new URL('../../tests/golden/v1.json', import.meta.url),
+  JSON.stringify({
+    lattice: { x0: VIEW.x, y0: VIEW.y, step: GRID_CELL, cols, rows, halls },
+    routes,
+    search: queries.map((q) => ({ q, hits: search(q).map(hitKey) })),
+    boothHalls,
+  }),
+);
 console.log(`${routes.length} routes, ${queries.length} queries`);
 ```
 
@@ -224,6 +276,7 @@ git commit -m "Move v1 to legacy/ and capture golden snapshot"
 ### Task 2: Scaffold SvelteKit + Bun + TypeScript + Oxc and CI
 
 **Files:**
+
 - Replace: `package.json`
 - Create: `svelte.config.js`, `vite.config.ts`, `tsconfig.json`, `.oxlintrc.json`, `.oxfmtrc.json`, `src/app.html`, `src/app.d.ts`, `src/routes/+page.svelte` (placeholder, replaced in Task 12), `src/routes/+layout.ts`, `static/favicon.svg`
 - Replace: `.github/workflows/test.yml` → `.github/workflows/ci.yml`
@@ -231,6 +284,7 @@ git commit -m "Move v1 to legacy/ and capture golden snapshot"
 - Test: `tests/smoke.test.ts`
 
 **Interfaces:**
+
 - Produces: scripts `dev`, `build`, `preview`, `test`, `test:e2e`, `lint`, `fmt`, `fmt:check`, `check`, `legacy:test`; path alias `$lib` → `src/lib`.
 
 - [ ] **Step 1: Write `package.json`**
@@ -341,7 +395,10 @@ export default defineConfig({ plugins: [sveltekit()] });
     <link rel="icon" href="%sveltekit.assets%/favicon.svg" />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-    <link href="https://fonts.googleapis.com/css2?family=Mitr:wght@400;500;600&family=Anuphan:wght@400;500;600&display=swap" rel="stylesheet" />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Mitr:wght@400;500;600&family=Anuphan:wght@400;500;600&display=swap"
+      rel="stylesheet"
+    />
     %sveltekit.head%
   </head>
   <body data-sveltekit-preload-data="hover">
@@ -458,11 +515,13 @@ If oxfmt rejects a key in `.oxfmtrc.json`, check `bunx oxfmt --help` for the cur
 ### Task 3: Shared types and Zod schemas
 
 **Files:**
+
 - Create: `src/lib/core/types.ts`
 - Create: `src/lib/server/schema.ts`
 - Test: `tests/schema.test.ts`
 
 **Interfaces:**
+
 - Produces (types, `src/lib/core/types.ts`): `I18n`, `Rect`, `Box`, `Point`, `LandmarkGroup`, `IconName`, `Landmark`, `Venue`, `EventFile`, `BoothRaw`, `Pillar`, `BoothsFile`, `ExhibitorRow`, `Booth`, `Exhibitor`, `EventData`, `Dest`, `RouteOk`, `RouteResult`, `GROUP_ORDER`, `ICON_NAMES`, `WALK_M_PER_MIN`.
 - Produces (runtime, `src/lib/server/schema.ts`): `VenueSchema`, `EventSchema`, `BoothsFileSchema`, `formatIssues(err: z.ZodError): string`.
 
@@ -597,8 +656,12 @@ test('event defaults fill optional fields', () => {
 });
 
 test('event rejects end before start and a bad colour', () => {
-  expect(EventSchema.safeParse({ ...minimalEvent, dates: { start: '2027-01-03', end: '2027-01-01' } }).success).toBe(false);
-  expect(EventSchema.safeParse({ ...minimalEvent, categories: { general: { ...i18n, color: 'blue' } } }).success).toBe(false);
+  expect(EventSchema.safeParse({ ...minimalEvent, dates: { start: '2027-01-03', end: '2027-01-01' } }).success).toBe(
+    false,
+  );
+  expect(EventSchema.safeParse({ ...minimalEvent, categories: { general: { ...i18n, color: 'blue' } } }).success).toBe(
+    false,
+  );
 });
 
 test('landmark needs both languages and a known icon', () => {
@@ -702,18 +765,14 @@ export const EventSchema: z.ZodType<EventFile, z.ZodTypeDef, unknown> = z
     zones: z.record(z.string(), i18n.extend({ short: z.string().optional() })),
     foyerZones: z.array(rect.extend({ c: z.string(), vertical: z.boolean().optional() })),
     obstacles: z.array(rect.extend({ kind: z.enum(['stage', 'info', 'other']), note: z.string().optional() })),
-    aisles: z
-      .object({ signY: num, boothMinY: num, x: z.record(z.string().regex(/^[A-Z]$/), num) })
-      .optional(),
+    aisles: z.object({ signY: num, boothMinY: num, x: z.record(z.string().regex(/^[A-Z]$/), num) }).optional(),
     landmarks: z.array(landmark),
     quickPicks: z.array(
       z.union([z.tuple([z.literal('booth'), z.string()]), z.tuple([z.literal('place'), z.string()])]),
     ),
     allowedDuplicateCodes: z.array(z.string()).default([]),
     notes: z.array(z.string()).default([]),
-    text: z
-      .object({ ph: i18n.optional(), searchLabel: i18n.optional(), exhibitors: i18n.optional() })
-      .optional(),
+    text: z.object({ ph: i18n.optional(), searchLabel: i18n.optional(), exhibitors: i18n.optional() }).optional(),
   })
   .refine((e) => e.dates.start <= e.dates.end, { message: 'dates.end is before dates.start', path: ['dates'] });
 
@@ -745,6 +804,7 @@ git commit -m "Add shared types and Zod schemas for venues, events and booths"
 ### Task 4: QSNCC venue as data, and area lookup
 
 **Files:**
+
 - Create: `tools/migrate/v1-to-v2.ts` (venue part)
 - Create: `venues/qsncc-lg-5-8/venue.json` (generated)
 - Move: `legacy/../tools/digitize/source/floorplan-2026.jpg` copy → `venues/qsncc-lg-5-8/reference.jpg`
@@ -752,6 +812,7 @@ git commit -m "Add shared types and Zod schemas for venues, events and booths"
 - Test: `tests/geometry.test.ts`
 
 **Interfaces:**
+
 - Consumes: `Venue`, `Point` from Task 3.
 - Produces:
   - `pointInPolygon(x: number, y: number, poly: Point[]): boolean` (half-open: a point on a left or bottom-to-top edge counts as inside the polygon to its right, matching v1's `x < maxX`)
@@ -784,20 +845,40 @@ const hall = (n: number, x0: number, xe: number) => ({
   id: `hall${n}`,
   name: { th: `ฮอลล์ ${n}`, en: `Hall ${n}` },
   label: { x: C.HALL_LABELS.find((l: number[]) => l[2] === n)[0], y: 1424, text: `HALL ${n}` },
-  bounds: [[x0, C.VIEW.y], [xe, C.VIEW.y], [xe, 1466], [x0, 1466]],
+  bounds: [
+    [x0, C.VIEW.y],
+    [xe, C.VIEW.y],
+    [xe, 1466],
+    [x0, 1466],
+  ],
 });
 const hall5 = {
   ...hall(5, 446, 749),
   bounds: [
-    [446, C.VIEW.y], [749, C.VIEW.y], [749, 1466], [446, 1466], [446, 1205], [C.VIEW.x, 1205], [C.VIEW.x, 976],
-    [446, 976], [446, 772], [C.VIEW.x, 772], [C.VIEW.x, 556], [446, 556],
+    [446, C.VIEW.y],
+    [749, C.VIEW.y],
+    [749, 1466],
+    [446, 1466],
+    [446, 1205],
+    [C.VIEW.x, 1205],
+    [C.VIEW.x, 976],
+    [446, 976],
+    [446, 772],
+    [C.VIEW.x, 772],
+    [C.VIEW.x, 556],
+    [446, 556],
   ],
 };
 
 const doors = C.DOORS.map((d: { id: string; x: number; hall: number }) =>
   d.id === 'west'
     ? { id: d.id, area: `hall${d.hall}`, punch: [436, 848, 456, 912], gap: [442, 852, 450, 908] }
-    : { id: d.id, area: `hall${d.hall}`, punch: [d.x - 30, 1430, d.x + 30, 1474], gap: [d.x - 28, 1436, d.x + 28, 1444] },
+    : {
+        id: d.id,
+        area: `hall${d.hall}`,
+        punch: [d.x - 30, 1430, d.x + 30, 1474],
+        gap: [d.x - 28, 1436, d.x + 28, 1444],
+      },
 );
 
 const landmarks = LANDMARKS.filter((l: { id: string }) => VENUE_IDS.includes(l.id)).map(
@@ -824,7 +905,10 @@ const venue = {
     text: {
       back: { th: 'บูธอยู่ช่วงท้ายทางเดิน ใกล้ผนังด้านใน', en: 'The booth is near the back-wall end of the aisle.' },
       mid: { th: 'บูธอยู่ประมาณกลางทางเดิน', en: 'The booth is about halfway along the aisle.' },
-      front: { th: 'บูธอยู่ช่วงต้นทางเดิน ใกล้ประตูฝั่งทะเลสาบ', en: 'The booth is near the lakeside end of the aisle.' },
+      front: {
+        th: 'บูธอยู่ช่วงต้นทางเดิน ใกล้ประตูฝั่งทะเลสาบ',
+        en: 'The booth is near the lakeside end of the aisle.',
+      },
     },
     aisleHint: { th: '(ตัวอักษรตามแนวผนังด้านใน)', en: 'Aisle letters run along the back wall.' },
   },
@@ -857,7 +941,12 @@ const venue = VenueSchema.parse(JSON.parse(readFileSync('venues/qsncc-lg-5-8/ven
 const golden = JSON.parse(readFileSync('tests/golden/v1.json', 'utf8'));
 
 test('pointInPolygon is half-open on the right edge', () => {
-  const sq: [number, number][] = [[0, 0], [10, 0], [10, 10], [0, 10]];
+  const sq: [number, number][] = [
+    [0, 0],
+    [10, 0],
+    [10, 10],
+    [0, 10],
+  ];
   expect(pointInPolygon(0, 5, sq)).toBe(true);
   expect(pointInPolygon(10, 5, sq)).toBe(false);
   expect(pointInPolygon(5, 5, sq)).toBe(true);
@@ -869,7 +958,8 @@ test('areaAt matches v1 hallAt on every grid cell centre', () => {
   const bad: string[] = [];
   for (let r = 0; r < rows; r++)
     for (let c = 0; c < cols; c++) {
-      const x = x0 + (c + 0.5) * step, y = y0 + (r + 0.5) * step;
+      const x = x0 + (c + 0.5) * step,
+        y = y0 + (r + 0.5) * step;
       const want = halls[r * cols + c] === '0' ? null : `hall${halls[r * cols + c]}`;
       const got = areaAt(venue, x, y);
       if (got !== want && bad.length < 10) bad.push(`${x},${y}: ${got} != ${want}`);
@@ -898,7 +988,8 @@ import type { I18n, Point, Venue } from './types';
 export function pointInPolygon(x: number, y: number, poly: Point[]): boolean {
   let inside = false;
   for (let i = 0, j = poly.length - 1; i < poly.length; j = i++) {
-    const [xi, yi] = poly[i], [xj, yj] = poly[j];
+    const [xi, yi] = poly[i],
+      [xj, yj] = poly[j];
     if (yi > y !== yj > y && x < ((xj - xi) * (y - yi)) / (yj - yi) + xi) inside = !inside;
   }
   return inside;
@@ -933,6 +1024,7 @@ git commit -m "Describe QSNCC as venue data and add area lookup"
 ### Task 5: 2026 event folder, catalog loader and data preparation
 
 **Files:**
+
 - Modify: `tools/migrate/v1-to-v2.ts` (append event part)
 - Create: `events/bkkibf-2026/event.json`, `events/bkkibf-2026/booths.json`, `events/bkkibf-2026/exhibitors.csv` (generated)
 - Create: `src/lib/core/csv.ts`, `src/lib/core/codes.ts`, `src/lib/core/prepare.ts`
@@ -940,6 +1032,7 @@ git commit -m "Describe QSNCC as venue data and add area lookup"
 - Test: `tests/csv.test.ts`, `tests/prepare.test.ts`, `tests/catalog.test.ts`
 
 **Interfaces:**
+
 - Consumes: types from Task 3; `VenueSchema`, `EventSchema`, `BoothsFileSchema`, `formatIssues` from Task 3; `areaAt` from Task 4.
 - Produces:
   - `parseCSV(text: string): Record<string, string>[]`
@@ -1022,8 +1115,11 @@ writeFileSync('events/bkkibf-2026/event.json', JSON.stringify(event, null, 2) + 
 const line = (o: unknown) => '    ' + JSON.stringify(o);
 writeFileSync(
   'events/bkkibf-2026/booths.json',
-  '{\n  "booths": [\n' + booths.booths.map(line).join(',\n') + '\n  ],\n  "pillars": [\n' +
-    booths.pillars.map(line).join(',\n') + '\n  ]\n}\n',
+  '{\n  "booths": [\n' +
+    booths.booths.map(line).join(',\n') +
+    '\n  ],\n  "pillars": [\n' +
+    booths.pillars.map(line).join(',\n') +
+    '\n  ]\n}\n',
 );
 copyFileSync('legacy/data/exhibitors.csv', 'events/bkkibf-2026/exhibitors.csv');
 copyFileSync('tools/digitize/source/floorplan-2026.jpg', 'events/bkkibf-2026/source/plan.jpg');
@@ -1073,22 +1169,34 @@ Expected: FAIL, modules not found.
 ```ts
 export function parseCSV(text: string): Record<string, string>[] {
   const rows: string[][] = [];
-  let row: string[] = [], field = '', quoted = false;
+  let row: string[] = [],
+    field = '',
+    quoted = false;
   const src = text.replace(/^﻿/, '');
   for (let i = 0; i < src.length; i++) {
     const ch = src[i];
     if (quoted) {
-      if (ch === '"' && src[i + 1] === '"') { field += '"'; i++; }
-      else if (ch === '"') quoted = false;
+      if (ch === '"' && src[i + 1] === '"') {
+        field += '"';
+        i++;
+      } else if (ch === '"') quoted = false;
       else field += ch;
     } else if (ch === '"' && field === '') quoted = true;
-    else if (ch === ',') { row.push(field); field = ''; }
-    else if (ch === '\n' || ch === '\r') {
+    else if (ch === ',') {
+      row.push(field);
+      field = '';
+    } else if (ch === '\n' || ch === '\r') {
       if (ch === '\r' && src[i + 1] === '\n') i++;
-      row.push(field); rows.push(row); row = []; field = '';
+      row.push(field);
+      rows.push(row);
+      row = [];
+      field = '';
     } else field += ch;
   }
-  if (field !== '' || row.length) { row.push(field); rows.push(row); }
+  if (field !== '' || row.length) {
+    row.push(field);
+    rows.push(row);
+  }
   const lines = rows.filter((r) => r.some((c) => c.trim() !== '') && !r[0].trim().startsWith('#'));
   if (!lines.length) return [];
   const head = lines[0].map((h) => h.trim().toLowerCase());
@@ -1125,8 +1233,29 @@ const bundle = loadEvent('bkkibf-2026');
 const data = loadData(bundle);
 const golden = JSON.parse(readFileSync('tests/golden/v1.json', 'utf8'));
 const V1_LANDMARK_ORDER = [
-  'mrt', 'west', 'door5', 'door6', 'door7', 'door8', 'wc1', 'wc2', 'wc3', 'wc4', 'wc5', 'wc6',
-  'info1', 'info2', 'info3', 'info4', 'info5', 'ch1', 'ch2', 'ch3', 'ch4', 'stage', 'lift',
+  'mrt',
+  'west',
+  'door5',
+  'door6',
+  'door7',
+  'door8',
+  'wc1',
+  'wc2',
+  'wc3',
+  'wc4',
+  'wc5',
+  'wc6',
+  'info1',
+  'info2',
+  'info3',
+  'info4',
+  'info5',
+  'ch1',
+  'ch2',
+  'ch3',
+  'ch4',
+  'stage',
+  'lift',
 ];
 
 test('booths include foyer zones with no area', () => {
@@ -1155,7 +1284,12 @@ test('landmarks merge venue and event in v1 order', () => {
 });
 
 test('exhibitors normalise codes and report unknown booths', () => {
-  const d = prepareData(bundle.venue, bundle.event, bundle.booths, parseCSV('booth,name_th,name_en\nk16,ก,Test\nZ99,ข,Nope\n'));
+  const d = prepareData(
+    bundle.venue,
+    bundle.event,
+    bundle.booths,
+    parseCSV('booth,name_th,name_en\nk16,ก,Test\nZ99,ข,Nope\n'),
+  );
   expect(d.exhibitors[0]).toEqual({ booth: 'K16', th: 'ก', en: 'Test' });
   expect(d.unknownExhibitorBooths).toEqual(['Z99']);
 });
@@ -1228,20 +1362,32 @@ Expected: FAIL, modules not found.
 import { areaAt } from './geometry';
 import { normCode } from './codes';
 import { GROUP_ORDER } from './types';
-import type { Booth, BoothRaw, BoothsFile, EventData, EventFile, Exhibitor, ExhibitorRow, Landmark, Venue } from './types';
+import type {
+  Booth,
+  BoothRaw,
+  BoothsFile,
+  EventData,
+  EventFile,
+  Exhibitor,
+  ExhibitorRow,
+  Landmark,
+  Venue,
+} from './types';
 
 export function prepareData(venue: Venue, event: EventFile, file: BoothsFile, rows: ExhibitorRow[]): EventData {
   const booths: Booth[] = [];
   const byCode: Record<string, Booth[]> = {};
   const add = (raw: BoothRaw, foyer: boolean) => {
-    const cx = raw.x + raw.w / 2, cy = raw.y + raw.h / 2;
+    const cx = raw.x + raw.w / 2,
+      cy = raw.y + raw.h / 2;
     const b: Booth = { ...raw, i: booths.length, cx, cy, area: foyer ? null : areaAt(venue, cx, cy) };
     if (foyer) b.foyer = true;
     booths.push(b);
     (byCode[b.c] ||= []).push(b);
   };
   for (const b of file.booths) add(b, false);
-  for (const z of event.foyerZones) if (!byCode[z.c]) add({ c: z.c, x: z.x, y: z.y, w: z.w, h: z.h, cat: 'special' }, true);
+  for (const z of event.foyerZones)
+    if (!byCode[z.c]) add({ c: z.c, x: z.x, y: z.y, w: z.w, h: z.h, cat: 'special' }, true);
 
   const exhibitors: Exhibitor[] = rows
     .map((r) => ({ booth: normCode(r.booth || ''), th: r.name_th || '', en: r.name_en || '' }))
@@ -1255,7 +1401,17 @@ export function prepareData(venue: Venue, event: EventFile, file: BoothsFile, ro
     .map(({ l }) => l);
   const landmarkById = Object.fromEntries(landmarks.map((l) => [l.id, l]));
 
-  return { venue, event, booths, pillars: file.pillars, byCode, exhibitors, unknownExhibitorBooths, landmarks, landmarkById };
+  return {
+    venue,
+    event,
+    booths,
+    pillars: file.pillars,
+    byCode,
+    exhibitors,
+    unknownExhibitorBooths,
+    landmarks,
+    landmarkById,
+  };
 }
 
 export const loadData = (b: { venue: Venue; event: EventFile; booths: BoothsFile; exhibitors: ExhibitorRow[] }) =>
@@ -1335,7 +1491,14 @@ export function loadEvent(id: string, root = cwd()): EventBundle {
 export function eventSummaries(root = cwd()): EventSummary[] {
   return listEventIds(root).map((id) => {
     const { event, venue } = loadEvent(id, root);
-    return { id, name: event.name, subtitle: event.subtitle, dates: event.dates, venueName: venue.name, timezone: venue.timezone };
+    return {
+      id,
+      name: event.name,
+      subtitle: event.subtitle,
+      dates: event.dates,
+      venueName: venue.name,
+      timezone: venue.timezone,
+    };
   });
 }
 ```
@@ -1359,11 +1522,13 @@ git commit -m "Add 2026 event folder, catalog loader and data preparation"
 ### Task 6: Routing grid and A* ported to TypeScript, pinned to v1
 
 **Files:**
+
 - Create: `src/lib/core/grid.ts`
 - Create: `src/lib/core/routing.ts`
 - Test: `tests/routing.test.ts`
 
 **Interfaces:**
+
 - Consumes: `Venue`, `Rect`, `Box`, `Dest`, `Landmark`, `EventData`, `RouteResult`, `WALK_M_PER_MIN` (Task 3); `areaAt` (Task 4); `loadEvent` (Task 5); `loadData` (Task 5).
 - Produces:
   - `type Grid = { walk: Uint8Array; clear: Uint8Array; doorCell: Int16Array; gw: number; gh: number; x0: number; y0: number; g: number }`
@@ -1444,7 +1609,16 @@ Expected: FAIL, modules not found.
 ```ts
 import type { EventData, Rect, Venue } from './types';
 
-export type Grid = { walk: Uint8Array; clear: Uint8Array; doorCell: Int16Array; gw: number; gh: number; x0: number; y0: number; g: number };
+export type Grid = {
+  walk: Uint8Array;
+  clear: Uint8Array;
+  doorCell: Int16Array;
+  gw: number;
+  gh: number;
+  x0: number;
+  y0: number;
+  g: number;
+};
 export type Blocker = Rect & { extra?: Rect[] };
 
 const PAD = 2;
@@ -1452,8 +1626,10 @@ const MAX_CLEAR = 6;
 
 export function forCells(grid: Grid, x0: number, y0: number, x1: number, y1: number, fn: (i: number) => void) {
   const { g, gw, gh } = grid;
-  const c0 = Math.max(0, Math.ceil((x0 - grid.x0) / g - 0.5)), c1 = Math.min(gw - 1, Math.floor((x1 - grid.x0) / g - 0.5));
-  const r0 = Math.max(0, Math.ceil((y0 - grid.y0) / g - 0.5)), r1 = Math.min(gh - 1, Math.floor((y1 - grid.y0) / g - 0.5));
+  const c0 = Math.max(0, Math.ceil((x0 - grid.x0) / g - 0.5)),
+    c1 = Math.min(gw - 1, Math.floor((x1 - grid.x0) / g - 0.5));
+  const r0 = Math.max(0, Math.ceil((y0 - grid.y0) / g - 0.5)),
+    r1 = Math.min(gh - 1, Math.floor((y1 - grid.y0) / g - 0.5));
   for (let r = r0; r <= r1; r++) for (let c = c0; c <= c1; c++) fn(r * gw + c);
 }
 
@@ -1464,36 +1640,76 @@ export function cellOf(grid: Grid, x: number, y: number) {
 }
 
 export function cellXY(grid: Grid, i: number): [number, number] {
-  const r = (i / grid.gw) | 0, c = i - r * grid.gw;
+  const r = (i / grid.gw) | 0,
+    c = i - r * grid.gw;
   return [grid.x0 + (c + 0.5) * grid.g, grid.y0 + (r + 0.5) * grid.g];
 }
 
 export const obstaclesOf = (d: EventData): Blocker[] => [...d.booths, ...d.pillars, ...d.event.obstacles];
 
 export function createGrid(venue: Venue, blockers: Blocker[]): Grid {
-  const g = venue.gridCell, v = venue.view;
-  const gw = Math.ceil(v.w / g), gh = Math.ceil(v.h / g), n = gw * gh;
-  const grid: Grid = { walk: new Uint8Array(n), clear: new Uint8Array(n), doorCell: new Int16Array(n).fill(-1), gw, gh, x0: v.x, y0: v.y, g };
-  const set = (b: number[], val: number) => forCells(grid, b[0], b[1], b[2], b[3], (i) => { grid.walk[i] = val; });
+  const g = venue.gridCell,
+    v = venue.view;
+  const gw = Math.ceil(v.w / g),
+    gh = Math.ceil(v.h / g),
+    n = gw * gh;
+  const grid: Grid = {
+    walk: new Uint8Array(n),
+    clear: new Uint8Array(n),
+    doorCell: new Int16Array(n).fill(-1),
+    gw,
+    gh,
+    x0: v.x,
+    y0: v.y,
+    g,
+  };
+  const set = (b: number[], val: number) =>
+    forCells(grid, b[0], b[1], b[2], b[3], (i) => {
+      grid.walk[i] = val;
+    });
   const block = (r: Rect) => set([r.x - PAD, r.y - PAD, r.x + r.w + PAD, r.y + r.h + PAD], 0);
 
   for (const f of venue.floor) set(f.box, f.op === 'add' ? 1 : 0);
-  venue.doors.forEach((d, k) => forCells(grid, ...d.punch, (i) => { grid.walk[i] = 1; grid.doorCell[i] = k; }));
-  for (const o of blockers) { block(o); for (const e of o.extra ?? []) block(e); }
+  venue.doors.forEach((d, k) =>
+    forCells(grid, ...d.punch, (i) => {
+      grid.walk[i] = 1;
+      grid.doorCell[i] = k;
+    }),
+  );
+  for (const o of blockers) {
+    block(o);
+    for (const e of o.extra ?? []) block(e);
+  }
 
   const q = new Int32Array(n);
-  let head = 0, tail = 0;
+  let head = 0,
+    tail = 0;
   grid.clear.fill(255);
-  for (let i = 0; i < n; i++) if (!grid.walk[i]) { grid.clear[i] = 0; q[tail++] = i; }
+  for (let i = 0; i < n; i++)
+    if (!grid.walk[i]) {
+      grid.clear[i] = 0;
+      q[tail++] = i;
+    }
   while (head < tail) {
-    const i = q[head++], d = grid.clear[i];
+    const i = q[head++],
+      d = grid.clear[i];
     if (d >= MAX_CLEAR) continue;
-    const r = (i / gw) | 0, c = i - r * gw;
-    for (const [dr, dc] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) {
-      const rr = r + dr, cc = c + dc;
+    const r = (i / gw) | 0,
+      c = i - r * gw;
+    for (const [dr, dc] of [
+      [1, 0],
+      [-1, 0],
+      [0, 1],
+      [0, -1],
+    ]) {
+      const rr = r + dr,
+        cc = c + dc;
       if (rr < 0 || cc < 0 || rr >= gh || cc >= gw) continue;
       const j = rr * gw + cc;
-      if (grid.clear[j] > d + 1) { grid.clear[j] = d + 1; q[tail++] = j; }
+      if (grid.clear[j] > d + 1) {
+        grid.clear[j] = d + 1;
+        q[tail++] = j;
+      }
     }
   }
   return grid;
@@ -1502,16 +1718,22 @@ export function createGrid(venue: Venue, blockers: Blocker[]): Grid {
 export function nearestWalkable(grid: Grid, x: number, y: number): number {
   const s = cellOf(grid, x, y);
   if (grid.walk[s]) return s;
-  const r0 = (s / grid.gw) | 0, c0 = s % grid.gw;
+  const r0 = (s / grid.gw) | 0,
+    c0 = s % grid.gw;
   for (let rad = 1; rad < 40; rad++) {
-    let best = -1, bd = Infinity;
+    let best = -1,
+      bd = Infinity;
     for (let r = r0 - rad; r <= r0 + rad; r++)
       for (let c = c0 - rad; c <= c0 + rad; c++) {
         if (r < 0 || c < 0 || r >= grid.gh || c >= grid.gw) continue;
         const j = r * grid.gw + c;
         if (!grid.walk[j]) continue;
-        const [jx, jy] = cellXY(grid, j), d = (jx - x) ** 2 + (jy - y) ** 2;
-        if (d < bd) { bd = d; best = j; }
+        const [jx, jy] = cellXY(grid, j),
+          d = (jx - x) ** 2 + (jy - y) ** 2;
+        if (d < bd) {
+          bd = d;
+          best = j;
+        }
       }
     if (best >= 0) return best;
   }
@@ -1535,7 +1757,9 @@ function goalCells(grid: Grid, dest: Dest): Set<number> {
   if (dest.kind === 'booth') {
     const b = dest.b;
     for (const e of [16, 30, 48]) {
-      forCells(grid, b.x - e, b.y - e, b.x + b.w + e, b.y + b.h + e, (i) => { if (grid.walk[i]) set.add(i); });
+      forCells(grid, b.x - e, b.y - e, b.x + b.w + e, b.y + b.h + e, (i) => {
+        if (grid.walk[i]) set.add(i);
+      });
       if (set.size) break;
     }
   } else {
@@ -1546,19 +1770,29 @@ function goalCells(grid: Grid, dest: Dest): Set<number> {
 }
 
 function astar(grid: Grid, start: number, goals: Set<number>): number[] | null {
-  const { walk, clear, gw, gh, g: G } = grid, n = gw * gh;
-  const g = new Float32Array(n).fill(Infinity), came = new Int32Array(n).fill(-1), closed = new Uint8Array(n);
+  const { walk, clear, gw, gh, g: G } = grid,
+    n = gw * gh;
+  const g = new Float32Array(n).fill(Infinity),
+    came = new Int32Array(n).fill(-1),
+    closed = new Uint8Array(n);
   let targets = [...goals].map((i) => cellXY(grid, i));
   if (targets.length > 40) {
-    const xs = targets.map((t) => t[0]), ys = targets.map((t) => t[1]);
+    const xs = targets.map((t) => t[0]),
+      ys = targets.map((t) => t[1]);
     const [ax, bx, ay, by] = [Math.min(...xs), Math.max(...xs), Math.min(...ys), Math.max(...ys)];
-    targets = [[ax, ay], [bx, by], [ax, by], [bx, ay]];
+    targets = [
+      [ax, ay],
+      [bx, by],
+      [ax, by],
+      [bx, ay],
+    ];
   }
   const h = (i: number) => {
     const [x, y] = cellXY(grid, i);
     let m = Infinity;
     for (const [tx, ty] of targets) {
-      const dx = Math.abs(tx - x) / G, dy = Math.abs(ty - y) / G;
+      const dx = Math.abs(tx - x) / G,
+        dy = Math.abs(ty - y) / G;
       m = Math.min(m, Math.max(dx, dy) + 0.4142 * Math.min(dx, dy));
     }
     return m;
@@ -1576,12 +1810,14 @@ function astar(grid: Grid, start: number, goals: Set<number>): number[] | null {
     }
   };
   const pop = () => {
-    const top = heap[0], last = heap.pop()!;
+    const top = heap[0],
+      last = heap.pop()!;
     if (heap.length) {
       heap[0] = last;
       let k = 0;
       for (;;) {
-        const l = 2 * k + 1, r = l + 1;
+        const l = 2 * k + 1,
+          r = l + 1;
         let m = k;
         if (l < heap.length && heap[l][0] < heap[m][0]) m = l;
         if (r < heap.length && heap[r][0] < heap[m][0]) m = r;
@@ -1603,17 +1839,23 @@ function astar(grid: Grid, start: number, goals: Set<number>): number[] | null {
       for (let k = i; k >= 0; k = came[k]) path.push(k);
       return path.reverse();
     }
-    const r = (i / gw) | 0, c = i - r * gw;
+    const r = (i / gw) | 0,
+      c = i - r * gw;
     for (let dr = -1; dr <= 1; dr++)
       for (let dc = -1; dc <= 1; dc++) {
         if (!dr && !dc) continue;
-        const rr = r + dr, cc = c + dc;
+        const rr = r + dr,
+          cc = c + dc;
         if (rr < 0 || cc < 0 || rr >= gh || cc >= gw) continue;
         const j = rr * gw + cc;
         if (!walk[j] || closed[j]) continue;
         if (dr && dc && (!walk[r * gw + cc] || !walk[rr * gw + c])) continue;
         const ng = g[i] + (dr && dc ? Math.SQRT2 : 1) * cost(j);
-        if (ng < g[j]) { g[j] = ng; came[j] = i; push(ng + h(j), j); }
+        if (ng < g[j]) {
+          g[j] = ng;
+          came[j] = i;
+          push(ng + h(j), j);
+        }
       }
   }
   return null;
@@ -1643,19 +1885,24 @@ function stringPull(grid: Grid, pts: Point[]): Point[] {
 
 export function findRoute(grid: Grid, venue: Venue, start: Landmark, dest: Dest): RouteResult {
   if (dest.kind === 'place' && dest.lm.id === start.id) return { same: true };
-  const s = nearestWalkable(grid, start.x, start.y), goals = goalCells(grid, dest);
+  const s = nearestWalkable(grid, start.x, start.y),
+    goals = goalCells(grid, dest);
   if (s < 0 || !goals.size) return { fail: true };
   const path = astar(grid, s, goals);
   if (!path) return { fail: true };
 
-  const doorsUsed: number[] = [], areas: string[] = [];
+  const doorsUsed: number[] = [],
+    areas: string[] = [];
   for (const i of path) {
     const k = grid.doorCell[i];
     if (k >= 0 && !doorsUsed.includes(k)) doorsUsed.push(k);
     const a = areaAt(venue, ...cellXY(grid, i));
     if (a && areas[areas.length - 1] !== a) areas.push(a);
   }
-  const P = stringPull(grid, path.map((i) => cellXY(grid, i)));
+  const P = stringPull(
+    grid,
+    path.map((i) => cellXY(grid, i)),
+  );
   P.unshift([start.x, start.y]);
   const [lx, ly] = P[P.length - 1];
   if (dest.kind === 'booth') {
@@ -1666,7 +1913,14 @@ export function findRoute(grid: Grid, venue: Venue, start: Landmark, dest: Dest)
   let len = 0;
   for (let k = 1; k < P.length; k++) len += Math.hypot(P[k][0] - P[k - 1][0], P[k][1] - P[k - 1][1]);
   const m = len * venue.metersPerPx;
-  return { P, len, meters: Math.max(5, Math.round(m / 5) * 5), minutes: Math.max(1, Math.round(m / WALK_M_PER_MIN)), doorsUsed, areas };
+  return {
+    P,
+    len,
+    meters: Math.max(5, Math.round(m / 5) * 5),
+    minutes: Math.max(1, Math.round(m / WALK_M_PER_MIN)),
+    doorsUsed,
+    areas,
+  };
 }
 ```
 
@@ -1687,12 +1941,14 @@ git commit -m "Port routing grid and A* to TypeScript, pinned to v1 golden route
 ### Task 7: Strings, search and directions, plus per-event and per-venue integrity tests
 
 **Files:**
+
 - Create: `src/lib/i18n/strings.ts`
 - Create: `src/lib/core/search.ts`
 - Create: `src/lib/core/directions.ts`
 - Test: `tests/search.test.ts`, `tests/directions.test.ts`, `tests/events.test.ts`, `tests/venues.test.ts`, `tests/strings.test.ts`
 
 **Interfaces:**
+
 - Consumes: Tasks 3–6.
 - Produces:
   - `type Lang = 'th' | 'en'`, `type Strings` (shape below), `STRINGS: Record<Lang, Strings>`, `nameIn(lang: Lang): (o: I18n) => string`, `textFor(s: Strings, event: EventFile, lang: Lang, key: TextKey): string`, `fmtRange(start: string, end: string, lang: Lang): string`
@@ -1788,7 +2044,14 @@ export const STRINGS: Record<Lang, Strings> = {
     zoomOut: 'ซูมออก',
     fit: 'ดูทั้งผัง',
     clearSearch: 'ล้างคำค้นหา',
-    groups: { entry: 'ทางเข้า', wc: 'ห้องน้ำ', info: 'จุดประชาสัมพันธ์', charge: 'จุดชาร์จแบต', stage: 'เวทีและกิจกรรม', other: 'อื่น ๆ' },
+    groups: {
+      entry: 'ทางเข้า',
+      wc: 'ห้องน้ำ',
+      info: 'จุดประชาสัมพันธ์',
+      charge: 'จุดชาร์จแบต',
+      stage: 'เวทีและกิจกรรม',
+      other: 'อื่น ๆ',
+    },
     tapHint: 'แตะบูธบนแผนที่ หรือพิมพ์ค้นหาด้านบน',
     noRoute: 'ไม่พบเส้นทาง ลองเลือกจุดเริ่มต้นอื่น',
     events: 'งานทั้งหมด',
@@ -1833,7 +2096,14 @@ export const STRINGS: Record<Lang, Strings> = {
     zoomOut: 'Zoom out',
     fit: 'Show whole floor',
     clearSearch: 'Clear search',
-    groups: { entry: 'Entrances', wc: 'Toilets', info: 'Information', charge: 'Charging spots', stage: 'Stages & activities', other: 'Other' },
+    groups: {
+      entry: 'Entrances',
+      wc: 'Toilets',
+      info: 'Information',
+      charge: 'Charging spots',
+      stage: 'Stages & activities',
+      other: 'Other',
+    },
     tapHint: 'Tap a booth on the map, or search above.',
     noRoute: 'No route found. Try a different starting point.',
     events: 'Events',
@@ -1855,7 +2125,12 @@ export const nameIn = (lang: Lang) => (o: I18n) => o[lang] || o.th || o.en;
 export const textFor = (s: Strings, event: EventFile, lang: Lang, key: TextKey) => event.text?.[key]?.[lang] ?? s[key];
 
 export function fmtRange(start: string, end: string, lang: Lang): string {
-  const f = new Intl.DateTimeFormat(lang === 'th' ? 'th-TH' : 'en-GB', { day: 'numeric', month: 'short', year: 'numeric', timeZone: 'UTC' });
+  const f = new Intl.DateTimeFormat(lang === 'th' ? 'th-TH' : 'en-GB', {
+    day: 'numeric',
+    month: 'short',
+    year: 'numeric',
+    timeZone: 'UTC',
+  });
   const d = (iso: string) => new Date(`${iso}T00:00:00Z`);
   return start === end ? f.format(d(start)) : f.formatRange(d(start), d(end));
 }
@@ -1875,7 +2150,11 @@ test('th and en have the same keys', () => {
 });
 
 test('no exclamation marks in copy', () => {
-  const all = JSON.stringify(STRINGS) + Object.values(STRINGS).map((s) => s.noRes('x') + s.ended('x')).join('');
+  const all =
+    JSON.stringify(STRINGS) +
+    Object.values(STRINGS)
+      .map((s) => s.noRes('x') + s.ended('x'))
+      .join('');
   expect(all.includes('!')).toBe(false);
 });
 
@@ -1910,7 +2189,12 @@ test('search results match v1 for every golden query', () => {
 });
 
 test('search finds publishers from the CSV', () => {
-  const d = prepareData(bundle.venue, bundle.event, bundle.booths, parseCSV('booth,name_th,name_en\nK16,สำนักพิมพ์ทดสอบ,Test Press\n'));
+  const d = prepareData(
+    bundle.venue,
+    bundle.event,
+    bundle.booths,
+    parseCSV('booth,name_th,name_en\nK16,สำนักพิมพ์ทดสอบ,Test Press\n'),
+  );
   const find = createSearch(d);
   const hit = find('test press')[0];
   expect(hit.type).toBe('exh');
@@ -1944,12 +2228,17 @@ test('steps match v1 in both languages for every golden route', () => {
   const bad: string[] = [];
   for (const g of golden.routes) {
     if (!g.en) continue;
-    const start = data.landmarkById[g.from], dest = destOf(g.to);
+    const start = data.landmarkById[g.from],
+      dest = destOf(g.to);
     const r = findRoute(grid, data.venue, start, dest);
-    if (!isRouteOk(r)) { bad.push(`${g.from} -> ${g.to}: no route`); continue; }
+    if (!isRouteOk(r)) {
+      bad.push(`${g.from} -> ${g.to}: no route`);
+      continue;
+    }
     for (const lang of ['en', 'th'] as const) {
       const got = buildSteps(r, start, dest, data, lang);
-      if (JSON.stringify(got) !== JSON.stringify(g[lang]) && bad.length < 5) bad.push(`${lang} ${g.from} -> ${g.to}: ${got.join(' | ')}`);
+      if (JSON.stringify(got) !== JSON.stringify(g[lang]) && bad.length < 5)
+        bad.push(`${lang} ${g.from} -> ${g.to}: ${got.join(' | ')}`);
     }
   }
   expect(bad).toEqual([]);
@@ -1983,15 +2272,20 @@ for (const id of listEventIds()) {
     });
 
     test('only allowed duplicate codes exist', () => {
-      const dups = Object.entries(data.byCode).filter(([, l]) => l.length > 1).map(([c]) => c).sort();
+      const dups = Object.entries(data.byCode)
+        .filter(([, l]) => l.length > 1)
+        .map(([c]) => c)
+        .sort();
       expect(dups).toEqual([...event.allowedDuplicateCodes].sort());
     });
 
     test('booths do not overlap', () => {
-      const bs = data.booths.filter((b) => !b.foyer), hits: string[] = [];
+      const bs = data.booths.filter((b) => !b.foyer),
+        hits: string[] = [];
       for (let i = 0; i < bs.length; i++)
         for (let j = i + 1; j < bs.length; j++) {
-          const a = bs[i], b = bs[j];
+          const a = bs[i],
+            b = bs[j];
           const ox = Math.min(a.x + a.w, b.x + b.w) - Math.max(a.x, b.x);
           const oy = Math.min(a.y + a.h, b.y + b.h) - Math.max(a.y, b.y);
           if (ox > 3 && oy > 3) hits.push(`${a.c}/${b.c}`);
@@ -2045,7 +2339,8 @@ test('aisles in the 2026 event stay at least 4 cells wide', () => {
   const narrow: string[] = [];
   for (const [letter, x] of Object.entries(data.event.aisles!.x)) {
     const c = Math.round((x - grid.x0) / grid.g - 0.5);
-    let l = c, r = c;
+    let l = c,
+      r = c;
     while (l > 0 && grid.walk[row * grid.gw + l - 1]) l--;
     while (r < grid.gw - 1 && grid.walk[row * grid.gw + r + 1]) r++;
     if (!grid.walk[row * grid.gw + c] || r - l + 1 < 4) narrow.push(letter);
@@ -2066,7 +2361,8 @@ import { isRouteOk, type Box, type Point } from '../src/lib/core/types';
 
 const segHitsBox = ([ax, ay]: Point, [bx, by]: Point, [x0, y0, x1, y1]: Box) => {
   for (let k = 0; k <= 50; k++) {
-    const x = ax + ((bx - ax) * k) / 50, y = ay + ((by - ay) * k) / 50;
+    const x = ax + ((bx - ax) * k) / 50,
+      y = ay + ((by - ay) * k) / 50;
     if (x >= x0 && x <= x1 && y >= y0 && y <= y1) return true;
   }
   return false;
@@ -2099,7 +2395,9 @@ for (const id of listVenueIds()) {
     test('every venue landmark is reachable from the origin on an empty floor', () => {
       const grid = createGrid(venue, []);
       const origin = venue.landmarks.find((l) => l.id === venue.origin)!;
-      const bad = venue.landmarks.filter((l) => l.id !== origin.id && !isRouteOk(findRoute(grid, venue, origin, { kind: 'place', lm: l })));
+      const bad = venue.landmarks.filter(
+        (l) => l.id !== origin.id && !isRouteOk(findRoute(grid, venue, origin, { kind: 'place', lm: l })),
+      );
       expect(bad.map((l) => l.id)).toEqual([]);
     });
   });
@@ -2119,18 +2417,27 @@ Expected: strings and venues pass; search, directions and events fail on missing
 import { STRINGS } from '../i18n/strings';
 import type { Booth, EventData, Exhibitor, Landmark } from './types';
 
-export type SearchItem = { type: 'booth'; b: Booth } | { type: 'exh'; b: Booth; ex: Exhibitor } | { type: 'place'; lm: Landmark };
+export type SearchItem =
+  { type: 'booth'; b: Booth } | { type: 'exh'; b: Booth; ex: Exhibitor } | { type: 'place'; lm: Landmark };
 
-export const norm = (s: string) => String(s).toLowerCase().replace(/[\s\-_.·,'’()]/g, '');
+export const norm = (s: string) =>
+  String(s)
+    .toLowerCase()
+    .replace(/[\s\-_.·,'’()]/g, '');
 
 export function createSearch(data: EventData) {
   const { zones } = data.event;
   const items: { it: SearchItem; code?: string; names: string[] }[] = [];
-  for (const b of data.booths) items.push({ it: { type: 'booth', b }, code: b.c, names: zones[b.c] ? [zones[b.c].th, zones[b.c].en] : [] });
+  for (const b of data.booths)
+    items.push({ it: { type: 'booth', b }, code: b.c, names: zones[b.c] ? [zones[b.c].th, zones[b.c].en] : [] });
   for (const ex of data.exhibitors)
-    for (const b of data.byCode[ex.booth] || []) items.push({ it: { type: 'exh', b, ex }, code: b.c, names: [ex.th, ex.en].filter(Boolean) });
+    for (const b of data.byCode[ex.booth] || [])
+      items.push({ it: { type: 'exh', b, ex }, code: b.c, names: [ex.th, ex.en].filter(Boolean) });
   for (const lm of data.landmarks)
-    items.push({ it: { type: 'place', lm }, names: [lm.th, lm.en, STRINGS.th.groups[lm.group], STRINGS.en.groups[lm.group]] });
+    items.push({
+      it: { type: 'place', lm },
+      names: [lm.th, lm.en, STRINGS.th.groups[lm.group], STRINGS.en.groups[lm.group]],
+    });
   const prepared = items.map((p) => ({ it: p.it, code: p.code?.toLowerCase(), names: p.names.map(norm) }));
 
   return function search(query: string, limit = 40): SearchItem[] {
@@ -2143,7 +2450,8 @@ export function createSearch(data: EventData) {
       if (p.code) {
         if (p.code === n) score = 100;
         else if (codeQ && p.code[0] === codeQ[1]) {
-          const num = codeQ[2], rest = p.code.slice(1);
+          const num = codeQ[2],
+            rest = p.code.slice(1);
           if (num === '' || rest.startsWith(num) || (num.length === 1 && rest === '0' + num)) score = 80;
         }
       }
@@ -2156,9 +2464,11 @@ export function createSearch(data: EventData) {
       if (score) scored.push([score, p.it, p.it.type === 'place' ? '' : p.it.b.c]);
     }
     scored.sort((a, b) => b[0] - a[0] || a[2].localeCompare(b[2]));
-    const seen = new Set<string>(), out: SearchItem[] = [];
+    const seen = new Set<string>(),
+      out: SearchItem[] = [];
     for (const [, it] of scored) {
-      const key = it.type === 'place' ? 'p:' + it.lm.id : `${it.type}:${it.b.i}:${it.type === 'exh' ? it.ex.th + it.ex.en : ''}`;
+      const key =
+        it.type === 'place' ? 'p:' + it.lm.id : `${it.type}:${it.b.i}:${it.type === 'exh' ? it.ex.th + it.ex.en : ''}`;
       if (seen.has(key)) continue;
       seen.add(key);
       out.push(it);
@@ -2186,7 +2496,9 @@ export function isAisleBooth(b: Booth, data: EventData): boolean {
 }
 
 export function buildSteps(route: RouteOk, start: Landmark, dest: Dest, data: EventData, lang: Lang): string[] {
-  const s = STRINGS[lang], nameOf = nameIn(lang), { venue } = data;
+  const s = STRINGS[lang],
+    nameOf = nameIn(lang),
+    { venue } = data;
   const steps = [s.s_start(nameOf(start))];
   const startArea = areaAt(venue, start.x, start.y);
 
@@ -2236,6 +2548,7 @@ git commit -m "Port search and directions, add strings and integrity tests per e
 ### Task 8: Styles, storage, language state and the app shell
 
 **Files:**
+
 - Create: `src/lib/styles/app.css` (from `legacy/src/styles.css` plus new rules)
 - Create: `src/lib/storage.ts`
 - Create: `src/lib/i18n/lang.svelte.ts`
@@ -2244,6 +2557,7 @@ git commit -m "Port search and directions, add strings and integrity tests per e
 - Test: `tests/storage.test.ts`
 
 **Interfaces:**
+
 - Consumes: `Lang`, `STRINGS` (Task 7).
 - Produces:
   - `type KV = { get(k: string): string | null; set(k: string, v: string): void }`
@@ -2262,18 +2576,30 @@ import { makeStore } from '../src/lib/storage';
 
 test('reads and writes through localStorage', () => {
   const m = new Map<string, string>();
-  const ls = { getItem: (k: string) => m.get(k) ?? null, setItem: (k: string, v: string) => void m.set(k, v) } as unknown as Storage;
+  const ls = {
+    getItem: (k: string) => m.get(k) ?? null,
+    setItem: (k: string, v: string) => void m.set(k, v),
+  } as unknown as Storage;
   const s = makeStore(() => ls);
   s.set('bf:lang', 'en');
   expect(s.get('bf:lang')).toBe('en');
 });
 
 test('survives storage that throws or is missing', () => {
-  const boom = { getItem: () => { throw new Error('blocked'); }, setItem: () => { throw new Error('blocked'); } } as unknown as Storage;
+  const boom = {
+    getItem: () => {
+      throw new Error('blocked');
+    },
+    setItem: () => {
+      throw new Error('blocked');
+    },
+  } as unknown as Storage;
   const s = makeStore(() => boom);
   expect(() => s.set('k', 'v')).not.toThrow();
   expect(s.get('k')).toBeNull();
-  const none = makeStore(() => { throw new Error('SecurityError'); });
+  const none = makeStore(() => {
+    throw new Error('SecurityError');
+  });
   expect(none.get('k')).toBeNull();
   expect(() => none.set('k', 'v')).not.toThrow();
 });
@@ -2353,19 +2679,89 @@ cp legacy/src/styles.css src/lib/styles/app.css
 Edit the first comment line of `src/lib/styles/app.css` to `/* Tokens on :root; dark theme redefines them. */` and delete the second comment line. Append:
 
 ```css
-.back{color:#fff;text-decoration:none;font-size:22px;line-height:1;padding:4px 6px 6px;border-radius:10px;flex:none}
-.back:hover{background:rgba(255,255,255,.12)}
-.notice{background:var(--chip);color:var(--text);border-radius:12px;padding:8px 12px;font-size:14px;margin:0 0 12px}
-.page{height:100%;display:flex;flex-direction:column}
-.events{flex:1;overflow:auto;padding:16px;display:grid;gap:12px;align-content:start;max-width:720px;width:100%;margin:0 auto}
-.events h2{font-family:var(--display);font-weight:500;font-size:15px;color:var(--muted);margin:8px 0 0}
-.event-card{display:flex;flex-direction:column;gap:4px;padding:14px 16px;border:1.5px solid var(--line);border-radius:16px;background:var(--panel);color:var(--text);text-decoration:none}
-.event-card:hover{border-color:var(--blue)}
-.event-card b{font-family:var(--display);font-weight:500;font-size:18px;line-height:1.3}
-.event-card span{font-size:14px;color:var(--muted)}
-.badge{align-self:flex-start;font-size:12.5px;font-weight:600;border-radius:999px;padding:2px 10px;background:var(--chip);color:var(--ink)}
-.badge.live{background:var(--sun);color:#13306B}
-.badge.past{color:var(--muted)}
+.back {
+  color: #fff;
+  text-decoration: none;
+  font-size: 22px;
+  line-height: 1;
+  padding: 4px 6px 6px;
+  border-radius: 10px;
+  flex: none;
+}
+.back:hover {
+  background: rgba(255, 255, 255, 0.12);
+}
+.notice {
+  background: var(--chip);
+  color: var(--text);
+  border-radius: 12px;
+  padding: 8px 12px;
+  font-size: 14px;
+  margin: 0 0 12px;
+}
+.page {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+}
+.events {
+  flex: 1;
+  overflow: auto;
+  padding: 16px;
+  display: grid;
+  gap: 12px;
+  align-content: start;
+  max-width: 720px;
+  width: 100%;
+  margin: 0 auto;
+}
+.events h2 {
+  font-family: var(--display);
+  font-weight: 500;
+  font-size: 15px;
+  color: var(--muted);
+  margin: 8px 0 0;
+}
+.event-card {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 14px 16px;
+  border: 1.5px solid var(--line);
+  border-radius: 16px;
+  background: var(--panel);
+  color: var(--text);
+  text-decoration: none;
+}
+.event-card:hover {
+  border-color: var(--blue);
+}
+.event-card b {
+  font-family: var(--display);
+  font-weight: 500;
+  font-size: 18px;
+  line-height: 1.3;
+}
+.event-card span {
+  font-size: 14px;
+  color: var(--muted);
+}
+.badge {
+  align-self: flex-start;
+  font-size: 12.5px;
+  font-weight: 600;
+  border-radius: 999px;
+  padding: 2px 10px;
+  background: var(--chip);
+  color: var(--ink);
+}
+.badge.live {
+  background: var(--sun);
+  color: #13306b;
+}
+.badge.past {
+  color: var(--muted);
+}
 ```
 
 - [ ] **Step 7: Write the header and language toggle**
@@ -2439,6 +2835,7 @@ git commit -m "Add styles, storage, language state and app shell"
 ### Task 9: Map components and viewport
 
 **Files:**
+
 - Create: `src/lib/core/panzoom.ts`
 - Create: `src/lib/map/labels.ts`
 - Create: `src/lib/map/viewport.ts`
@@ -2446,6 +2843,7 @@ git commit -m "Add styles, storage, language state and app shell"
 - Test: `tests/panzoom.test.ts`, `tests/labels.test.ts`
 
 **Interfaces:**
+
 - Consumes: `EventData`, `Dest`, `RouteOk`, `Venue`, `Box`, `Rect`, `Landmark` (Task 3); `isAisleBooth` (Task 7); `STRINGS`, `nameIn` (Task 7); `lang` (Task 8).
 - Produces:
   - `type VB = { x: number; y: number; w: number; h: number }`
@@ -2504,7 +2902,20 @@ test('frameTarget pads routes less than single points and leaves room for the pi
   const t1 = frameTarget({ kind: 'booth', b }, null)!;
   expect(t1.pad).toBe(160);
   expect(t1.box[1]).toBe(100 - 70);
-  const t2 = frameTarget({ kind: 'booth', b }, { P: [[0, 0], [200, 300]], len: 1, meters: 5, minutes: 1, doorsUsed: [], areas: [] })!;
+  const t2 = frameTarget(
+    { kind: 'booth', b },
+    {
+      P: [
+        [0, 0],
+        [200, 300],
+      ],
+      len: 1,
+      meters: 5,
+      minutes: 1,
+      doorsUsed: [],
+      areas: [],
+    },
+  )!;
   expect(t2.pad).toBe(60);
   expect(t2.box).toEqual([0, -70, 200, 300]);
   expect(frameTarget(null, null)).toBeNull();
@@ -2523,7 +2934,18 @@ test('ease and lerp', () => {
 import { test, expect } from 'bun:test';
 import { boothLabel } from '../src/lib/map/labels';
 
-const b = (w: number, h: number) => ({ c: 'A02', x: 0, y: 0, w, h, cat: 'special', i: 0, cx: w / 2, cy: h / 2, area: 'hall5' });
+const b = (w: number, h: number) => ({
+  c: 'A02',
+  x: 0,
+  y: 0,
+  w,
+  h,
+  cat: 'special',
+  i: 0,
+  cx: w / 2,
+  cy: h / 2,
+  area: 'hall5',
+});
 
 test('font size is clamped between 8 and 13', () => {
   expect(boothLabel(b(10, 10)).fs).toBe(8);
@@ -2562,7 +2984,8 @@ export const MIN_W = 170;
 export const LABEL_MIN_PX_PER_UNIT = 0.42;
 
 export function clampVB(vb: VB, view: Rect, aspect: number): VB {
-  const w = Math.max(MIN_W, Math.min(view.w * 1.25, vb.w)), h = w * aspect;
+  const w = Math.max(MIN_W, Math.min(view.w * 1.25, vb.w)),
+    h = w * aspect;
   const cx = Math.max(view.x, Math.min(view.x + view.w, vb.x + vb.w / 2));
   const cy = Math.max(view.y, Math.min(view.y + view.h, vb.y + vb.h / 2));
   return { x: cx - w / 2, y: cy - h / 2, w, h };
@@ -2595,7 +3018,8 @@ export const lerpVB = (a: VB, b: VB, e: number): VB => ({
 export function frameTarget(dest: Dest | null, route: RouteOk | null): { box: Box; pad: number } | null {
   let x0: number, y0: number, x1: number, y1: number;
   if (route) {
-    const xs = route.P.map((p) => p[0]), ys = route.P.map((p) => p[1]);
+    const xs = route.P.map((p) => p[0]),
+      ys = route.P.map((p) => p[1]);
     [x0, x1, y0, y1] = [Math.min(...xs), Math.max(...xs), Math.min(...ys), Math.max(...ys)];
   } else if (dest) {
     const [px, py] = dest.kind === 'booth' ? [dest.b.cx, dest.b.cy] : [dest.lm.x, dest.lm.y];
@@ -2604,7 +3028,10 @@ export function frameTarget(dest: Dest | null, route: RouteOk | null): { box: Bo
   } else return null;
   if (dest?.kind === 'booth') {
     const b = dest.b;
-    x0 = Math.min(x0, b.x); x1 = Math.max(x1, b.x + b.w); y0 = Math.min(y0, b.y); y1 = Math.max(y1, b.y + b.h);
+    x0 = Math.min(x0, b.x);
+    x1 = Math.max(x1, b.x + b.w);
+    y0 = Math.min(y0, b.y);
+    y1 = Math.max(y1, b.y + b.h);
   }
   return { box: [x0, y0 - 70, x1, y1], pad: route ? 60 : 160 };
 }
@@ -2620,7 +3047,11 @@ export function boothLabel(b: Booth, short?: string) {
   if (short && b.w > 50) {
     const words = short.split(' ');
     const lines = words.length > 2 ? [words.slice(0, 2).join(' '), words.slice(2).join(' ')] : [words.join(' ')];
-    return { fs, code: { x: b.cx, y: b.cy - 12, rotate: false }, lines: lines.map((text, k) => ({ x: b.cx, y: b.cy + 4 + k * 12, text })) };
+    return {
+      fs,
+      code: { x: b.cx, y: b.cy - 12, rotate: false },
+      lines: lines.map((text, k) => ({ x: b.cx, y: b.cy + 4 + k * 12, text })),
+    };
   }
   return { fs, code: { x: b.cx, y: b.cy, rotate: short !== undefined && b.w < 32 && b.h > 60 }, lines: [] };
 }
@@ -2648,7 +3079,8 @@ export type Viewport = {
 
 export function createViewport(svg: SVGSVGElement, venue: Venue, onTap: (target: Element | null) => void): Viewport {
   const view = venue.view;
-  let vb: VB = { ...view }, anim = 0;
+  let vb: VB = { ...view },
+    anim = 0;
   const reduceMotion = matchMedia('(prefers-reduced-motion: reduce)').matches;
   const aspect = () => {
     const r = svg.getBoundingClientRect();
@@ -2658,19 +3090,28 @@ export function createViewport(svg: SVGSVGElement, venue: Venue, onTap: (target:
     svg.setAttribute('viewBox', `${vb.x} ${vb.y} ${vb.w} ${vb.h}`);
     svg.classList.toggle('labels-off', svg.getBoundingClientRect().width / vb.w < LABEL_MIN_PX_PER_UNIT);
   };
-  const set = (next: VB) => { vb = clampVB(next, view, aspect()); apply(); };
+  const set = (next: VB) => {
+    vb = clampVB(next, view, aspect());
+    apply();
+  };
   const toSvg = (cx: number, cy: number) => {
     const p = svg.createSVGPoint();
-    p.x = cx; p.y = cy;
+    p.x = cx;
+    p.y = cy;
     return p.matrixTransform(svg.getScreenCTM()!.inverse());
   };
   const animateTo = (target: VB) => {
     cancelAnimationFrame(anim);
-    const from = { ...vb }, t0 = performance.now(), dur = reduceMotion ? 0 : 450;
+    const from = { ...vb },
+      t0 = performance.now(),
+      dur = reduceMotion ? 0 : 450;
     const step = (now: number) => {
       const k = dur ? Math.min(1, (now - t0) / dur) : 1;
       vb = lerpVB(from, target, ease(k));
-      if (k < 1) { apply(); anim = requestAnimationFrame(step); } else set(vb);
+      if (k < 1) {
+        apply();
+        anim = requestAnimationFrame(step);
+      } else set(vb);
     };
     anim = requestAnimationFrame(step);
   };
@@ -2691,7 +3132,14 @@ export function createViewport(svg: SVGSVGElement, venue: Venue, onTap: (target:
     svg.setPointerCapture(e.pointerId);
     pointers.set(e.pointerId, { x: e.clientX, y: e.clientY });
     cancelAnimationFrame(anim);
-    if (pointers.size === 1) down = { x: e.clientX, y: e.clientY, target: e.target as Element, moved: false, start: toSvg(e.clientX, e.clientY) };
+    if (pointers.size === 1)
+      down = {
+        x: e.clientX,
+        y: e.clientY,
+        target: e.target as Element,
+        moved: false,
+        start: toSvg(e.clientX, e.clientY),
+      };
     else if (pointers.size === 2) {
       const [a, b] = [...pointers.values()];
       pinch = { d: Math.hypot(a.x - b.x, a.y - b.y), mx: (a.x + b.x) / 2, my: (a.y + b.y) / 2 };
@@ -2703,14 +3151,19 @@ export function createViewport(svg: SVGSVGElement, venue: Venue, onTap: (target:
     pointers.set(e.pointerId, { x: e.clientX, y: e.clientY });
     if (pointers.size === 2 && pinch) {
       const [a, b] = [...pointers.values()];
-      const d = Math.hypot(a.x - b.x, a.y - b.y), mx = (a.x + b.x) / 2, my = (a.y + b.y) / 2;
+      const d = Math.hypot(a.x - b.x, a.y - b.y),
+        mx = (a.x + b.x) / 2,
+        my = (a.y + b.y) / 2;
       const p0 = toSvg(pinch.mx, pinch.my);
       zoomAtClient(mx, my, pinch.d / d);
       const p1 = toSvg(mx, my);
       set({ ...vb, x: vb.x + p0.x - p1.x, y: vb.y + p0.y - p1.y });
       pinch = { d, mx, my };
     } else if (pointers.size === 1 && down) {
-      if (Math.hypot(e.clientX - down.x, e.clientY - down.y) > 6) { down.moved = true; svg.classList.add('dragging'); }
+      if (Math.hypot(e.clientX - down.x, e.clientY - down.y) > 6) {
+        down.moved = true;
+        svg.classList.add('dragging');
+      }
       if (down.moved) {
         const p = toSvg(e.clientX, e.clientY);
         set({ ...vb, x: vb.x + down.start.x - p.x, y: vb.y + down.start.y - p.y });
@@ -2731,7 +3184,10 @@ export function createViewport(svg: SVGSVGElement, venue: Venue, onTap: (target:
       down = null;
     }
   };
-  const onWheel = (e: WheelEvent) => { e.preventDefault(); zoomAtClient(e.clientX, e.clientY, Math.exp(e.deltaY * 0.0016)); };
+  const onWheel = (e: WheelEvent) => {
+    e.preventDefault();
+    zoomAtClient(e.clientX, e.clientY, Math.exp(e.deltaY * 0.0016));
+  };
 
   svg.addEventListener('pointerdown', onDown);
   svg.addEventListener('pointermove', onMove);
@@ -2739,7 +3195,9 @@ export function createViewport(svg: SVGSVGElement, venue: Venue, onTap: (target:
   svg.addEventListener('pointercancel', onEnd);
   svg.addEventListener('wheel', onWheel, { passive: false });
   const ro = new ResizeObserver(() => {
-    const cx = vb.x + vb.w / 2, cy = vb.y + vb.h / 2, h = vb.w * aspect();
+    const cx = vb.x + vb.w / 2,
+      cy = vb.y + vb.h / 2,
+      h = vb.w * aspect();
     set({ x: cx - vb.w / 2, y: cy - h / 2, w: vb.w, h });
   });
   ro.observe(svg);
@@ -2747,7 +3205,8 @@ export function createViewport(svg: SVGSVGElement, venue: Venue, onTap: (target:
   return {
     fitAll(animated = false) {
       const b = overview();
-      if (animated) animateTo(b); else set(b);
+      if (animated) animateTo(b);
+      else set(b);
     },
     zoomCenter(k) {
       const r = svg.getBoundingClientRect();
@@ -3096,6 +3555,7 @@ git commit -m "Add Svelte map layers, pure pan/zoom maths and viewport gestures"
 ### Task 10: Finder page
 
 **Files:**
+
 - Create: `src/lib/core/hash.ts`
 - Create: `src/lib/core/describe.ts`
 - Create: `src/lib/ui/finder.svelte.ts`
@@ -3104,6 +3564,7 @@ git commit -m "Add Svelte map layers, pure pan/zoom maths and viewport gestures"
 - Test: `tests/hash.test.ts`, `tests/describe.test.ts`
 
 **Interfaces:**
+
 - Consumes: everything from Tasks 3–9.
 - Produces:
   - `parseHash(hash: string, data: EventData): { dest: Dest | null; fromId: string | null }`
@@ -3212,7 +3673,8 @@ export function formatHash(dest: Dest | null, fromId: string, data: EventData): 
   const p = new URLSearchParams();
   if (dest) {
     p.set('to', dest.kind === 'booth' ? dest.b.c : dest.lm.id);
-    if (dest.kind === 'booth' && data.byCode[dest.b.c].length > 1) p.set('n', String(data.byCode[dest.b.c].indexOf(dest.b)));
+    if (dest.kind === 'booth' && data.byCode[dest.b.c].length > 1)
+      p.set('n', String(data.byCode[dest.b.c].indexOf(dest.b)));
   }
   if (fromId) p.set('from', fromId);
   return p.toString();
@@ -3227,24 +3689,36 @@ import { isAisleBooth } from './directions';
 import { STRINGS, nameIn, type Lang } from '../i18n/strings';
 import type { Booth, EventData, LandmarkGroup } from './types';
 
-export const PLACE_GLYPH: Record<LandmarkGroup, string> = { entry: '⇅', wc: 'WC', info: 'i', charge: '⚡', stage: '★', other: '↥' };
+export const PLACE_GLYPH: Record<LandmarkGroup, string> = {
+  entry: '⇅',
+  wc: 'WC',
+  info: 'i',
+  charge: '⚡',
+  stage: '★',
+  other: '↥',
+};
 
 export const exhibitorsAt = (data: EventData, code: string) => data.exhibitors.filter((e) => e.booth === code);
 
 export function boothTitle(b: Booth, data: EventData, lang: Lang): string {
-  const nameOf = nameIn(lang), z = data.event.zones[b.c];
+  const nameOf = nameIn(lang),
+    z = data.event.zones[b.c];
   if (z) return nameOf(z);
   const ex = exhibitorsAt(data, b.c);
   return ex.length ? ex.map(nameOf).join(', ') : nameOf(data.event.categories[b.cat]);
 }
 
 export function cardTitle(b: Booth, data: EventData, lang: Lang): string {
-  const nameOf = nameIn(lang), z = data.event.zones[b.c], ex = exhibitorsAt(data, b.c);
+  const nameOf = nameIn(lang),
+    z = data.event.zones[b.c],
+    ex = exhibitorsAt(data, b.c);
   return z ? nameOf(z) : ex.length === 1 ? nameOf(ex[0]) : nameOf(data.event.categories[b.cat]);
 }
 
 export function boothSub(b: Booth, data: EventData, lang: Lang): string {
-  const nameOf = nameIn(lang), s = STRINGS[lang], z = data.event.zones[b.c];
+  const nameOf = nameIn(lang),
+    s = STRINGS[lang],
+    z = data.event.zones[b.c];
   const parts = [nameOf(areaName(data.venue, b.area))];
   if (isAisleBooth(b, data) && !z) parts.push(s.aisle(b.c[0]));
   if (z || exhibitorsAt(data, b.c).length) parts.push(nameOf(data.event.categories[b.cat]));
@@ -3274,7 +3748,9 @@ export class Finder {
   query = $state('');
   sheetOpen = $state(true);
   start = $derived<Landmark | null>(this.fromId ? (this.data.landmarkById[this.fromId] ?? null) : null);
-  route = $derived.by<RouteResult | null>(() => (this.start && this.dest ? findRoute(this.grid, this.data.venue, this.start, this.dest) : null));
+  route = $derived.by<RouteResult | null>(() =>
+    this.start && this.dest ? findRoute(this.grid, this.data.venue, this.start, this.dest) : null,
+  );
   routeOk = $derived(isRouteOk(this.route) ? this.route : null);
 
   constructor(data: EventData) {
@@ -3694,6 +4170,7 @@ export const load: PageServerLoad = ({ params }) => {
 
 Run: `bun run check && bun run lint && bun run dev`
 Open `http://localhost:5173/e/bkkibf-2026/#to=K16&from=mrt` and check:
+
 - the map shows and the route draws from the MRT to K16
 - the card shows K16, the distance, the time and the steps, including "Turn into aisle K"
 - tapping another booth selects it, and the URL hash updates
@@ -3713,12 +4190,14 @@ git commit -m "Add finder page with search, result card, start picker and share 
 ### Task 11: End-to-end tests and the parity checkpoint
 
 **Files:**
+
 - Create: `playwright.config.ts`
 - Create: `tests/e2e/finder.spec.ts`
 - Modify: `.github/workflows/ci.yml` (add e2e job)
 - Modify: `package.json` (`test` script must not pick up `tests/e2e`)
 
 **Interfaces:**
+
 - Consumes: the built site from Task 10.
 - Produces: `bun run test:e2e`.
 
@@ -3814,15 +4293,15 @@ Expected: 10 passed (5 specs × 2 projects).
 Append to `.github/workflows/ci.yml` under `jobs:`:
 
 ```yaml
-  e2e:
-    runs-on: ubuntu-latest
-    needs: ci
-    steps:
-      - uses: actions/checkout@v4
-      - uses: oven-sh/setup-bun@v2
-      - run: bun install --frozen-lockfile
-      - run: bunx playwright install --with-deps chromium
-      - run: bun run test:e2e
+e2e:
+  runs-on: ubuntu-latest
+  needs: ci
+  steps:
+    - uses: actions/checkout@v4
+    - uses: oven-sh/setup-bun@v2
+    - run: bun install --frozen-lockfile
+    - run: bunx playwright install --with-deps chromium
+    - run: bun run test:e2e
 ```
 
 - [ ] **Step 7: Commit**
@@ -3838,6 +4317,7 @@ Cloudflare builds a preview of `v2` with the existing settings (`npm run build`,
 - [ ] **Step 8: Parity checkpoint (manual, with the owner)**
 
 Open the `v2` preview URL next to https://book-booth-finder.pages.dev (still v1), or run `bun run build && bunx serve _site -l 4173` and `bunx serve legacy -l 5174` locally. On a phone-sized window (375 × 812) and a desktop window (1280 × 800), in light and dark mode, compare:
+
 - the zoomed-out framing
 - K16 from the MRT: route shape, distance, time and steps
 - `#to=H31&n=1`
@@ -3853,6 +4333,7 @@ Record any difference in the PR description. Fix differences before continuing u
 ### Task 12: Event list, status, legacy redirect and 404
 
 **Files:**
+
 - Create: `src/lib/core/status.ts`
 - Create: `src/lib/ui/EventCard.svelte`
 - Replace: `src/routes/+page.svelte`
@@ -3863,6 +4344,7 @@ Record any difference in the PR description. Fix differences before continuing u
 - Test: `tests/status.test.ts`, `tests/e2e/events.spec.ts`
 
 **Interfaces:**
+
 - Consumes: `eventSummaries`, `EventSummary` (Task 5); strings (Task 7); `Header` (Task 8).
 - Produces:
   - `type Status = 'live' | 'upcoming' | 'past'`
@@ -3921,7 +4403,9 @@ export type Status = 'live' | 'upcoming' | 'past';
 export const LEGACY_EVENT = 'bkkibf-2026';
 
 export const todayIn = (timezone: string, now = new Date()) =>
-  new Intl.DateTimeFormat('en-CA', { timeZone: timezone, year: 'numeric', month: '2-digit', day: '2-digit' }).format(now);
+  new Intl.DateTimeFormat('en-CA', { timeZone: timezone, year: 'numeric', month: '2-digit', day: '2-digit' }).format(
+    now,
+  );
 
 export function eventStatus(dates: { start: string; end: string }, timezone: string, now = new Date()): Status {
   const today = todayIn(timezone, now);
@@ -3930,10 +4414,17 @@ export function eventStatus(dates: { start: string; end: string }, timezone: str
 
 const RANK: Record<Status, number> = { live: 0, upcoming: 1, past: 2 };
 
-export function sortEvents<T extends { dates: { start: string; end: string }; timezone: string }>(list: T[], now = new Date()): T[] {
+export function sortEvents<T extends { dates: { start: string; end: string }; timezone: string }>(
+  list: T[],
+  now = new Date(),
+): T[] {
   return list
     .map((e) => ({ e, st: eventStatus(e.dates, e.timezone, now) }))
-    .sort((a, b) => RANK[a.st] - RANK[b.st] || (a.st === 'past' ? b.e.dates.end.localeCompare(a.e.dates.end) : a.e.dates.start.localeCompare(b.e.dates.start)))
+    .sort(
+      (a, b) =>
+        RANK[a.st] - RANK[b.st] ||
+        (a.st === 'past' ? b.e.dates.end.localeCompare(a.e.dates.end) : a.e.dates.start.localeCompare(b.e.dates.start)),
+    )
     .map(({ e }) => e);
 }
 ```
@@ -4116,10 +4607,12 @@ git commit -m "Add event list with status, legacy redirect, ended notice and 404
 ### Task 13: Pipeline image primitives
 
 **Files:**
+
 - Create: `tools/pipeline/lib/image.ts`
 - Test: `tests/pipeline-image.test.ts`
 
 **Interfaces:**
+
 - Produces:
   - `type RGB = { width: number; height: number; data: Uint8Array }` (3 bytes per pixel, row-major)
   - `type Mask = { width: number; height: number; data: Uint8Array }` (0 or 1)
@@ -4149,11 +4642,20 @@ import { test, expect } from 'bun:test';
 import { components, erode2, median, openLine, farFromColour, type Mask } from '../tools/pipeline/lib/image';
 
 const mask = (rows: string[]): Mask => {
-  const h = rows.length, w = rows[0].length, data = new Uint8Array(w * h);
-  rows.forEach((r, y) => [...r].forEach((c, x) => { data[y * w + x] = c === '#' ? 1 : 0; }));
+  const h = rows.length,
+    w = rows[0].length,
+    data = new Uint8Array(w * h);
+  rows.forEach((r, y) =>
+    [...r].forEach((c, x) => {
+      data[y * w + x] = c === '#' ? 1 : 0;
+    }),
+  );
   return { width: w, height: h, data };
 };
-const rows = (m: Mask) => Array.from({ length: m.height }, (_, y) => Array.from({ length: m.width }, (_, x) => (m.data[y * m.width + x] ? '#' : '.')).join(''));
+const rows = (m: Mask) =>
+  Array.from({ length: m.height }, (_, y) =>
+    Array.from({ length: m.width }, (_, x) => (m.data[y * m.width + x] ? '#' : '.')).join(''),
+  );
 
 test('median follows NumPy', () => {
   expect(median([3, 1, 2])).toBe(2);
@@ -4217,13 +4719,20 @@ export type RGB = { width: number; height: number; data: Uint8Array };
 export type Mask = { width: number; height: number; data: Uint8Array };
 
 export async function loadImage(path: string): Promise<RGB> {
-  const { data, info } = await sharp(path).removeAlpha().toColourspace('srgb').raw().toBuffer({ resolveWithObject: true });
+  const { data, info } = await sharp(path)
+    .removeAlpha()
+    .toColourspace('srgb')
+    .raw()
+    .toBuffer({ resolveWithObject: true });
   return { width: info.width, height: info.height, data: new Uint8Array(data.buffer, data.byteOffset, data.length) };
 }
 
 export function crop(img: RGB, [x0, y0, x1, y1]: Box): RGB {
-  const w = x1 - x0, h = y1 - y0, out = new Uint8Array(w * h * 3);
-  for (let y = 0; y < h; y++) out.set(img.data.subarray(((y0 + y) * img.width + x0) * 3, ((y0 + y) * img.width + x1) * 3), y * w * 3);
+  const w = x1 - x0,
+    h = y1 - y0,
+    out = new Uint8Array(w * h * 3);
+  for (let y = 0; y < h; y++)
+    out.set(img.data.subarray(((y0 + y) * img.width + x0) * 3, ((y0 + y) * img.width + x1) * 3), y * w * 3);
   return { width: w, height: h, data: out };
 }
 
@@ -4233,16 +4742,22 @@ export const pixel = (img: RGB, x: number, y: number): [number, number, number] 
 };
 
 export function farFromColour(img: RGB, [r, g, b]: [number, number, number], threshold: number): Mask {
-  const n = img.width * img.height, out = new Uint8Array(n);
+  const n = img.width * img.height,
+    out = new Uint8Array(n);
   for (let i = 0; i < n; i++) {
-    const d = Math.max(Math.abs(img.data[i * 3] - r), Math.abs(img.data[i * 3 + 1] - g), Math.abs(img.data[i * 3 + 2] - b));
+    const d = Math.max(
+      Math.abs(img.data[i * 3] - r),
+      Math.abs(img.data[i * 3 + 1] - g),
+      Math.abs(img.data[i * 3 + 2] - b),
+    );
     out[i] = d > threshold ? 1 : 0;
   }
   return { width: img.width, height: img.height, data: out };
 }
 
 export function gray(img: RGB): Float32Array {
-  const n = img.width * img.height, out = new Float32Array(n);
+  const n = img.width * img.height,
+    out = new Float32Array(n);
   for (let i = 0; i < n; i++) out[i] = (img.data[i * 3] + img.data[i * 3 + 1] + img.data[i * 3 + 2]) / 3;
   return out;
 }
@@ -4255,15 +4770,27 @@ export function components(mask: Mask) {
   for (let s = 0; s < w * h; s++) {
     if (!data[s] || labels[s]) continue;
     const id = stats.length;
-    let x0 = w, y0 = h, x1 = -1, y1 = -1, area = 0;
+    let x0 = w,
+      y0 = h,
+      x1 = -1,
+      y1 = -1,
+      area = 0;
     labels[s] = id;
     stack.push(s);
     while (stack.length) {
-      const i = stack.pop()!, x = i % w, y = (i / w) | 0;
+      const i = stack.pop()!,
+        x = i % w,
+        y = (i / w) | 0;
       area++;
-      if (x < x0) x0 = x; if (x > x1) x1 = x; if (y < y0) y0 = y; if (y > y1) y1 = y;
+      if (x < x0) x0 = x;
+      if (x > x1) x1 = x;
+      if (y < y0) y0 = y;
+      if (y > y1) y1 = y;
       for (const j of [x > 0 ? i - 1 : -1, x < w - 1 ? i + 1 : -1, y > 0 ? i - w : -1, y < h - 1 ? i + w : -1])
-        if (j >= 0 && data[j] && !labels[j]) { labels[j] = id; stack.push(j); }
+        if (j >= 0 && data[j] && !labels[j]) {
+          labels[j] = id;
+          stack.push(j);
+        }
     }
     stats.push({ x: x0, y: y0, w: x1 - x0 + 1, h: y1 - y0 + 1, area });
   }
@@ -4271,18 +4798,26 @@ export function components(mask: Mask) {
 }
 
 export function openLine(mask: Mask, length: number, axis: 'h' | 'v'): Mask {
-  const { width: w, height: h, data } = mask, out = new Uint8Array(w * h);
+  const { width: w, height: h, data } = mask,
+    out = new Uint8Array(w * h);
   const anchor = Math.floor(length / 2);
-  const lines = axis === 'h' ? h : w, span = axis === 'h' ? w : h;
+  const lines = axis === 'h' ? h : w,
+    span = axis === 'h' ? w : h;
   const at = (line: number, k: number) => (axis === 'h' ? line * w + k : k * w + line);
   for (let line = 0; line < lines; line++) {
     let k = 0;
     while (k < span) {
-      if (!data[at(line, k)]) { k++; continue; }
+      if (!data[at(line, k)]) {
+        k++;
+        continue;
+      }
       const start = k;
       while (k < span && data[at(line, k)]) k++;
-      const run = k - start, atStart = start === 0, atEnd = k === span;
-      const keep = run >= length || (atStart && atEnd) || (atStart && run >= length - anchor) || (atEnd && run >= anchor + 1);
+      const run = k - start,
+        atStart = start === 0,
+        atEnd = k === span;
+      const keep =
+        run >= length || (atStart && atEnd) || (atStart && run >= length - anchor) || (atEnd && run >= anchor + 1);
       if (keep) for (let j = start; j < k; j++) out[at(line, j)] = 1;
     }
   }
@@ -4290,14 +4825,17 @@ export function openLine(mask: Mask, length: number, axis: 'h' | 'v'): Mask {
 }
 
 export function erode2(mask: Mask): Mask {
-  const { width: w, height: h, data } = mask, out = new Uint8Array(w * h);
+  const { width: w, height: h, data } = mask,
+    out = new Uint8Array(w * h);
   const v = (x: number, y: number) => (x < 0 || y < 0 ? 1 : data[y * w + x]);
-  for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) out[y * w + x] = v(x, y) & v(x - 1, y) & v(x, y - 1) & v(x - 1, y - 1);
+  for (let y = 0; y < h; y++)
+    for (let x = 0; x < w; x++) out[y * w + x] = v(x, y) & v(x - 1, y) & v(x, y - 1) & v(x - 1, y - 1);
   return { width: w, height: h, data: out };
 }
 
 export function median(values: ArrayLike<number>): number {
-  const a = Float64Array.from(values).sort(), n = a.length;
+  const a = Float64Array.from(values).sort(),
+    n = a.length;
   if (!n) return NaN;
   return n % 2 ? a[(n - 1) / 2] : (a[n / 2 - 1] + a[n / 2]) / 2;
 }
@@ -4305,10 +4843,15 @@ export function median(values: ArrayLike<number>): number {
 export function modeColour(img: RGB, quant = 8): [number, number, number] {
   const counts = new Map<number, { n: number; r: number; g: number; b: number }>();
   for (let i = 0; i < img.width * img.height; i++) {
-    const r = img.data[i * 3], g = img.data[i * 3 + 1], b = img.data[i * 3 + 2];
+    const r = img.data[i * 3],
+      g = img.data[i * 3 + 1],
+      b = img.data[i * 3 + 2];
     const k = ((r / quant) | 0) * 65536 + ((g / quant) | 0) * 256 + ((b / quant) | 0);
     const c = counts.get(k) ?? { n: 0, r: 0, g: 0, b: 0 };
-    c.n++; c.r += r; c.g += g; c.b += b;
+    c.n++;
+    c.r += r;
+    c.g += g;
+    c.b += b;
     counts.set(k, c);
   }
   const best = [...counts.values()].sort((a, b) => b.n - a.n)[0];
@@ -4335,6 +4878,7 @@ git commit -m "Add pipeline image primitives matching OpenCV morphology"
 ### Task 14: Register and detect stages
 
 **Files:**
+
 - Create: `tools/pipeline/lib/register.ts`
 - Create: `tools/pipeline/lib/detect.ts`
 - Create: `tools/pipeline/lib/paths.ts`
@@ -4342,6 +4886,7 @@ git commit -m "Add pipeline image primitives matching OpenCV morphology"
 - Test: `tests/pipeline-register.test.ts`, `tests/pipeline-detect.test.ts`
 
 **Interfaces:**
+
 - Consumes: `image.ts` (Task 13); `Venue`, `Box`, `Point`, `Rect` (Task 3); `loadVenue`, `loadEvent` (Task 5).
 - Produces:
   - `type Transform = { sx: number; sy: number; dx: number; dy: number; score: number; method: 'auto' | 'manual' }`
@@ -4423,7 +4968,8 @@ test('detects about as many cells on the 2026 plan as the Python detector', asyn
   expect(cells.length).toBeGreaterThan(360);
   expect(cells.length).toBeLessThan(400);
   for (let k = 1; k < cells.length; k++) {
-    const a = cells[k - 1], b = cells[k];
+    const a = cells[k - 1],
+      b = cells[k];
     expect(a.x < b.x || (a.x === b.x && a.y <= b.y)).toBe(true);
   }
 });
@@ -4445,8 +4991,11 @@ import { existsSync, readdirSync } from 'node:fs';
 import { join, resolve } from 'node:path';
 
 export function eventPaths(id: string, root = process.cwd()) {
-  const dir = resolve(root, 'events', id), source = join(dir, 'source');
-  const planFile = existsSync(source) ? readdirSync(source).find((f) => /^plan\.(jpe?g|png|webp)$/i.test(f)) : undefined;
+  const dir = resolve(root, 'events', id),
+    source = join(dir, 'source');
+  const planFile = existsSync(source)
+    ? readdirSync(source).find((f) => /^plan\.(jpe?g|png|webp)$/i.test(f))
+    : undefined;
   return {
     dir,
     source,
@@ -4484,17 +5033,29 @@ export const rectToPlan = (t: Transform, r: Rect): Rect => {
 };
 
 const fit1 = (a: number[], b: number[]) => {
-  const n = a.length, ma = a.reduce((s, v) => s + v, 0) / n, mb = b.reduce((s, v) => s + v, 0) / n;
-  let num = 0, den = 0;
-  for (let k = 0; k < n; k++) { num += (a[k] - ma) * (b[k] - mb); den += (a[k] - ma) ** 2; }
+  const n = a.length,
+    ma = a.reduce((s, v) => s + v, 0) / n,
+    mb = b.reduce((s, v) => s + v, 0) / n;
+  let num = 0,
+    den = 0;
+  for (let k = 0; k < n; k++) {
+    num += (a[k] - ma) * (b[k] - mb);
+    den += (a[k] - ma) ** 2;
+  }
   const s = num / den;
   return { s, d: mb - s * ma };
 };
 
 export function fitAxes(pairs: { plan: Point; venue: Point }[]): Transform {
   if (pairs.length < 2) throw new Error('Need at least two point pairs to register the plan');
-  const x = fit1(pairs.map((p) => p.plan[0]), pairs.map((p) => p.venue[0]));
-  const y = fit1(pairs.map((p) => p.plan[1]), pairs.map((p) => p.venue[1]));
+  const x = fit1(
+    pairs.map((p) => p.plan[0]),
+    pairs.map((p) => p.venue[0]),
+  );
+  const y = fit1(
+    pairs.map((p) => p.plan[1]),
+    pairs.map((p) => p.venue[1]),
+  );
   return { sx: x.s, sy: y.s, dx: x.d, dy: y.d, score: 1, method: 'manual' };
 }
 
@@ -4510,10 +5071,16 @@ export function autoRegister(img: RGB, venue: Venue): Transform {
   for (let i = 0; i < near.data.length; i++) near.data[i] = near.data[i] ? 0 : 1;
   const plan = bboxOfLargest(near);
   const hall = venue.walls[0];
-  const xs = hall.map((p) => p[0]), ys = hall.map((p) => p[1]);
-  const vx0 = Math.min(...xs), vx1 = Math.max(...xs), vy0 = Math.min(...ys), vy1 = Math.max(...ys);
-  const sx = (vx1 - vx0) / plan.w, sy = (vy1 - vy0) / plan.h;
-  const dx = vx0 - plan.x * sx, dy = vy0 - plan.y * sy;
+  const xs = hall.map((p) => p[0]),
+    ys = hall.map((p) => p[1]);
+  const vx0 = Math.min(...xs),
+    vx1 = Math.max(...xs),
+    vy0 = Math.min(...ys),
+    vy1 = Math.max(...ys);
+  const sx = (vx1 - vx0) / plan.w,
+    sy = (vy1 - vy0) / plan.h;
+  const dx = vx0 - plan.x * sx,
+    dy = vy0 - plan.y * sy;
   const ix = Math.max(0, Math.min(vx1, plan.x * sx + dx + plan.w * sx) - Math.max(vx0, plan.x * sx + dx));
   const iy = Math.max(0, Math.min(vy1, plan.y * sy + dy + plan.h * sy) - Math.max(vy0, plan.y * sy + dy));
   const score = (ix * iy) / ((vx1 - vx0) * (vy1 - vy0));
@@ -4528,7 +5095,18 @@ The score falls when the two axes scale differently, which usually means the flo
 `tools/pipeline/lib/detect.ts`:
 
 ```ts
-import { components, crop, erode2, farFromColour, gray, median, modeColour, openLine, type Mask, type RGB } from './image';
+import {
+  components,
+  crop,
+  erode2,
+  farFromColour,
+  gray,
+  median,
+  modeColour,
+  openLine,
+  type Mask,
+  type RGB,
+} from './image';
 import type { Box, Rect, Venue } from '../../../src/lib/core/types';
 import { toPlan, type Transform } from './register';
 
@@ -4549,16 +5127,33 @@ export function defaultDetectParams(img: RGB, venue: Venue, t: Transform): Detec
   const hall = venue.walls[0];
   const [x0, y0] = toPlan(t, [Math.min(...hall.map((p) => p[0])), Math.min(...hall.map((p) => p[1]))]);
   const [x1, y1] = toPlan(t, [Math.max(...hall.map((p) => p[0])), Math.max(...hall.map((p) => p[1]))]);
-  const roi: Box = [Math.max(0, Math.round(x0)), Math.max(0, Math.round(y0)), Math.min(img.width, Math.round(x1)), Math.min(img.height, Math.round(y1))];
-  return { roi, floor: modeColour(crop(img, roi)), threshold: 55, lineLength: 18, lighterDelta: 35, minIsland: 18, minCell: { w: 14, h: 12, area: 200 }, exclude: [] };
+  const roi: Box = [
+    Math.max(0, Math.round(x0)),
+    Math.max(0, Math.round(y0)),
+    Math.min(img.width, Math.round(x1)),
+    Math.min(img.height, Math.round(y1)),
+  ];
+  return {
+    roi,
+    floor: modeColour(crop(img, roi)),
+    threshold: 55,
+    lineLength: 18,
+    lighterDelta: 35,
+    minIsland: 18,
+    minCell: { w: 14, h: 12, area: 200 },
+    exclude: [],
+  };
 }
 
 export function detectCells(img: RGB, p: DetectParams): Cell[] {
-  const roi = crop(img, p.roi), W = roi.width, H = roi.height;
+  const roi = crop(img, p.roi),
+    W = roi.width,
+    H = roi.height;
   const coloured = farFromColour(roi, p.floor, p.threshold);
   const g = gray(roi);
   const { labels, stats } = components(coloured);
-  const lines = new Uint8Array(W * H), blocks: Rect[] = [];
+  const lines = new Uint8Array(W * H),
+    blocks: Rect[] = [];
 
   for (let id = 1; id < stats.length; id++) {
     const { x, y, w, h } = stats[id];
@@ -4566,7 +5161,8 @@ export function detectCells(img: RGB, p: DetectParams): Cell[] {
     blocks.push({ x, y, w, h });
     const inIsland = (i: number) => labels[i] === id;
     const vals: number[] = [];
-    for (let yy = y; yy < y + h; yy++) for (let xx = x; xx < x + w; xx++) if (inIsland(yy * W + xx)) vals.push(g[yy * W + xx]);
+    for (let yy = y; yy < y + h; yy++)
+      for (let xx = x; xx < x + w; xx++) if (inIsland(yy * W + xx)) vals.push(g[yy * W + xx]);
     const base = median(vals);
     const lighter: Mask = { width: w, height: h, data: new Uint8Array(w * h) };
     for (let yy = 0; yy < h; yy++)
@@ -4574,10 +5170,12 @@ export function detectCells(img: RGB, p: DetectParams): Cell[] {
         const i = (y + yy) * W + (x + xx);
         lighter.data[yy * w + xx] = g[i] > base + p.lighterDelta || !inIsland(i) ? 1 : 0;
       }
-    const vl = openLine(lighter, p.lineLength, 'v'), hl = openLine(lighter, p.lineLength, 'h');
+    const vl = openLine(lighter, p.lineLength, 'v'),
+      hl = openLine(lighter, p.lineLength, 'h');
     for (let yy = 0; yy < h; yy++)
       for (let xx = 0; xx < w; xx++) {
-        const i = (y + yy) * W + (x + xx), k = yy * w + xx;
+        const i = (y + yy) * W + (x + xx),
+          k = yy * w + xx;
         if ((vl.data[k] || hl.data[k]) && inIsland(i)) lines[i] = 1;
         if (!inIsland(i)) lines[i] = 1;
       }
@@ -4594,13 +5192,27 @@ export function detectCells(img: RGB, p: DetectParams): Cell[] {
   for (let id = 1; id < cc.stats.length; id++) {
     const { x, y, w, h, area } = cc.stats[id];
     if (w < p.minCell.w || h < p.minCell.h || area < p.minCell.area) continue;
-    const gx = x + ox, gy = y + oy;
+    const gx = x + ox,
+      gy = y + oy;
     if (p.exclude.some(([a, b, c, d]) => a < gx && gx < c && b < gy && gy < d)) continue;
-    const rs: number[] = [], gs: number[] = [], bs: number[] = [];
+    const rs: number[] = [],
+      gs: number[] = [],
+      bs: number[] = [];
     for (let yy = y; yy < y + h; yy++)
       for (let xx = x; xx < x + w; xx++)
-        if (cc.labels[yy * W + xx] === id) { const i = (yy * W + xx) * 3; rs.push(roi.data[i]); gs.push(roi.data[i + 1]); bs.push(roi.data[i + 2]); }
-    const c: Cell = { x: gx, y: gy, w, h, rgb: [Math.trunc(median(rs)), Math.trunc(median(gs)), Math.trunc(median(bs))] };
+        if (cc.labels[yy * W + xx] === id) {
+          const i = (yy * W + xx) * 3;
+          rs.push(roi.data[i]);
+          gs.push(roi.data[i + 1]);
+          bs.push(roi.data[i + 2]);
+        }
+    const c: Cell = {
+      x: gx,
+      y: gy,
+      w,
+      h,
+      rgb: [Math.trunc(median(rs)), Math.trunc(median(gs)), Math.trunc(median(bs))],
+    };
     const white = whiteSquare(img, c);
     if (white) Object.assign(c, white);
     cells.push(c);
@@ -4610,16 +5222,35 @@ export function detectCells(img: RGB, p: DetectParams): Cell[] {
 }
 
 function whiteSquare(img: RGB, c: Rect): { inner: Rect; outer: [number, number, number] } | null {
-  let x0 = Infinity, y0 = Infinity, x1 = -1, y1 = -1;
-  const rs: number[] = [], gs: number[] = [], bs: number[] = [];
+  let x0 = Infinity,
+    y0 = Infinity,
+    x1 = -1,
+    y1 = -1;
+  const rs: number[] = [],
+    gs: number[] = [],
+    bs: number[] = [];
   for (let y = c.y; y < c.y + c.h; y++)
     for (let x = c.x; x < c.x + c.w; x++) {
-      const i = (y * img.width + x) * 3, r = img.data[i], g = img.data[i + 1], b = img.data[i + 2];
-      if (Math.min(r, g, b) > 225) { if (x < x0) x0 = x; if (x > x1) x1 = x; if (y < y0) y0 = y; if (y > y1) y1 = y; }
-      else { rs.push(r); gs.push(g); bs.push(b); }
+      const i = (y * img.width + x) * 3,
+        r = img.data[i],
+        g = img.data[i + 1],
+        b = img.data[i + 2];
+      if (Math.min(r, g, b) > 225) {
+        if (x < x0) x0 = x;
+        if (x > x1) x1 = x;
+        if (y < y0) y0 = y;
+        if (y > y1) y1 = y;
+      } else {
+        rs.push(r);
+        gs.push(g);
+        bs.push(b);
+      }
     }
   if (x1 < 0) return null;
-  return { inner: { x: x0, y: y0, w: x1 - x0 + 1, h: y1 - y0 + 1 }, outer: [Math.trunc(median(rs)), Math.trunc(median(gs)), Math.trunc(median(bs))] };
+  return {
+    inner: { x: x0, y: y0, w: x1 - x0 + 1, h: y1 - y0 + 1 },
+    outer: [Math.trunc(median(rs)), Math.trunc(median(gs)), Math.trunc(median(bs))],
+  };
 }
 ```
 
@@ -4642,6 +5273,7 @@ git commit -m "Add plan registration and booth cell detection"
 ### Task 15: Corrections, build stage and the 2026 reproduction
 
 **Files:**
+
 - Create: `tools/pipeline/lib/corrections.ts`
 - Create: `tools/pipeline/lib/build.ts`
 - Create: `tools/pipeline/lib/categorise.ts` (nearest-colour part; clustering added in Task 16)
@@ -4652,6 +5284,7 @@ git commit -m "Add plan registration and booth cell detection"
 - Test: `tests/pipeline-build.test.ts`
 
 **Interfaces:**
+
 - Consumes: Tasks 3, 5, 13, 14.
 - Produces:
   - Zod `CorrectionsSchema` and `type Corrections`:
@@ -4660,7 +5293,9 @@ git commit -m "Add plan registration and booth cell detection"
       cells: { at: Point; code?: string; pillar?: true; drop?: true; rect?: Rect; extra?: Rect[] }[];
       add: { code: string; rect: Rect; extra?: Rect[]; cat?: string }[];
       categoryColours: Record<string, [number, number, number]>;
-      event?: Partial<Pick<EventFile, 'categories' | 'zones' | 'foyerZones' | 'obstacles' | 'landmarks' | 'quickPicks'>>;
+      event?: Partial<
+        Pick<EventFile, 'categories' | 'zones' | 'foyerZones' | 'obstacles' | 'landmarks' | 'quickPicks'>
+      >;
     };
     ```
     All coordinates in venue space.
@@ -4713,17 +5348,25 @@ export const EMPTY_CORRECTIONS: Corrections = { cells: [], add: [], categoryColo
 
 export const parseCorrections = (json: unknown): Corrections => CorrectionsSchema.parse(json) as Corrections;
 
-export const mergeEvent = (event: EventFile, patch: Corrections['event']): EventFile => EventSchema.parse({ ...event, ...patch });
+export const mergeEvent = (event: EventFile, patch: Corrections['event']): EventFile =>
+  EventSchema.parse({ ...event, ...patch });
 ```
 
 `tools/pipeline/lib/categorise.ts`:
 
 ```ts
-export function nearestCategory(rgb: [number, number, number], colours: Record<string, [number, number, number]>): string {
-  let best = '', bd = Infinity;
+export function nearestCategory(
+  rgb: [number, number, number],
+  colours: Record<string, [number, number, number]>,
+): string {
+  let best = '',
+    bd = Infinity;
   for (const [k, c] of Object.entries(colours)) {
     const d = (c[0] - rgb[0]) ** 2 + (c[1] - rgb[1]) ** 2 + (c[2] - rgb[2]) ** 2;
-    if (d < bd) { bd = d; best = k; }
+    if (d < bd) {
+      bd = d;
+      best = k;
+    }
   }
   return best;
 }
@@ -4751,28 +5394,46 @@ test('the 2026 plan plus committed corrections reproduces booths.json', async ()
   const cells = detectCells(img, JSON.parse(readFileSync('events/bkkibf-2026/source/detect.json', 'utf8')));
   const corrections = parseCorrections(JSON.parse(readFileSync('events/bkkibf-2026/source/corrections.json', 'utf8')));
   const sample = (r: Rect) => {
-    const c = crop(img, [Math.round(r.x + 3), Math.round(r.y + 3), Math.round(r.x + r.w - 3), Math.round(r.y + r.h - 3)]);
-    const ch = (k: number) => Math.trunc(median(Array.from({ length: c.width * c.height }, (_, i) => c.data[i * 3 + k])));
+    const c = crop(img, [
+      Math.round(r.x + 3),
+      Math.round(r.y + 3),
+      Math.round(r.x + r.w - 3),
+      Math.round(r.y + r.h - 3),
+    ]);
+    const ch = (k: number) =>
+      Math.trunc(median(Array.from({ length: c.width * c.height }, (_, i) => c.data[i * 3 + k])));
     return [ch(0), ch(1), ch(2)] as [number, number, number];
   };
-  const { booths, problems } = buildBooths({ cells, reads: [], corrections, t: IDENTITY, sample, codePattern: bundle.event.codePattern });
+  const { booths, problems } = buildBooths({
+    cells,
+    reads: [],
+    corrections,
+    t: IDENTITY,
+    sample,
+    codePattern: bundle.event.codePattern,
+  });
   expect(problems).toEqual([]);
 
   const want = bundle.booths;
-  const byKey = (list: { c: string; x: number; y: number }[]) => [...list].sort((a, b) => a.c.localeCompare(b.c) || a.x - b.x || a.y - b.y);
-  const got = byKey(booths.booths), exp = byKey(want.booths);
+  const byKey = (list: { c: string; x: number; y: number }[]) =>
+    [...list].sort((a, b) => a.c.localeCompare(b.c) || a.x - b.x || a.y - b.y);
+  const got = byKey(booths.booths),
+    exp = byKey(want.booths);
   expect(got.map((b) => b.c)).toEqual(exp.map((b) => b.c));
   const off: string[] = [];
   got.forEach((b, k) => {
     const e = exp[k];
-    const far = Math.abs(b.x - e.x) > 2 || Math.abs(b.y - e.y) > 2 || Math.abs(b.w - e.w) > 2 || Math.abs(b.h - e.h) > 2;
-    if (far || b.cat !== e.cat || JSON.stringify(b.extra ?? null) !== JSON.stringify(e.extra ?? null)) off.push(`${b.c}: ${JSON.stringify(b)} vs ${JSON.stringify(e)}`);
+    const far =
+      Math.abs(b.x - e.x) > 2 || Math.abs(b.y - e.y) > 2 || Math.abs(b.w - e.w) > 2 || Math.abs(b.h - e.h) > 2;
+    if (far || b.cat !== e.cat || JSON.stringify(b.extra ?? null) !== JSON.stringify(e.extra ?? null))
+      off.push(`${b.c}: ${JSON.stringify(b)} vs ${JSON.stringify(e)}`);
   });
   expect(off).toEqual([]);
 
   expect(booths.pillars.length).toBe(want.pillars.length);
   const pk = (p: Rect) => p.x * 10000 + p.y;
-  const gp = [...booths.pillars].sort((a, b) => pk(a) - pk(b)), ep = [...want.pillars].sort((a, b) => pk(a) - pk(b));
+  const gp = [...booths.pillars].sort((a, b) => pk(a) - pk(b)),
+    ep = [...want.pillars].sort((a, b) => pk(a) - pk(b));
   gp.forEach((p, k) => {
     expect(Math.abs(p.x - ep[k].x)).toBeLessThanOrEqual(2);
     expect(Math.abs(p.inner.x - ep[k].inner.x)).toBeLessThanOrEqual(2);
@@ -4784,12 +5445,20 @@ test('computeAisles reproduces the 2026 aisle letters within 3 px', () => {
   const a = computeAisles(bundle.booths.booths, bundle.venue, bundle.event.codePattern)!;
   expect(a.signY).toBe(322);
   expect(a.boothMinY).toBe(340);
-  for (const [letter, x] of Object.entries(bundle.event.aisles!.x)) expect(Math.abs(a.x[letter] - x)).toBeLessThanOrEqual(3);
+  for (const [letter, x] of Object.entries(bundle.event.aisles!.x))
+    expect(Math.abs(a.x[letter] - x)).toBeLessThanOrEqual(3);
 });
 
 test('a cell with no code and no correction is a problem, not a guess', () => {
   const cell = { x: 0, y: 0, w: 30, h: 30, rgb: [0, 0, 0] as [number, number, number] };
-  const { problems } = buildBooths({ cells: [cell], reads: [], corrections: { cells: [], add: [], categoryColours: { general: [0, 0, 0] } }, t: IDENTITY, sample: () => [0, 0, 0], codePattern: '^[A-Z]\\d{2}$' });
+  const { problems } = buildBooths({
+    cells: [cell],
+    reads: [],
+    corrections: { cells: [], add: [], categoryColours: { general: [0, 0, 0] } },
+    t: IDENTITY,
+    sample: () => [0, 0, 0],
+    codePattern: '^[A-Z]\\d{2}$',
+  });
   expect(problems[0]).toContain('15,15');
 });
 ```
@@ -4821,12 +5490,20 @@ export type BuildInput = {
 };
 
 const inside = ([x, y]: Point, r: Rect) => x >= r.x && x < r.x + r.w && y >= r.y && y < r.y + r.h;
-const roundRect = (r: Rect): Rect => ({ x: Math.round(r.x), y: Math.round(r.y), w: Math.round(r.w), h: Math.round(r.h) });
+const roundRect = (r: Rect): Rect => ({
+  x: Math.round(r.x),
+  y: Math.round(r.y),
+  w: Math.round(r.w),
+  h: Math.round(r.h),
+});
 
 export function buildBooths(input: BuildInput): { booths: BoothsFile; problems: string[] } {
   const { cells, reads, corrections, t, codePattern } = input;
-  const re = new RegExp(codePattern), colours = corrections.categoryColours;
-  const booths: BoothRaw[] = [], pillars: Pillar[] = [], problems: string[] = [];
+  const re = new RegExp(codePattern),
+    colours = corrections.categoryColours;
+  const booths: BoothRaw[] = [],
+    pillars: Pillar[] = [],
+    problems: string[] = [];
   const used = new Set<number>();
 
   for (const cell of cells) {
@@ -4837,14 +5514,23 @@ export function buildBooths(input: BuildInput): { booths: BoothsFile; problems: 
     const centre: Point = [vr.x + vr.w / 2, vr.y + vr.h / 2];
     if (fix?.drop) continue;
     if (fix?.pillar) {
-      if (!cell.inner || !cell.outer) { problems.push(`cell at ${centre.join(',')} is marked as a pillar but has no white square`); continue; }
+      if (!cell.inner || !cell.outer) {
+        problems.push(`cell at ${centre.join(',')} is marked as a pillar but has no white square`);
+        continue;
+      }
       pillars.push({ ...vr, cat: nearestCategory(cell.outer, colours), inner: roundRect(rectToVenue(t, cell.inner)) });
       continue;
     }
     const read = reads.find((r) => inside(r.at, vr));
     const code = fix?.code ?? (read && read.code && !read.flags.length ? read.code : undefined);
-    if (!code) { problems.push(`cell at ${centre.join(',')} has no code. Set one in the review tool`); continue; }
-    if (!re.test(code)) { problems.push(`cell at ${centre.join(',')}: code "${code}" does not match ${codePattern}`); continue; }
+    if (!code) {
+      problems.push(`cell at ${centre.join(',')} has no code. Set one in the review tool`);
+      continue;
+    }
+    if (!re.test(code)) {
+      problems.push(`cell at ${centre.join(',')}: code "${code}" does not match ${codePattern}`);
+      continue;
+    }
     const b: BoothRaw = { c: code, ...(fix?.rect ? roundRect(fix.rect) : vr), cat: nearestCategory(cell.rgb, colours) };
     if (fix?.extra) b.extra = fix.extra.map(roundRect);
     booths.push(b);
@@ -4855,7 +5541,10 @@ export function buildBooths(input: BuildInput): { booths: BoothsFile; problems: 
   });
 
   for (const a of corrections.add) {
-    if (!re.test(a.code)) { problems.push(`added booth "${a.code}" does not match ${codePattern}`); continue; }
+    if (!re.test(a.code)) {
+      problems.push(`added booth "${a.code}" does not match ${codePattern}`);
+      continue;
+    }
     const r = roundRect(a.rect);
     const [px, py] = [(r.x - t.dx) / t.sx, (r.y - t.dy) / t.sy];
     const cat = a.cat ?? nearestCategory(input.sample({ x: px, y: py, w: r.w / t.sx, h: r.h / t.sy }), colours);
@@ -4871,7 +5560,8 @@ export function computeAisles(booths: BoothRaw[], venue: Venue, codePattern: str
   const signY = (venue.depth?.back ?? Math.min(...booths.map((b) => b.y))) + 38;
   const boothMinY = signY + 18;
   const byLetter: Record<string, number[]> = {};
-  for (const b of booths) if (re.test(b.c) && /^[A-Z]/.test(b.c) && b.y > boothMinY) (byLetter[b.c[0]] ||= []).push(b.x);
+  for (const b of booths)
+    if (re.test(b.c) && /^[A-Z]/.test(b.c) && b.y > boothMinY) (byLetter[b.c[0]] ||= []).push(b.x);
   const x: Record<string, number> = {};
   for (const [letter, xs] of Object.entries(byLetter).sort()) x[letter] = Math.round(Math.min(...xs) - 18);
   return Object.keys(x).length ? { signY, boothMinY, x } : undefined;
@@ -4890,27 +5580,48 @@ import { IDENTITY } from '../pipeline/lib/register';
 
 const MANUAL = ['C06', 'C04', 'E20', 'E16', 'F21', 'F17', 'F15', 'C17', 'G16', 'A31', 'A15'];
 const MANUAL_RECTS: Record<string, [number, number, number, number]> = {
-  C06: [673, 1283, 29, 29], C04: [673, 1313, 29, 29], E20: [857, 938, 28, 91], E16: [857, 1030, 28, 60],
-  F21: [887, 938, 29, 60], F17: [887, 999, 29, 60], F15: [887, 1060, 29, 30], C17: [611, 1030, 29, 29],
-  G16: [1041, 1031, 29, 59], A31: [407, 659, 61, 61], A15: [406, 1013, 61, 62],
+  C06: [673, 1283, 29, 29],
+  C04: [673, 1313, 29, 29],
+  E20: [857, 938, 28, 91],
+  E16: [857, 1030, 28, 60],
+  F21: [887, 938, 29, 60],
+  F17: [887, 999, 29, 60],
+  F15: [887, 1060, 29, 30],
+  C17: [611, 1030, 29, 29],
+  G16: [1041, 1031, 29, 59],
+  A31: [407, 659, 61, 61],
+  A15: [406, 1013, 61, 62],
 };
-const RECT_OVERRIDES: Record<string, [number, number, number, number]> = { C11: [611, 1125, 29, 59], D30: [794, 831, 30, 49] };
+const RECT_OVERRIDES: Record<string, [number, number, number, number]> = {
+  C11: [611, 1125, 29, 59],
+  D30: [794, 831, 30, 49],
+};
 const BGR: Record<string, [number, number, number]> = {
-  kids: [179, 136, 250], fiction: [41, 66, 224], bl: [185, 125, 155], intl: [1, 207, 255], rare: [71, 137, 196],
-  general: [198, 132, 27], comic: [34, 134, 246], nonbook: [109, 188, 91], special: [32, 31, 35],
+  kids: [179, 136, 250],
+  fiction: [41, 66, 224],
+  bl: [185, 125, 155],
+  intl: [1, 207, 255],
+  rare: [71, 137, 196],
+  general: [198, 132, 27],
+  comic: [34, 134, 246],
+  nonbook: [109, 188, 91],
+  special: [32, 31, 35],
 };
 
 const booths = JSON.parse(readFileSync('events/bkkibf-2026/booths.json', 'utf8'));
 const img = await loadImage('events/bkkibf-2026/source/plan.jpg');
 const cells = detectCells(img, JSON.parse(readFileSync('events/bkkibf-2026/source/detect.json', 'utf8')));
 const centre = (r: { x: number; y: number; w: number; h: number }): [number, number] => [r.x + r.w / 2, r.y + r.h / 2];
-const inside = ([x, y]: [number, number], r: { x: number; y: number; w: number; h: number }) => x >= r.x && x < r.x + r.w && y >= r.y && y < r.y + r.h;
+const inside = ([x, y]: [number, number], r: { x: number; y: number; w: number; h: number }) =>
+  x >= r.x && x < r.x + r.w && y >= r.y && y < r.y + r.h;
 const rect = ([x, y, w, h]: number[]) => ({ x, y, w, h });
 
 const out: { at: [number, number]; code?: string; pillar?: true; drop?: true; rect?: object; extra?: object[] }[] = [];
 const matched = new Set<string>();
 for (const cell of cells) {
-  const inB = booths.booths.filter((b: { c: string }) => !MANUAL.includes(b.c)).filter((b: object) => inside(centre(b as never), cell));
+  const inB = booths.booths
+    .filter((b: { c: string }) => !MANUAL.includes(b.c))
+    .filter((b: object) => inside(centre(b as never), cell));
   const inP = booths.pillars.filter((p: object) => inside(centre(p as never), cell));
   const hasManual = booths.booths.some((b: { c: string }) => MANUAL.includes(b.c) && inside(centre(b as never), cell));
   if (inP.length === 1 && !inB.length) out.push({ at: centre(cell), pillar: true });
@@ -4923,7 +5634,9 @@ for (const cell of cells) {
     matched.add(`${b.c}@${b.x},${b.y}`);
   } else out.push({ at: centre(cell), drop: true });
 }
-const missing = booths.booths.filter((b: { c: string; x: number; y: number }) => !MANUAL.includes(b.c) && !matched.has(`${b.c}@${b.x},${b.y}`));
+const missing = booths.booths.filter(
+  (b: { c: string; x: number; y: number }) => !MANUAL.includes(b.c) && !matched.has(`${b.c}@${b.x},${b.y}`),
+);
 if (missing.length) console.warn('not matched to a detected cell:', missing.map((b: { c: string }) => b.c).join(', '));
 
 const corrections = {
@@ -4963,9 +5676,13 @@ import { EMPTY_CORRECTIONS, parseCorrections, mergeEvent } from './lib/correctio
 import { buildBooths, computeAisles, type Read } from './lib/build';
 import { eventPaths } from './lib/paths';
 
-const readJson = <T>(path: string, fallback?: T): T => (existsSync(path) ? JSON.parse(readFileSync(path, 'utf8')) : (fallback as T));
+const readJson = <T>(path: string, fallback?: T): T =>
+  existsSync(path) ? JSON.parse(readFileSync(path, 'utf8')) : (fallback as T);
 const writeJson = (path: string, v: unknown) => writeFileSync(path, JSON.stringify(v, null, 2) + '\n');
-const fail = (lines: string[]) => { console.error(lines.map((l) => `- ${l}`).join('\n')); process.exit(1); };
+const fail = (lines: string[]) => {
+  console.error(lines.map((l) => `- ${l}`).join('\n'));
+  process.exit(1);
+};
 
 const sampler = (img: RGB) => (r: { x: number; y: number; w: number; h: number }) => {
   const c = crop(img, [Math.round(r.x + 3), Math.round(r.y + 3), Math.round(r.x + r.w - 3), Math.round(r.y + r.h - 3)]);
@@ -4980,7 +5697,8 @@ export async function detect(id: string) {
   const img = await loadImage(p.plan);
   const t: Transform = readJson(p.registration) ?? autoRegister(img, venue);
   writeJson(p.registration, t);
-  if (t.score < 0.9) console.warn(`Registration score ${t.score.toFixed(2)} is low. Fix it in the review tool (register mode).`);
+  if (t.score < 0.9)
+    console.warn(`Registration score ${t.score.toFixed(2)} is low. Fix it in the review tool (register mode).`);
   const params = readJson(p.detect) ?? defaultDetectParams(img, venue, t);
   writeJson(p.detect, params);
   const cells = detectCells(img, params);
@@ -4997,25 +5715,38 @@ export async function build(id: string) {
   const cells: Cell[] = readJson(p.cells);
   const reads: Read[] = readJson(p.reads, []);
   const corrections = parseCorrections(readJson(p.corrections, EMPTY_CORRECTIONS));
-  const { booths, problems } = buildBooths({ cells, reads, corrections, t, sample: sampler(img), codePattern: bundle.event.codePattern });
+  const { booths, problems } = buildBooths({
+    cells,
+    reads,
+    corrections,
+    t,
+    sample: sampler(img),
+    codePattern: bundle.event.codePattern,
+  });
   if (problems.length) fail(problems);
 
   let event = mergeEvent(bundle.event, corrections.event);
-  if (!event.aisles) event = EventSchema.parse({ ...event, aisles: computeAisles(booths.booths, bundle.venue, event.codePattern) });
+  if (!event.aisles)
+    event = EventSchema.parse({ ...event, aisles: computeAisles(booths.booths, bundle.venue, event.codePattern) });
 
   const data = prepareData(bundle.venue, event, booths, bundle.exhibitors);
   const grid = createGrid(data.venue, obstaclesOf(data));
   const origin = data.landmarkById[data.venue.origin];
-  const unreachable = data.booths.filter((b) => !isRouteOk(findRoute(grid, data.venue, origin, { kind: 'booth', b }))).map((b) => b.c);
+  const unreachable = data.booths
+    .filter((b) => !isRouteOk(findRoute(grid, data.venue, origin, { kind: 'booth', b })))
+    .map((b) => b.c);
   if (unreachable.length) fail([`not reachable from ${origin.id}: ${unreachable.join(', ')}`]);
   writeJson(p.booths, booths);
   writeJson(p.event, event);
-  console.log(`${booths.booths.length} booths, ${booths.pillars.length} pillars written. Run bun test to check the event.`);
+  console.log(
+    `${booths.booths.length} booths, ${booths.pillars.length} pillars written. Run bun test to check the event.`,
+  );
 }
 
 const [cmd, id] = process.argv.slice(2);
 const commands: Record<string, (id: string) => Promise<unknown>> = { detect, build };
-if (!cmd || !commands[cmd] || !id) fail([`usage: bun tools/pipeline/cli.ts <${Object.keys(commands).join('|')}> <event-id>`]);
+if (!cmd || !commands[cmd] || !id)
+  fail([`usage: bun tools/pipeline/cli.ts <${Object.keys(commands).join('|')}> <event-id>`]);
 await commands[cmd](id);
 ```
 
@@ -5043,6 +5774,7 @@ git commit -m "Add corrections, build stage and reproduce the 2026 booths from t
 ### Task 16: OCR read stage, colour clustering and `event:new`
 
 **Files:**
+
 - Create: `tools/pipeline/lib/read.ts`
 - Modify: `tools/pipeline/lib/categorise.ts` (add clustering)
 - Modify: `tools/pipeline/cli.ts` (`new`, `read`, `ocr-report` commands)
@@ -5050,6 +5782,7 @@ git commit -m "Add corrections, build stage and reproduce the 2026 booths from t
 - Test: `tests/pipeline-read.test.ts`, `tests/pipeline-categorise.test.ts`
 
 **Interfaces:**
+
 - Consumes: Tasks 13–15.
 - Produces:
   - `readBox(c: Rect): Box` (the centre crop used for OCR, same size rule as `contact_sheets.py`)
@@ -5090,10 +5823,20 @@ test('readBox follows the contact-sheet crop rule', () => {
   expect(readBox({ x: 100, y: 100, w: 30, h: 60 })).toEqual([99, 114, 131, 146]);
 });
 
-const rd = (x: number, y: number, code: string | null, conf = 90): Read => ({ at: [x, y], text: code ?? '', conf, code, flags: [] });
+const rd = (x: number, y: number, code: string | null, conf = 90): Read => ({
+  at: [x, y],
+  text: code ?? '',
+  conf,
+  code,
+  flags: [],
+});
 
 test('flagReads marks unread, low confidence and duplicates', () => {
-  const rects = [{ x: 0, y: 0, w: 10, h: 10 }, { x: 100, y: 0, w: 10, h: 10 }, { x: 200, y: 0, w: 10, h: 10 }];
+  const rects = [
+    { x: 0, y: 0, w: 10, h: 10 },
+    { x: 100, y: 0, w: 10, h: 10 },
+    { x: 200, y: 0, w: 10, h: 10 },
+  ];
   const out = flagReads([rd(5, 5, null), rd(105, 5, 'A01', 40), rd(205, 5, 'A01')], rects);
   expect(out[0].flags).toContain('unread');
   expect(out[1].flags).toEqual(expect.arrayContaining(['low-confidence', 'duplicate']));
@@ -5116,7 +5859,13 @@ import { test, expect } from 'bun:test';
 import { assignCategories, clusterColours, nearestCategory } from '../tools/pipeline/lib/categorise';
 
 test('clusters near colours and counts members', () => {
-  const c = clusterColours([[250, 136, 179], [248, 140, 180], [27, 132, 198], [30, 130, 200], [29, 131, 199]]);
+  const c = clusterColours([
+    [250, 136, 179],
+    [248, 140, 180],
+    [27, 132, 198],
+    [30, 130, 200],
+    [29, 131, 199],
+  ]);
   expect(c.map((x) => x.count).sort()).toEqual([2, 3]);
 });
 
@@ -5147,12 +5896,25 @@ import type { Cell } from './detect';
 import type { Read } from './build';
 import { rectToVenue, type Transform } from './register';
 
-const TO_DIGIT: Record<string, string> = { O: '0', D: '0', Q: '0', I: '1', L: '1', T: '1', Z: '2', S: '5', B: '8', G: '6' };
+const TO_DIGIT: Record<string, string> = {
+  O: '0',
+  D: '0',
+  Q: '0',
+  I: '1',
+  L: '1',
+  T: '1',
+  Z: '2',
+  S: '5',
+  B: '8',
+  G: '6',
+};
 const TO_LETTER: Record<string, string> = { '0': 'O', '1': 'I', '2': 'Z', '5': 'S', '8': 'B', '6': 'G' };
 
 export function readBox(c: Rect): Box {
-  const cx = Math.floor(c.x + c.w / 2), cy = Math.floor(c.y + c.h / 2);
-  const hw = Math.max(Math.min(Math.floor(c.w / 2), 40), 16), hh = Math.max(Math.min(Math.floor(c.h / 2), 16), 12);
+  const cx = Math.floor(c.x + c.w / 2),
+    cy = Math.floor(c.y + c.h / 2);
+  const hw = Math.max(Math.min(Math.floor(c.w / 2), 40), 16),
+    hh = Math.max(Math.min(Math.floor(c.h / 2), 16), 12);
   return [cx - hw, cy - hh, cx + hw, cy + hh];
 }
 
@@ -5194,7 +5956,8 @@ export function flagReads(reads: Read[], rects: Rect[]): Read[] {
     if (same.length < 3) continue;
     const nums = same.map((k) => numOf(out[k].code!));
     const dir = Math.sign(nums[nums.length - 1] - nums[0]) || 1;
-    for (let j = 1; j < same.length; j++) if (Math.sign(nums[j] - nums[j - 1]) !== dir) out[same[j]].flags.push('column-order');
+    for (let j = 1; j < same.length; j++)
+      if (Math.sign(nums[j] - nums[j - 1]) !== dir) out[same[j]].flags.push('column-order');
   }
   return out;
 }
@@ -5206,12 +5969,19 @@ async function prep(img: RGB, box: Box, rotate: boolean): Promise<Buffer> {
   const mean = data.reduce((a, v) => a + v, 0) / data.length;
   if (mean < 150) s = s.negate({ alpha: false });
   if (rotate) s = s.rotate(90);
-  return s.resize({ width: c.width * 4 * (rotate ? c.height / c.width : 1), kernel: 'cubic' }).normalise().png().toBuffer();
+  return s
+    .resize({ width: c.width * 4 * (rotate ? c.height / c.width : 1), kernel: 'cubic' })
+    .normalise()
+    .png()
+    .toBuffer();
 }
 
 export async function readCells(img: RGB, cells: Cell[], t: Transform, codePattern: string): Promise<Read[]> {
   const worker = await createWorker('eng');
-  await worker.setParameters({ tessedit_char_whitelist: 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789', tessedit_pageseg_mode: PSM.SINGLE_WORD });
+  await worker.setParameters({
+    tessedit_char_whitelist: 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789',
+    tessedit_pageseg_mode: PSM.SINGLE_WORD,
+  });
   const reads: Read[] = [];
   try {
     for (const cell of cells) {
@@ -5221,14 +5991,18 @@ export async function readCells(img: RGB, cells: Cell[], t: Transform, codePatte
       for (const rotate of cell.h > cell.w * 2 ? [false, true] : [false]) {
         const { data } = await worker.recognize(await prep(img, readBox(cell), rotate));
         const code = cleanRead(data.text, codePattern);
-        if ((code && !best.code) || (!!code === !!best.code && data.confidence > best.conf)) best = { text: data.text.trim(), conf: data.confidence, code };
+        if ((code && !best.code) || (!!code === !!best.code && data.confidence > best.conf))
+          best = { text: data.text.trim(), conf: data.confidence, code };
       }
       reads.push({ at, ...best, flags: [] });
     }
   } finally {
     await worker.terminate();
   }
-  return flagReads(reads, cells.map((c) => rectToVenue(t, c)));
+  return flagReads(
+    reads,
+    cells.map((c) => rectToVenue(t, c)),
+  );
 }
 ```
 
@@ -5252,7 +6026,11 @@ export function clusterColours(colours: RGB3[], maxDist = 40): { rgb: RGB3; coun
     if (hit) {
       hit.sum = [hit.sum[0] + c[0], hit.sum[1] + c[1], hit.sum[2] + c[2]];
       hit.count++;
-      hit.rgb = [Math.round(hit.sum[0] / hit.count), Math.round(hit.sum[1] / hit.count), Math.round(hit.sum[2] / hit.count)];
+      hit.rgb = [
+        Math.round(hit.sum[0] / hit.count),
+        Math.round(hit.sum[1] / hit.count),
+        Math.round(hit.sum[2] / hit.count),
+      ];
     } else clusters.push({ sum: [...c], count: 1, rgb: [...c] });
   }
   return clusters.map(({ rgb, count }) => ({ rgb, count })).sort((a, b) => b.count - a.count);
@@ -5314,7 +6092,10 @@ export async function categorise(id: string) {
   const p = eventPaths(id);
   const cells: Cell[] = readJson(p.cells);
   const corrections = parseCorrections(readJson(p.corrections, EMPTY_CORRECTIONS));
-  const { categoryColours, created } = assignCategories(clusterColours(cells.map((c) => c.rgb)), corrections.categoryColours);
+  const { categoryColours, created } = assignCategories(
+    clusterColours(cells.map((c) => c.rgb)),
+    corrections.categoryColours,
+  );
   corrections.categoryColours = categoryColours;
   corrections.event = { ...corrections.event, categories: { ...(corrections.event?.categories ?? {}), ...created } };
   writeJson(p.corrections, corrections);
@@ -5322,9 +6103,15 @@ export async function categorise(id: string) {
 }
 
 export async function create(id: string) {
-  const plan = flag('plan'), nameTh = flag('name-th'), nameEn = flag('name-en'), start = flag('start'), end = flag('end');
+  const plan = flag('plan'),
+    nameTh = flag('name-th'),
+    nameEn = flag('name-en'),
+    start = flag('start'),
+    end = flag('end');
   const venue = flag('venue') ?? 'qsncc-lg-5-8';
-  const missing = Object.entries({ plan, 'name-th': nameTh, 'name-en': nameEn, start, end }).filter(([, v]) => !v).map(([k]) => `--${k} is required`);
+  const missing = Object.entries({ plan, 'name-th': nameTh, 'name-en': nameEn, start, end })
+    .filter(([, v]) => !v)
+    .map(([k]) => `--${k} is required`);
   if (missing.length) fail(missing);
   if (!existsSync(plan!)) fail([`plan file ${plan} does not exist`]);
   const p = eventPaths(id);
@@ -5332,10 +6119,21 @@ export async function create(id: string) {
   loadVenue(venue);
   mkdirSync(p.source, { recursive: true });
   copyFileSync(plan!, `${p.source}/plan${extname(plan!).toLowerCase()}`);
-  writeJson(p.event, EventSchema.parse({
-    id, name: { th: nameTh, en: nameEn }, dates: { start, end }, venue,
-    categories: {}, zones: {}, foyerZones: [], obstacles: [], landmarks: [], quickPicks: [],
-  }));
+  writeJson(
+    p.event,
+    EventSchema.parse({
+      id,
+      name: { th: nameTh, en: nameEn },
+      dates: { start, end },
+      venue,
+      categories: {},
+      zones: {},
+      foyerZones: [],
+      obstacles: [],
+      landmarks: [],
+      quickPicks: [],
+    }),
+  );
   writeJson(p.booths, { booths: [], pillars: [] });
   writeJson(p.corrections, EMPTY_CORRECTIONS);
   await detect(id);
@@ -5348,7 +6146,9 @@ export async function ocrReport(id: string) {
   const p = eventPaths(id);
   const { booths } = loadEvent(id);
   const reads: Read[] = readJson(p.reads);
-  let right = 0, wrong = 0, none = 0;
+  let right = 0,
+    wrong = 0,
+    none = 0;
   for (const b of booths.booths) {
     const r = reads.find((x) => x.at[0] >= b.x && x.at[0] < b.x + b.w && x.at[1] >= b.y && x.at[1] < b.y + b.h);
     if (!r?.code) none++;
@@ -5362,7 +6162,14 @@ export async function ocrReport(id: string) {
 Replace the command table with:
 
 ```ts
-const commands: Record<string, (id: string) => Promise<unknown>> = { new: create, detect, read, categorise, build, 'ocr-report': ocrReport };
+const commands: Record<string, (id: string) => Promise<unknown>> = {
+  new: create,
+  detect,
+  read,
+  categorise,
+  build,
+  'ocr-report': ocrReport,
+};
 ```
 
 Add to `package.json` scripts:
@@ -5390,11 +6197,13 @@ git commit -m "Add OCR read stage with consistency flags, colour clustering and 
 ### Task 17: Review tool
 
 **Files:**
+
 - Create: `tools/pipeline/review/vite.config.ts`, `index.html`, `main.ts`, `App.svelte`, `api.ts`, `review.svelte.ts`, `status.ts`
 - Modify: `tools/pipeline/cli.ts` (`review` command), `package.json` (`event:review`)
 - Test: `tests/review-status.test.ts`
 
 **Interfaces:**
+
 - Consumes: `Corrections`, `parseCorrections` (Task 15); `Read` (Task 15); `Cell` (Task 14); `Transform`, `fitAxes`, `rectToVenue`, `toPlan` (Task 14); `eventPaths` (Task 14); `loadEvent` (Task 5); `createViewport` (Task 9).
 - Produces:
   - `type CellStatus = 'code' | 'read' | 'flagged' | 'missing' | 'pillar' | 'drop'`
@@ -5413,7 +6222,13 @@ import { cellStatus, upsertFix } from '../tools/pipeline/review/status';
 import { EMPTY_CORRECTIONS } from '../tools/pipeline/lib/corrections';
 
 const rect = { x: 0, y: 0, w: 30, h: 30 };
-const read = (code: string | null, flags: string[] = []) => ({ at: [15, 15] as [number, number], text: code ?? '', conf: 90, code, flags });
+const read = (code: string | null, flags: string[] = []) => ({
+  at: [15, 15] as [number, number],
+  text: code ?? '',
+  conf: 90,
+  code,
+  flags,
+});
 
 test('status follows corrections first, then reads', () => {
   expect(cellStatus(rect, [], EMPTY_CORRECTIONS).status).toBe('missing');
@@ -5451,7 +6266,11 @@ import type { Read } from '../lib/build';
 export type CellStatus = 'code' | 'read' | 'flagged' | 'missing' | 'pillar' | 'drop';
 const inside = ([x, y]: Point, r: Rect) => x >= r.x && x < r.x + r.w && y >= r.y && y < r.y + r.h;
 
-export function cellStatus(rect: Rect, reads: Read[], c: Corrections): { status: CellStatus; code?: string; fix: number; read?: Read } {
+export function cellStatus(
+  rect: Rect,
+  reads: Read[],
+  c: Corrections,
+): { status: CellStatus; code?: string; fix: number; read?: Read } {
   const fix = c.cells.findIndex((f) => inside(f.at, rect));
   const f = fix >= 0 ? c.cells[fix] : undefined;
   const read = reads.find((r) => inside(r.at, rect));
@@ -5491,7 +6310,8 @@ import { parseCorrections, EMPTY_CORRECTIONS } from '../lib/corrections';
 import { eventPaths } from '../lib/paths';
 
 const root = resolve(import.meta.dirname, '../../..');
-const json = (path: string, fallback: unknown) => (existsSync(path) ? JSON.parse(readFileSync(path, 'utf8')) : fallback);
+const json = (path: string, fallback: unknown) =>
+  existsSync(path) ? JSON.parse(readFileSync(path, 'utf8')) : fallback;
 
 export function reviewApi(): Plugin {
   return {
@@ -5519,7 +6339,10 @@ export function reviewApi(): Plugin {
             });
           }
           if (req.method === 'GET' && (url.pathname === '/api/plan' || url.pathname === '/api/reference')) {
-            const file = url.pathname === '/api/plan' ? p.plan : resolve(root, 'venues', loadEvent(id, root).event.venue, 'reference.jpg');
+            const file =
+              url.pathname === '/api/plan'
+                ? p.plan
+                : resolve(root, 'venues', loadEvent(id, root).event.venue, 'reference.jpg');
             res.setHeader('content-type', file.endsWith('.png') ? 'image/png' : 'image/jpeg');
             return createReadStream(file).pipe(res);
           }
@@ -5533,7 +6356,8 @@ export function reviewApi(): Plugin {
             }
             if (url.pathname === '/api/registration') {
               const t = body as Record<string, unknown>;
-              if (!['sx', 'sy', 'dx', 'dy'].every((k) => typeof t[k] === 'number')) return send(400, { error: 'Registration needs sx, sy, dx and dy' });
+              if (!['sx', 'sy', 'dx', 'dy'].every((k) => typeof t[k] === 'number'))
+                return send(400, { error: 'Registration needs sx, sy, dx and dy' });
               writeFileSync(p.registration, JSON.stringify({ ...t, score: 1, method: 'manual' }, null, 2) + '\n');
               return send(200, { ok: true });
             }
@@ -5562,7 +6386,11 @@ export default defineConfig({
   root: fileURLToPath(new URL('.', import.meta.url)),
   plugins: [svelte(), reviewApi()],
   resolve: { alias: { $lib: fileURLToPath(new URL('../../../src/lib', import.meta.url)) } },
-  server: { port: 5190, open: `/?id=${process.env.EVENT_ID ?? ''}`, fs: { allow: [fileURLToPath(new URL('../../..', import.meta.url))] } },
+  server: {
+    port: 5190,
+    open: `/?id=${process.env.EVENT_ID ?? ''}`,
+    fs: { allow: [fileURLToPath(new URL('../../..', import.meta.url))] },
+  },
 });
 ```
 
@@ -5608,7 +6436,8 @@ import { IDENTITY, fitAxes, rectToVenue, toPlan, type Transform } from '../lib/r
 import { cellStatus, upsertFix, type CellStatus } from './status';
 
 export type Mode = 'select' | 'booth' | 'stage' | 'info' | 'foyer' | 'landmark' | 'register';
-export type Selection = { kind: 'cell'; index: number } | { kind: 'add'; index: number } | { kind: 'landmark'; index: number } | null;
+export type Selection =
+  { kind: 'cell'; index: number } | { kind: 'add'; index: number } | { kind: 'landmark'; index: number } | null;
 
 export class Review {
   id: string;
@@ -5628,7 +6457,12 @@ export class Review {
 
   venueCells = $derived(this.cells.map((c) => rectToVenue(this.t, c)));
   statuses = $derived(this.venueCells.map((r) => cellStatus(r, this.reads, this.corrections)));
-  problems = $derived(this.statuses.map((s, k) => ({ s, k })).filter(({ s }) => s.status === 'missing' || s.status === 'flagged').map(({ k }) => k));
+  problems = $derived(
+    this.statuses
+      .map((s, k) => ({ s, k }))
+      .filter(({ s }) => s.status === 'missing' || s.status === 'flagged')
+      .map(({ k }) => k),
+  );
 
   constructor(id: string) {
     this.id = id;
@@ -5637,7 +6471,10 @@ export class Review {
   async load() {
     const r = await fetch(`/api/state?id=${this.id}`);
     const body = await r.json();
-    if (!r.ok) { this.message = body.error; return; }
+    if (!r.ok) {
+      this.message = body.error;
+      return;
+    }
     const bundle: EventBundle = body.bundle;
     this.data = loadData(bundle);
     this.cells = body.cells;
@@ -5681,10 +6518,19 @@ export class Review {
       this.selection = { kind: 'add', index: this.corrections.add.length - 1 };
     } else if (this.mode === 'stage' || this.mode === 'info') {
       const o: Obstacle = { ...r, kind: this.mode };
-      this.corrections = { ...this.corrections, event: { ...ev, obstacles: [...(ev.obstacles ?? this.data!.event.obstacles), o] } };
+      this.corrections = {
+        ...this.corrections,
+        event: { ...ev, obstacles: [...(ev.obstacles ?? this.data!.event.obstacles), o] },
+      };
     } else if (this.mode === 'foyer') {
-      const z: FoyerZone = { ...r, c: `U${String((ev.foyerZones ?? this.data!.event.foyerZones).length + 1).padStart(2, '0')}` };
-      this.corrections = { ...this.corrections, event: { ...ev, foyerZones: [...(ev.foyerZones ?? this.data!.event.foyerZones), z] } };
+      const z: FoyerZone = {
+        ...r,
+        c: `U${String((ev.foyerZones ?? this.data!.event.foyerZones).length + 1).padStart(2, '0')}`,
+      };
+      this.corrections = {
+        ...this.corrections,
+        event: { ...ev, foyerZones: [...(ev.foyerZones ?? this.data!.event.foyerZones), z] },
+      };
     }
     this.dirty = true;
   }
@@ -5692,7 +6538,15 @@ export class Review {
   addLandmark([x, y]: Point) {
     const ev = { ...(this.corrections.event ?? {}) };
     const list = ev.landmarks ?? this.data!.event.landmarks;
-    const lm: Landmark = { id: `place${list.length + 1}`, group: 'other', icon: 'info', x: Math.round(x), y: Math.round(y), th: 'จุดใหม่', en: 'New place' };
+    const lm: Landmark = {
+      id: `place${list.length + 1}`,
+      group: 'other',
+      icon: 'info',
+      x: Math.round(x),
+      y: Math.round(y),
+      th: 'จุดใหม่',
+      en: 'New place',
+    };
     this.corrections = { ...this.corrections, event: { ...ev, landmarks: [...list, lm] } };
     this.selection = { kind: 'landmark', index: list.length };
     this.dirty = true;
@@ -5921,7 +6775,10 @@ import { spawn } from 'node:child_process';
 export async function review(id: string) {
   loadEvent(id);
   if (!existsSync(eventPaths(id).cells)) fail([`Run bun run event:detect ${id} first`]);
-  const child = spawn('bunx', ['vite', '--config', 'tools/pipeline/review/vite.config.ts'], { stdio: 'inherit', env: { ...process.env, EVENT_ID: id } });
+  const child = spawn('bunx', ['vite', '--config', 'tools/pipeline/review/vite.config.ts'], {
+    stdio: 'inherit',
+    env: { ...process.env, EVENT_ID: id },
+  });
   await new Promise((resolve) => child.on('exit', resolve));
 }
 ```
@@ -5932,6 +6789,7 @@ Add `review` to the command table. Add to `package.json` scripts: `"event:review
 
 Run: `bun run event:review bkkibf-2026`
 Expected: the browser opens at `http://localhost:5190/?id=bkkibf-2026`, and the plan shows under the venue walls with every cell coloured (green, blue or grey, since 2026 is fully corrected). Check each of these:
+
 - clicking a cell shows its status
 - changing a code and saving writes `events/bkkibf-2026/source/corrections.json`
 - `n` jumps to the next problem cell
@@ -5950,11 +6808,13 @@ git commit -m "Add plan review tool with cell fixes, drawing, landmarks and regi
 ### Task 18: Exhibitor import
 
 **Files:**
+
 - Create: `tools/pipeline/lib/exhibitors.ts`
 - Modify: `tools/pipeline/cli.ts` (`exhibitors` command), `package.json` (`event:exhibitors`)
 - Test: `tests/exhibitors.test.ts`
 
 **Interfaces:**
+
 - Consumes: `parseCSV`, `normCode` (Task 5); `loadEvent` (Task 5).
 - Produces:
   - `type ColumnMap = { booth: string; th?: string; en?: string }`
@@ -5984,7 +6844,11 @@ const known = new Set(['K16', 'K17', 'K18', 'K20', 'A01']);
 
 test('guesses Thai and English headers', () => {
   expect(guessColumns(['บูธ', 'ชื่อ', 'Name (EN)'])).toEqual({ booth: 'บูธ', th: 'ชื่อ', en: 'Name (EN)' });
-  expect(guessColumns(['Booth No.', 'Publisher (TH)', 'Publisher (EN)'])).toEqual({ booth: 'Booth No.', th: 'Publisher (TH)', en: 'Publisher (EN)' });
+  expect(guessColumns(['Booth No.', 'Publisher (TH)', 'Publisher (EN)'])).toEqual({
+    booth: 'Booth No.',
+    th: 'Publisher (TH)',
+    en: 'Publisher (EN)',
+  });
   expect(guessColumns(['foo', 'bar'])).toBeNull();
 });
 
@@ -6053,8 +6917,12 @@ export function parseMap(arg: string): ColumnMap {
 }
 
 export function expandCodes(cell: string, known: Set<string>): { codes: string[]; unknown: string[] } {
-  const text = cell.toUpperCase().replace(/[–—]/g, '-').replace(/\s*-\s*/g, '-');
-  const codes: string[] = [], unknown: string[] = [];
+  const text = cell
+    .toUpperCase()
+    .replace(/[–—]/g, '-')
+    .replace(/\s*-\s*/g, '-');
+  const codes: string[] = [],
+    unknown: string[] = [];
   for (const token of text.split(/[\s,;/]+/).filter(Boolean)) {
     const range = /^([A-Z])(\d{1,2})-([A-Z])?(\d{1,2})$/.exec(token);
     if (range && (!range[3] || range[3] === range[1])) {
@@ -6072,14 +6940,16 @@ export function expandCodes(cell: string, known: Set<string>): { codes: string[]
 }
 
 export function toExhibitorRows(rows: Record<string, string>[], map: ColumnMap, known: Set<string>) {
-  const out: { booth: string; name_th: string; name_en: string }[] = [], unknown = new Set<string>();
+  const out: { booth: string; name_th: string; name_en: string }[] = [],
+    unknown = new Set<string>();
   const get = (r: Record<string, string>, col?: string) => {
     if (!col) return '';
     const key = Object.keys(r).find((k) => k.toLowerCase() === col.toLowerCase());
     return key ? String(r[key] ?? '').trim() : '';
   };
   for (const r of rows) {
-    const th = get(r, map.th), en = get(r, map.en);
+    const th = get(r, map.th),
+      en = get(r, map.en);
     if (!th && !en) continue;
     const { codes, unknown: bad } = expandCodes(get(r, map.booth), known);
     bad.forEach((b) => unknown.add(b));
@@ -6116,15 +6986,20 @@ import { guessColumns, parseMap, readSheet, toCsv, toExhibitorRows } from './lib
 
 export async function exhibitors(id: string) {
   const file = process.argv[4];
-  if (!file || !existsSync(file)) fail([`usage: bun run event:exhibitors ${id} <file.csv|file.xlsx> [--map booth=Col,th=Col,en=Col]`]);
+  if (!file || !existsSync(file))
+    fail([`usage: bun run event:exhibitors ${id} <file.csv|file.xlsx> [--map booth=Col,th=Col,en=Col]`]);
   const rows = await readSheet(file);
   if (!rows.length) fail([`${file} has no rows`]);
   const mapArg = flag('map');
   const map = mapArg ? parseMap(mapArg) : guessColumns(Object.keys(rows[0]));
-  if (!map) fail([`Couldn't find the booth and name columns in: ${Object.keys(rows[0]).join(', ')}. Pass --map booth=<col>,th=<col>,en=<col>`]);
+  if (!map)
+    fail([
+      `Couldn't find the booth and name columns in: ${Object.keys(rows[0]).join(', ')}. Pass --map booth=<col>,th=<col>,en=<col>`,
+    ]);
   const data = loadData(loadEvent(id));
   const out = toExhibitorRows(rows, map!, new Set(Object.keys(data.byCode)));
-  if (out.unknown.length) fail([`booth codes not on the map: ${out.unknown.join(', ')}. Fix the spreadsheet or the map, then run again`]);
+  if (out.unknown.length)
+    fail([`booth codes not on the map: ${out.unknown.join(', ')}. Fix the spreadsheet or the map, then run again`]);
   writeFileSync(eventPaths(id).exhibitors, toCsv(out.rows));
   console.log(`${out.rows.length} exhibitor rows written using columns ${JSON.stringify(map)}`);
 }
@@ -6144,6 +7019,7 @@ git commit -m "Add exhibitor import from CSV or XLSX with column guessing and ra
 ### Task 19: Retire v1, build smoke test, docs, and switch production
 
 **Files:**
+
 - Delete: `legacy/`, `tools/digitize/`, `tools/migrate/`, `tools/golden/`
 - Keep: `tests/golden/v1.json` (it still pins behaviour)
 - Create: `tests/build.test.ts`
@@ -6152,6 +7028,7 @@ git commit -m "Add exhibitor import from CSV or XLSX with column guessing and ra
 - Create: `tools/pipeline/README.md`
 
 **Interfaces:**
+
 - Consumes: everything.
 - Produces: a `v2` branch ready to merge. Production build settings don't change.
 
@@ -6169,12 +7046,17 @@ const walk = (dir: string): string[] =>
   readdirSync(dir).flatMap((f) => (statSync(join(dir, f)).isDirectory() ? walk(join(dir, f)) : [join(dir, f)]));
 
 test.skipIf(!built)('pages exist for the list, the event and 404', () => {
-  for (const f of ['_site/index.html', '_site/e/bkkibf-2026/index.html', '_site/404.html']) expect(existsSync(f)).toBe(true);
+  for (const f of ['_site/index.html', '_site/e/bkkibf-2026/index.html', '_site/404.html'])
+    expect(existsSync(f)).toBe(true);
 });
 
 test.skipIf(!built)('no source material or tooling is published', () => {
   const files = walk('_site');
-  const leaked = files.filter((f) => /reference\.jpg|plan\.(jpe?g|png)|corrections\.json|cells\.json|reads\.json|detect\.json|registration\.json|\/tools\//.test(f));
+  const leaked = files.filter((f) =>
+    /reference\.jpg|plan\.(jpe?g|png)|corrections\.json|cells\.json|reads\.json|detect\.json|registration\.json|\/tools\//.test(
+      f,
+    ),
+  );
   expect(leaked).toEqual([]);
 });
 
@@ -6196,6 +7078,7 @@ git rm -r legacy tools/digitize tools/migrate tools/golden
 ```
 
 Then clean up the config that pointed at them:
+
 - `package.json`: remove the `legacy:test` script.
 - `tsconfig.json`: set `"exclude": ["_site", "node_modules"]`.
 - `.oxlintrc.json`: set `"ignorePatterns": ["_site/**", ".svelte-kit/**"]`.
@@ -6208,11 +7091,11 @@ Then clean up the config that pointed at them:
 Update `.github/workflows/ci.yml` so `build` runs before `test` (the smoke test needs `_site/`):
 
 ```yaml
-      - run: bun run lint
-      - run: bun run fmt:check
-      - run: bun run check
-      - run: bun run build
-      - run: bun run test
+- run: bun run lint
+- run: bun run fmt:check
+- run: bun run check
+- run: bun run build
+- run: bun run test
 ```
 
 Run: `bun run lint && bun run fmt:check && bun run check && bun run build && bun run test && bun run test:e2e`
@@ -6369,20 +7252,20 @@ Each event lists its own in `event.json` `notes`. Check them with the organiser 
 
 - [ ] **Step 7: Write `tools/pipeline/README.md`**
 
-````markdown
+```markdown
 # Ingestion pipeline
 
 Turns an organiser's floor-plan image (and exhibitor spreadsheet) into `events/<id>/`. Every stage reads and writes `events/<id>/source/`, so any stage can be rerun alone.
 
-| Command | Stage | Writes |
-|---|---|---|
-| `event:new <id> --plan … --name-th … --name-en … --start … --end … [--venue …]` | init, then detect, read, categorise | `event.json`, `source/plan.*`, and everything below |
-| `event:detect <id>` | register onto the venue, detect booth cells | `source/registration.json`, `source/detect.json`, `source/cells.json` |
-| `event:read <id>` | OCR each cell, flag suspicious reads | `source/reads.json` |
-| `event:review <id>` | browser tool to fix everything by hand | `source/corrections.json`, `source/registration.json` |
-| `event:build <id>` | apply corrections, write the event | `booths.json`, `event.json` |
-| `event:exhibitors <id> <file> [--map booth=Col,th=Col,en=Col]` | import exhibitors | `exhibitors.csv` |
-| `event:ocr-report <id>` | compare reads with the built booths | nothing |
+| Command                                                                         | Stage                                       | Writes                                                                |
+| ------------------------------------------------------------------------------- | ------------------------------------------- | --------------------------------------------------------------------- |
+| `event:new <id> --plan … --name-th … --name-en … --start … --end … [--venue …]` | init, then detect, read, categorise         | `event.json`, `source/plan.*`, and everything below                   |
+| `event:detect <id>`                                                             | register onto the venue, detect booth cells | `source/registration.json`, `source/detect.json`, `source/cells.json` |
+| `event:read <id>`                                                               | OCR each cell, flag suspicious reads        | `source/reads.json`                                                   |
+| `event:review <id>`                                                             | browser tool to fix everything by hand      | `source/corrections.json`, `source/registration.json`                 |
+| `event:build <id>`                                                              | apply corrections, write the event          | `booths.json`, `event.json`                                           |
+| `event:exhibitors <id> <file> [--map booth=Col,th=Col,en=Col]`                  | import exhibitors                           | `exhibitors.csv`                                                      |
+| `event:ocr-report <id>`                                                         | compare reads with the built booths         | nothing                                                               |
 
 ## Registration
 
@@ -6405,7 +7288,7 @@ If tesseract.js fails to start under Bun, run the read stage with Node: `npx tsx
 ## Reproduction check
 
 `tests/pipeline-build.test.ts` runs detection on the 2026 plan and applies the committed corrections. The output must match `events/bkkibf-2026/booths.json`: same codes, rectangles within 2 px, same categories. Keep it passing when changing the detector.
-````
+```
 
 Replace "record the `event:ocr-report bkkibf-2026` numbers here" with the numbers measured in Task 16 Step 8.
 
@@ -6419,6 +7302,7 @@ git commit -m "Retire v1, add build smoke test, rewrite docs for v2"
 - [ ] **Step 9: Switch production (with the owner)**
 
 This changes production. Ask the owner first.
+
 1. Push `v2` and open a PR from `v2` to `main`, with a description written using the `mo-ai:pr-description` skill. Check the Cloudflare preview for the last commit.
 2. The Cloudflare settings stay as they are (`npm run build`, output `_site`). If the build log shows dependencies installed with npm instead of Bun and something breaks, add the environment variable `BUN_VERSION` with the version from `bun --version`.
 3. The owner merges the PR. Cloudflare builds `main`.

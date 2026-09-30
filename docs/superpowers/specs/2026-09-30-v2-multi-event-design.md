@@ -36,19 +36,19 @@ Success criteria:
 
 ## 2. Stack
 
-| Concern | Choice |
-|---|---|
-| Framework | SvelteKit, Svelte 5 runes, `@sveltejs/adapter-static`, every route prerendered |
-| Runtime, packages, scripts, tests | Bun (`bun test`) |
-| Language | TypeScript, strict |
-| Lint / format | oxlint (script blocks of `.svelte` too), oxfmt (supports `.svelte`) |
-| Template and type checks | `svelte-check` |
-| Schemas | Zod, used at build time and in the pipeline only (not shipped to guests) |
-| Image processing | `sharp` plus hand-written morphology on raw buffers |
-| OCR | `tesseract.js` (downloads English traineddata on first run) |
-| Spreadsheets | `read-excel-file`; CSV via the existing parser |
-| End-to-end | Playwright (Chromium) smoke tests against `vite preview` |
-| Hosting | Cloudflare Pages Git integration. Build command `npm run build` (runs `vite build`), output `_site`, unchanged from today, so previews of `v2` work and production needs no settings change |
+| Concern                           | Choice                                                                                                                                                                                      |
+| --------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Framework                         | SvelteKit, Svelte 5 runes, `@sveltejs/adapter-static`, every route prerendered                                                                                                              |
+| Runtime, packages, scripts, tests | Bun (`bun test`)                                                                                                                                                                            |
+| Language                          | TypeScript, strict                                                                                                                                                                          |
+| Lint / format                     | oxlint (script blocks of `.svelte` too), oxfmt (supports `.svelte`)                                                                                                                         |
+| Template and type checks          | `svelte-check`                                                                                                                                                                              |
+| Schemas                           | Zod, used at build time and in the pipeline only (not shipped to guests)                                                                                                                    |
+| Image processing                  | `sharp` plus hand-written morphology on raw buffers                                                                                                                                         |
+| OCR                               | `tesseract.js` (downloads English traineddata on first run)                                                                                                                                 |
+| Spreadsheets                      | `read-excel-file`; CSV via the existing parser                                                                                                                                              |
+| End-to-end                        | Playwright (Chromium) smoke tests against `vite preview`                                                                                                                                    |
+| Hosting                           | Cloudflare Pages Git integration. Build command `npm run build` (runs `vite build`), output `_site`, unchanged from today, so previews of `v2` work and production needs no settings change |
 
 Scripts: `dev`, `build`, `preview`, `test`, `lint`, `fmt`, `fmt:check`, `check`, `event:new`, `event:review`, `event:build`, `event:exhibitors`.
 
@@ -96,29 +96,31 @@ Each venue has its own coordinate space: pixels of its `reference.jpg`. Every ev
 
 ```ts
 type Point = [number, number];
-type Box = [number, number, number, number];   // x0, y0, x1, y1
+type Box = [number, number, number, number]; // x0, y0, x1, y1
 
 type VenueFile = {
-  id: string;                               // equals folder name, never renamed
+  id: string; // equals folder name, never renamed
   name: I18n;
-  timezone: string;                         // IANA, e.g. "Asia/Bangkok"
+  timezone: string; // IANA, e.g. "Asia/Bangkok"
   reference: { width: number; height: number };
-  view: Rect;                               // fully zoomed-out viewBox
+  view: Rect; // fully zoomed-out viewBox
   overview: { narrow: { box: Box; pad: number }; wide: { box: Box; pad: number } };
   metersPerPx: number;
-  gridCell?: number;                        // routing cell size in px, default 6
-  walls: Point[][];                         // polygons drawn as the building outline
-  floor: { op: 'add' | 'remove'; box: Box }[];   // applied in order to build the walkable floor
+  gridCell?: number; // routing cell size in px, default 6
+  walls: Point[][]; // polygons drawn as the building outline
+  floor: { op: 'add' | 'remove'; box: Box }[]; // applied in order to build the walkable floor
   areas: { id: string; name: I18n; label: { x: number; y: number; text: string }; bounds: Point[] }[];
-  outside: I18n;                            // label for points in no area
+  outside: I18n; // label for points in no area
   doors: { id: string; area: string; punch: Box; gap: Box }[];
-  depth?: {                                 // aisle position phrasing
-    back: number; front: number;            // y of the back and front walls
+  depth?: {
+    // aisle position phrasing
+    back: number;
+    front: number; // y of the back and front walls
     text: { back: I18n; mid: I18n; front: I18n };
     aisleHint: I18n;
   };
-  landmarks: Landmark[];                    // same shape as event landmarks
-  origin: string;                           // landmark id used as the reachability root in tests
+  landmarks: Landmark[]; // same shape as event landmarks
+  origin: string; // landmark id used as the reachability root in tests
 };
 ```
 
@@ -139,27 +141,28 @@ type Rect = { x: number; y: number; w: number; h: number };
 type Landmark = I18n & {
   id: string;
   group: 'entry' | 'wc' | 'info' | 'charge' | 'stage' | 'other';
-  x: number; y: number;
-  icon: string;                             // one of the map's icon set
+  x: number;
+  y: number;
+  icon: string; // one of the map's icon set
 };
 
 type EventFile = {
-  id: string;                               // equals folder name, [a-z0-9-]+, never renamed
+  id: string; // equals folder name, [a-z0-9-]+, never renamed
   name: I18n;
   subtitle?: I18n;
-  dates: { start: string; end: string };    // YYYY-MM-DD in the venue's timezone
-  venue: string;                            // venues/<id>
+  dates: { start: string; end: string }; // YYYY-MM-DD in the venue's timezone
+  venue: string; // venues/<id>
   categories: Record<string, I18n & { color: string; darkText?: boolean }>;
-  zones: Record<string, I18n & { short?: string }>;   // keyed by booth code
+  zones: Record<string, I18n & { short?: string }>; // keyed by booth code
   foyerZones: (Rect & { c: string; vertical?: boolean })[];
   obstacles: (Rect & { kind: 'stage' | 'info' | 'other'; note?: string })[];
-  aisles?: { signY: number; boothMinY: number; x: Record<string, number> };  // letter -> x
-  text?: Partial<Record<'ph' | 'searchLabel' | 'exhibitors', I18n>>;          // overrides generic wording
+  aisles?: { signY: number; boothMinY: number; x: Record<string, number> }; // letter -> x
+  text?: Partial<Record<'ph' | 'searchLabel' | 'exhibitors', I18n>>; // overrides generic wording
   landmarks: Landmark[];
   quickPicks: (['booth', string] | ['place', string])[];
-  codePattern?: string;                     // regex, default "^[A-Z]\\d{2}$"
-  allowedDuplicateCodes?: string[];         // e.g. ["H31"]
-  notes?: string[];                         // known data issues for this event
+  codePattern?: string; // regex, default "^[A-Z]\\d{2}$"
+  allowedDuplicateCodes?: string[]; // e.g. ["H31"]
+  notes?: string[]; // known data issues for this event
 };
 ```
 
