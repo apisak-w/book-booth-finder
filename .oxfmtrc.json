@@ -1,0 +1,5 @@
+{
+  "printWidth": 120,
+  "singleQuote": true,
+  "ignorePatterns": ["_site/**", ".svelte-kit/**", "tests/golden/**", "events/**/booths.json"]
+}

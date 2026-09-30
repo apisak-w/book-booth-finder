@@ -1,0 +1,10 @@
+{
+  "roi": [440, 340, 2395, 1390],
+  "floor": [255, 253, 240],
+  "threshold": 55,
+  "lineLength": 18,
+  "lighterDelta": 35,
+  "minIsland": 18,
+  "minCell": { "w": 14, "h": 12, "area": 200 },
+  "exclude": [[2095, 725, 2400, 915]]
+}

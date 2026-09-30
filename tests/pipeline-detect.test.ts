@@ -1,0 +1,104 @@
+import { test, expect } from 'bun:test';
+import { readFileSync } from 'node:fs';
+import { loadImage } from '../tools/pipeline/lib/image';
+import { detectCells } from '../tools/pipeline/lib/detect';
+
+test('detects about as many cells on the 2026 plan as the Python detector', async () => {
+  const img = await loadImage('events/bkkibf-2026/source/plan.jpg');
+  const params = JSON.parse(readFileSync('events/bkkibf-2026/source/detect.json', 'utf8'));
+  const cells = detectCells(img, params);
+  expect(cells.length).toBeGreaterThan(360);
+  expect(cells.length).toBeLessThan(400);
+  for (let k = 1; k < cells.length; k++) {
+    const a = cells[k - 1],
+      b = cells[k];
+    expect(a.x < b.x || (a.x === b.x && a.y <= b.y)).toBe(true);
+  }
+});
+
+test('a thin dark outline touching two booths does not merge them', () => {
+  const W = 100,
+    H = 40,
+    data = new Uint8Array(W * H * 3);
+  const paint = (x0: number, y0: number, x1: number, y1: number, [r, g, b]: number[]) => {
+    for (let y = y0; y < y1; y++) for (let x = x0; x < x1; x++) data.set([r, g, b], (y * W + x) * 3);
+  };
+  paint(0, 0, W, H, [255, 253, 240]);
+  paint(10, 10, 30, 30, [245, 139, 184]);
+  paint(60, 10, 80, 30, [245, 139, 184]);
+  paint(20, 30, 70, 32, [20, 20, 20]);
+  const cells = detectCells(
+    { width: W, height: H, data },
+    {
+      roi: [0, 0, W, H],
+      floor: [255, 253, 240],
+      threshold: 55,
+      lineLength: 18,
+      lighterDelta: 35,
+      minIsland: 18,
+      minCell: { w: 14, h: 12, area: 200 },
+      exclude: [],
+    },
+  );
+  expect(cells.length).toBe(2);
+  for (const c of cells) {
+    expect(c.w).toBeGreaterThanOrEqual(18);
+    expect(c.w).toBeLessThanOrEqual(20);
+    expect(c.h).toBeLessThanOrEqual(22);
+  }
+});
+
+test('derived detect params are recomputed after re-registration; hand-set ones are kept', async () => {
+  const { resolveDetectParams } = await import('../tools/pipeline/lib/detect');
+  const base = {
+    roi: [0, 0, 10, 10] as [number, number, number, number],
+    floor: [255, 253, 240] as [number, number, number],
+    threshold: 55,
+    lineLength: 18,
+    lighterDelta: 35,
+    minIsland: 18,
+    minCell: { w: 14, h: 12, area: 200 },
+    exclude: [],
+  };
+  const t1 = { sx: 1, sy: 1, dx: 0, dy: 0, score: 0.5, method: 'auto' as const };
+  const t2 = { sx: 2, sy: 2, dx: 5, dy: 5, score: 1, method: 'manual' as const };
+  const fresh = {
+    ...base,
+    roi: [1, 1, 5, 5] as [number, number, number, number],
+    derivedFrom: { sx: 2, sy: 2, dx: 5, dy: 5 },
+  };
+  expect(resolveDetectParams(null, t2, () => fresh)).toBe(fresh);
+  expect(resolveDetectParams({ ...base, derivedFrom: { sx: 1, sy: 1, dx: 0, dy: 0 } }, t2, () => fresh)).toBe(fresh);
+  expect(resolveDetectParams({ ...base, derivedFrom: { sx: 1, sy: 1, dx: 0, dy: 0 } }, t1, () => fresh).roi).toEqual([
+    0, 0, 10, 10,
+  ]);
+  expect(resolveDetectParams(base, t2, () => fresh).roi).toEqual([0, 0, 10, 10]);
+});
+
+test('a cell with a solid white square is marked pillar-like, one with text is not', () => {
+  const W = 80,
+    H = 40,
+    data = new Uint8Array(W * H * 3);
+  const paint = (x0: number, y0: number, x1: number, y1: number, c: number[]) => {
+    for (let y = y0; y < y1; y++) for (let x = x0; x < x1; x++) data.set(c, (y * W + x) * 3);
+  };
+  paint(0, 0, W, H, [255, 253, 240]);
+  paint(5, 5, 33, 34, [245, 139, 184]);
+  paint(11, 11, 27, 27, [255, 255, 255]);
+  paint(45, 5, 73, 34, [245, 139, 184]);
+  for (const x of [50, 54, 58, 62, 66]) paint(x, 16, x + 2, 24, [255, 255, 255]);
+  const cells = detectCells(
+    { width: W, height: H, data },
+    {
+      roi: [0, 0, W, H],
+      floor: [255, 253, 240],
+      threshold: 55,
+      lineLength: 18,
+      lighterDelta: 35,
+      minIsland: 18,
+      minCell: { w: 14, h: 12, area: 150 },
+      exclude: [],
+    },
+  );
+  expect(cells.map((c) => !!c.pillarLike)).toEqual([true, false]);
+});
