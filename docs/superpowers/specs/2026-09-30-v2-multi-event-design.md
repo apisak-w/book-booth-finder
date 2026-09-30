@@ -74,10 +74,9 @@ src/
     e/[id]/+page.svelte finder
     e/[id]/+page.ts     loads one event; entries() yields every events/* id
   lib/
-    venues/             build-time loading of /venues/*
-    core/               pure TS: grid, routing, search, directions, csv, codes, prepare, schema
-    events/             build-time loading of /events/*, joined with their venue
-    map/                Map.svelte, layer components, panzoom.ts, panzoom action
+    core/               pure TS: types, geometry, grid, routing, search, directions, csv, codes, prepare, hash, status, panzoom
+    server/             Zod schemas and the catalog loader for venues/ and events/ (build time only)
+    map/                FloorMap.svelte, layer components, viewport gestures
     ui/                 Header, LangToggle, Sheet, SearchBox, Results, IdleView, ResultCard, StartPicker, Toast, EventCard
     i18n/               app strings th/en, lang state
     styles/             tokens and global CSS carried over from styles.css
@@ -204,7 +203,7 @@ type BoothsFile = {
 
 **`/` event list.** Header with app name and language toggle. One card per event: name, venue name, dates, status badge, link. Sorted live, upcoming (soonest first), past (latest first). Prerendered with all events. Status is computed in the browser in the venue's timezone, so a stale build still shows the right badge. If the URL hash contains `to` or `from`, the page redirects to `/e/bkkibf-2026/` with the same hash (`LEGACY_EVENT` constant).
 
-**`/e/[id]/` finder.** Same flow and layout as today, plus a back link to `/`. `<title>`, meta description and theme colour come from the event. Event data is inlined at prerender, so there are no runtime fetches. `entries()` lists every folder in `events/`. An unknown id is a 404 page with a link to `/`. A past event shows an "ended on <date>" note and otherwise works.
+**`/e/[id]/` finder.** Same flow and layout as today, plus a back link to `/`. `<title>` and meta description come from the event; the theme colour is the app's navy. Event data is inlined at prerender, so there are no runtime fetches. `entries()` lists every folder in `events/`. An unknown id is a 404 page with a link to `/`. A past event shows an "ended on <date>" note and otherwise works.
 
 ### 5.2 State
 
@@ -238,7 +237,7 @@ Ported to TypeScript with behaviour unchanged, but parameterised by venue and ev
 - `search.ts`: over booth codes, zone names, exhibitors, landmarks
 - `directions.ts`: route to written steps, using venue area names, venue doors and event `aisles`. The aisle phrase applies when the booth is inside an area and its code starts with a letter in `aisles` (replaces today's `y > 340` check)
 - `csv.ts`, `codes.ts` (`normCode`), `prepare.ts` (adds `i`, `cx`, `cy`, `area`, `byCode`, foyer booths, exhibitors)
-- `schema.ts`: Zod schemas for `EventFile`, `BoothsFile`, exhibitor rows, `corrections.json`; TS types inferred from them
+- `types.ts`: shared TypeScript types. The Zod schemas live in `src/lib/server/schema.ts` (and `corrections.json`'s in the pipeline) so Zod never reaches the client
 
 Performance budget stays as today: grid build about 40 ms and route about 6 ms average on a laptop.
 
