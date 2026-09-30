@@ -159,6 +159,8 @@ export const nameIn = (lang: Lang) => (o: I18n) => o[lang] || o.th || o.en;
 
 export const textFor = (s: Strings, event: EventFile, lang: Lang, key: TextKey) => event.text?.[key]?.[lang] ?? s[key];
 
+const d = (iso: string) => new Date(`${iso}T00:00:00Z`);
+
 export function fmtRange(start: string, end: string, lang: Lang): string {
   const f = new Intl.DateTimeFormat(lang === 'th' ? 'th-TH' : 'en-GB', {
     day: 'numeric',
@@ -166,6 +168,5 @@ export function fmtRange(start: string, end: string, lang: Lang): string {
     year: 'numeric',
     timeZone: 'UTC',
   });
-  const d = (iso: string) => new Date(`${iso}T00:00:00Z`);
   return start === end ? f.format(d(start)) : f.formatRange(d(start), d(end));
 }
