@@ -5,7 +5,8 @@
   import { createSearch, type SearchItem } from '$lib/core/search';
   import { parseHash, formatHash } from '$lib/core/hash';
   import type { Booth, Dest, Landmark } from '$lib/core/types';
-  import { STRINGS, nameIn, textFor } from '$lib/i18n/strings';
+  import { STRINGS, fmtRange, nameIn, textFor } from '$lib/i18n/strings';
+  import { eventStatus } from '$lib/core/status';
   import { lang } from '$lib/i18n/lang.svelte';
   import { store } from '$lib/storage';
   import { Finder } from '$lib/ui/finder.svelte';
@@ -29,10 +30,11 @@
   let map: FloorMap;
   let toast = $state({ message: '', show: false });
   let toastTimer: ReturnType<typeof setTimeout>;
-  let notice = $state('');
+  let isPast = $state(false);
 
   const s = $derived(STRINGS[lang.current]);
   const nameOf = $derived(nameIn(lang.current));
+  const notice = $derived(isPast ? s.ended(fmtRange(data.event.dates.end, data.event.dates.end, lang.current)) : '');
   const results = $derived(f.query.trim() ? search(f.query) : []);
 
   function writeHash() {
@@ -87,6 +89,7 @@
   }
 
   onMount(() => {
+    isPast = eventStatus(data.event.dates, data.venue.timezone) === 'past';
     const stored = store.get(FROM_KEY);
     if (stored && data.landmarkById[stored]) f.fromId = stored;
     requestAnimationFrame(() => {
