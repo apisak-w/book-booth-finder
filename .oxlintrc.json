@@ -6,6 +6,7 @@
   },
   "ignorePatterns": ["legacy/**", "_site/**", ".svelte-kit/**", "tools/golden/**", "tools/migrate/**"],
   "rules": {
-    "unicorn/no-array-sort": "off"
+    "unicorn/no-array-sort": "off",
+    "unicorn/no-array-reverse": "off"
   }
 }

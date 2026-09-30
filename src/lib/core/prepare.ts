@@ -13,6 +13,8 @@ import type {
   Venue,
 } from './types';
 
+const rank = (l: Landmark) => GROUP_ORDER.indexOf(l.group);
+
 export function prepareData(venue: Venue, event: EventFile, file: BoothsFile, rows: ExhibitorRow[]): EventData {
   const booths: Booth[] = [];
   const byCode: Record<string, Booth[]> = {};
@@ -33,7 +35,6 @@ export function prepareData(venue: Venue, event: EventFile, file: BoothsFile, ro
     .filter((e) => e.booth && (e.th || e.en));
   const unknownExhibitorBooths = [...new Set(exhibitors.filter((e) => !byCode[e.booth]).map((e) => e.booth))];
 
-  const rank = (l: Landmark) => GROUP_ORDER.indexOf(l.group);
   const landmarks = [...venue.landmarks, ...event.landmarks]
     .map((l, k) => ({ l, k }))
     .sort((a, b) => rank(a.l) - rank(b.l) || a.k - b.k)
