@@ -3,6 +3,8 @@ import { join, relative } from 'node:path';
 import type { z } from 'zod';
 import { BoothsFileSchema, EventSchema, VenueSchema, formatIssues } from './schema';
 import { parseCSV } from '../core/csv';
+import { loadData } from '../core/prepare';
+import { checkEvent } from './checks';
 import type { BoothsFile, EventFile, ExhibitorRow, I18n, Venue } from '../core/types';
 
 export type EventBundle = { venue: Venue; event: EventFile; booths: BoothsFile; exhibitors: ExhibitorRow[] };
@@ -61,6 +63,13 @@ export function loadEvent(id: string, root = cwd()): EventBundle {
   const csvPath = join(dir, 'exhibitors.csv');
   const exhibitors = existsSync(csvPath) ? parseCSV(readFileSync(csvPath, 'utf8')) : [];
   return { venue, event, booths, exhibitors };
+}
+
+export function loadCheckedEvent(id: string, root = cwd()): EventBundle {
+  const bundle = loadEvent(id, root);
+  const problems = checkEvent(loadData(bundle));
+  if (problems.length) throw new CatalogError(`events/${id}: ${problems.join('; ')}`);
+  return bundle;
 }
 
 export function eventSummaries(root = cwd()): EventSummary[] {

@@ -19,3 +19,9 @@ test('matches clusters to existing categories or creates placeholders', () => {
   expect(r.created.cat1.color).toBe('#0AC80A');
   expect(nearestCategory([12, 198, 12], r.categoryColours)).toBe('cat1');
 });
+
+test('rerunning never reuses an existing category key', () => {
+  const r = assignCategories([{ rgb: [0, 0, 255] }], { cat1: [255, 0, 0], kids: [250, 136, 179] });
+  expect(Object.keys(r.created)).toEqual(['cat2']);
+  expect(r.categoryColours.cat1).toEqual([255, 0, 0]);
+});

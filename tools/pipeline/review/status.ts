@@ -1,6 +1,7 @@
 import type { Point, Rect } from '../../../src/lib/core/types';
 import type { Corrections } from '../lib/corrections';
-import { ownerIndex, type Read } from '../lib/build';
+import type { Read } from '../lib/build';
+import { ownerIndex } from '../lib/transform';
 
 export type CellStatus = 'code' | 'read' | 'flagged' | 'missing' | 'pillar' | 'drop';
 

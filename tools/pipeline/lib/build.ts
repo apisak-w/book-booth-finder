@@ -1,8 +1,22 @@
-import type { BoothRaw, BoothsFile, EventFile, Pillar, Point, Rect, Venue } from '../../../src/lib/core/types';
+import type {
+  BoothRaw,
+  BoothsFile,
+  EventFile,
+  ExhibitorRow,
+  Pillar,
+  Point,
+  Rect,
+  Venue,
+} from '../../../src/lib/core/types';
+import { BoothsFileSchema } from '../../../src/lib/server/schema';
+import { checkEvent } from '../../../src/lib/server/checks';
+import { prepareData } from '../../../src/lib/core/prepare';
 import type { Cell } from './detect';
 import type { Corrections } from './corrections';
 import { nearestCategory } from './categorise';
-import { rectToVenue, type Transform } from './transform';
+import { ownerIndex, rectToVenue, type Transform } from './transform';
+
+export { ownerIndex };
 
 export type Read = { at: Point; text: string; conf: number; code: string | null; flags: string[] };
 export type BuildInput = {
@@ -13,15 +27,6 @@ export type BuildInput = {
   sample: (r: Rect) => [number, number, number];
   codePattern: string;
 };
-
-const inside = ([x, y]: Point, r: Rect) => x >= r.x && x < r.x + r.w && y >= r.y && y < r.y + r.h;
-export function ownerIndex(pt: Point, rects: Rect[]): number {
-  let best = -1;
-  rects.forEach((r, k) => {
-    if (inside(pt, r) && (best < 0 || r.w * r.h < rects[best].w * rects[best].h)) best = k;
-  });
-  return best;
-}
 
 const roundRect = (r: Rect): Rect => ({
   x: Math.round(r.x),
@@ -116,4 +121,10 @@ export function computeAisles(booths: BoothRaw[], venue: Venue, codePattern: str
     x[letter] = Math.round(mode - 18);
   }
   return Object.keys(x).length ? { signY, boothMinY, x } : undefined;
+}
+
+export function checkBuild(venue: Venue, event: EventFile, booths: BoothsFile, exhibitors: ExhibitorRow[]): string[] {
+  const parsed = BoothsFileSchema.safeParse(booths);
+  if (!parsed.success) return parsed.error.issues.map((i) => `booths.json ${i.path.join('.')}: ${i.message}`);
+  return checkEvent(prepareData(venue, event, booths, exhibitors));
 }

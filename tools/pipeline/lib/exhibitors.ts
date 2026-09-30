@@ -35,10 +35,16 @@ export function expandCodes(cell: string, known: Set<string>): { codes: string[]
     const range = /^([A-Z])(\d{1,2})-([A-Z])?(\d{1,2})$/.exec(token);
     if (range && (!range[3] || range[3] === range[1])) {
       const [a, b] = [Number(range[2]), Number(range[4])].sort((x, y) => x - y);
+      const ends = [normCode(`${range[1]}${range[2]}`), normCode(`${range[1]}${range[4]}`)];
+      const bad = ends.filter((e) => !known.has(e));
+      const inRange: string[] = [];
       for (let n = a; n <= b; n++) {
         const c = normCode(`${range[1]}${n}`);
-        if (known.has(c)) codes.push(c);
+        if (known.has(c)) inRange.push(c);
       }
+      if (!inRange.length) unknown.push(token);
+      else if (bad.length) unknown.push(...bad);
+      else codes.push(...inRange);
       continue;
     }
     const c = normCode(token);
@@ -59,7 +65,12 @@ export function toExhibitorRows(rows: Record<string, string>[], map: ColumnMap, 
     const th = get(r, map.th),
       en = get(r, map.en);
     if (!th && !en) continue;
-    const { codes, unknown: bad } = expandCodes(get(r, map.booth), known);
+    const cell = get(r, map.booth);
+    if (!cell) {
+      unknown.add(`(empty booth for ${th || en})`);
+      continue;
+    }
+    const { codes, unknown: bad } = expandCodes(cell, known);
     bad.forEach((b) => unknown.add(b));
     for (const booth of codes) out.push({ booth, name_th: th, name_en: en });
   }

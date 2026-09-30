@@ -40,7 +40,7 @@ export function clusterColours(colours: RGB3[], maxDist = 40): { rgb: RGB3; coun
 export function assignCategories(clusters: { rgb: RGB3 }[], existing: Record<string, RGB3>, maxDist = 60) {
   const categoryColours: Record<string, RGB3> = { ...existing };
   const created: Record<string, Category> = {};
-  let n = 0;
+  let n = Math.max(0, ...Object.keys(existing).map((k) => Number(/^cat(\d+)$/.exec(k)?.[1] ?? 0)));
   for (const { rgb } of clusters) {
     const near = Object.values(existing).some((c) => dist(c, rgb) <= maxDist);
     if (near) continue;

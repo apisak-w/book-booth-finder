@@ -104,3 +104,14 @@ test('a correction inside an L-shaped cell bounding box belongs to the smaller c
   expect(problems).toEqual([]);
   expect(booths.booths.map((b) => `${b.c}:${b.w}`).sort()).toEqual(['D28:28', 'D30:60']);
 });
+
+test('checkBuild reports schema and integrity problems before anything is written', async () => {
+  const { checkBuild } = await import('../tools/pipeline/lib/build');
+  const booths = {
+    booths: [...bundle.booths.booths, { c: 'A42', x: 5000, y: 0, w: 10, h: 10, cat: '' }],
+    pillars: bundle.booths.pillars,
+  };
+  const problems = checkBuild(bundle.venue, bundle.event, booths, []);
+  expect(problems.join('\n')).toContain('booths.369.cat');
+  expect(checkBuild(bundle.venue, bundle.event, bundle.booths, [])).toEqual([]);
+}, 60_000);

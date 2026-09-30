@@ -40,3 +40,13 @@ export function fitAxes(pairs: { plan: Point; venue: Point }[]): Transform {
   );
   return { sx: x.s, sy: y.s, dx: x.d, dy: y.d, score: 1, method: 'manual' };
 }
+
+const inside = ([x, y]: Point, r: Rect) => x >= r.x && x < r.x + r.w && y >= r.y && y < r.y + r.h;
+
+export function ownerIndex(pt: Point, rects: Rect[]): number {
+  let best = -1;
+  rects.forEach((r, k) => {
+    if (inside(pt, r) && (best < 0 || r.w * r.h < rects[best].w * rects[best].h)) best = k;
+  });
+  return best;
+}

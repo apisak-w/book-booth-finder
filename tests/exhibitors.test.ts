@@ -59,3 +59,14 @@ test('reads an XLSX sheet with the header row as keys', async () => {
   const map = guessColumns(Object.keys(rows[0]))!;
   expect(toExhibitorRows(rows, map, known).rows.map((r) => r.booth)).toEqual(['K16', 'K16', 'K18']);
 });
+
+test('ranges with no known codes or an unknown endpoint are reported, and rows without a booth too', () => {
+  expect(expandCodes('Z01–Z05', known).unknown).toEqual(['Z01-Z05']);
+  expect(expandCodes('K16–K99', known).unknown).toEqual(['K99']);
+  const out = toExhibitorRows(
+    [{ booth: '', name_th: 'ก', name_en: 'A' }],
+    { booth: 'booth', th: 'name_th', en: 'name_en' },
+    known,
+  );
+  expect(out.unknown).toEqual(['(empty booth for ก)']);
+});

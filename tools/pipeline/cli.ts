@@ -1,15 +1,13 @@
 import { existsSync, readFileSync, writeFileSync } from 'node:fs';
 import { loadEvent, loadVenue } from '../../src/lib/server/catalog';
 import { EventSchema } from '../../src/lib/server/schema';
-import { loadData, prepareData } from '../../src/lib/core/prepare';
-import { createGrid, obstaclesOf } from '../../src/lib/core/grid';
-import { findRoute } from '../../src/lib/core/routing';
-import { isRouteOk } from '../../src/lib/core/types';
+import { loadData } from '../../src/lib/core/prepare';
 import { crop, loadImage, median, type RGB } from './lib/image';
 import { autoRegister, type Transform } from './lib/register';
 import { defaultDetectParams, detectCells, type Cell } from './lib/detect';
 import { EMPTY_CORRECTIONS, parseCorrections, mergeEvent } from './lib/corrections';
-import { buildBooths, computeAisles, type Read } from './lib/build';
+import { buildBooths, checkBuild, computeAisles, type Read } from './lib/build';
+import { ZodError } from 'zod';
 import { eventPaths } from './lib/paths';
 import { copyFileSync, mkdirSync } from 'node:fs';
 import { extname } from 'node:path';
@@ -67,17 +65,19 @@ export async function build(id: string) {
   });
   if (problems.length) fail(problems);
 
-  let event = mergeEvent(bundle.event, corrections.event);
-  if (!event.aisles)
-    event = EventSchema.parse({ ...event, aisles: computeAisles(booths.booths, bundle.venue, event.codePattern) });
-
-  const data = prepareData(bundle.venue, event, booths, bundle.exhibitors);
-  const grid = createGrid(data.venue, obstaclesOf(data));
-  const origin = data.landmarkById[data.venue.origin];
-  const unreachable = data.booths
-    .filter((b) => !isRouteOk(findRoute(grid, data.venue, origin, { kind: 'booth', b })))
-    .map((b) => b.c);
-  if (unreachable.length) fail([`not reachable from ${origin.id}: ${unreachable.join(', ')}`]);
+  let event;
+  try {
+    event = mergeEvent(bundle.event, corrections.event);
+    if (!event.aisles)
+      event = EventSchema.parse({ ...event, aisles: computeAisles(booths.booths, bundle.venue, event.codePattern) });
+  } catch (e) {
+    fail(
+      e instanceof ZodError ? e.issues.map((i) => `event ${i.path.join('.')}: ${i.message}`) : [(e as Error).message],
+    );
+    return;
+  }
+  const buildProblems = checkBuild(bundle.venue, event, booths, bundle.exhibitors);
+  if (buildProblems.length) fail(buildProblems);
   writeJson(p.booths, booths);
   writeJson(p.event, event);
   console.log(
