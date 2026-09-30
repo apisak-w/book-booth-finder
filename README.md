@@ -58,18 +58,14 @@ Print a QR code for `#from=<id>` at each door or information desk. Guests who sc
 
 ## Deploy to Cloudflare Pages
 
-The workflow in `.github/workflows/deploy.yml` runs the tests on every push and pull request. On `main` it publishes `index.html`, `src/` and `data/` to the Cloudflare Pages project `book-booth-finder`, and creates the project on the first run.
+The site is deployed by the Cloudflare Pages Git integration (project `book-booth-finder`, https://book-booth-finder.pages.dev). Every push to `main` deploys to production, and other branches get preview URLs.
 
-It needs two repository secrets (**Settings → Secrets and variables → Actions**):
+Build settings in the Cloudflare dashboard:
 
-- `CLOUDFLARE_API_TOKEN`: an API token with the **Account → Cloudflare Pages → Edit** permission.
-- `CLOUDFLARE_ACCOUNT_ID`: shown on the Cloudflare dashboard overview.
+- **Build command:** `npm run build`. This copies `index.html`, `src/` and `data/` into `_site/`, so docs, tests and `tools/` aren't published.
+- **Build output directory:** `_site`
 
-To deploy from your own machine, run `npx wrangler login` once and then:
-
-```bash
-npm run deploy
-```
+The GitHub workflow in `.github/workflows/test.yml` runs the tests on every push and pull request.
 
 Any other static host works too. Upload `index.html`, `src/` and `data/`.
 
