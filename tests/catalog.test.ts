@@ -28,7 +28,7 @@ test('loads the 2026 event with its venue', () => {
   const b = loadEvent('bkkibf-2026');
   expect(b.venue.id).toBe('qsncc-lg-5-8');
   expect(b.booths.booths.length).toBe(369);
-  expect(b.exhibitors).toEqual([]);
+  expect(b.exhibitors.length).toBe(361);
 });
 
 test('rejects an event whose id differs from its folder', () => {
