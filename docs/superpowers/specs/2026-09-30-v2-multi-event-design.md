@@ -48,7 +48,7 @@ Success criteria:
 | OCR | `tesseract.js` (downloads English traineddata on first run) |
 | Spreadsheets | `read-excel-file`; CSV via the existing parser |
 | End-to-end | Playwright (Chromium) smoke tests against `vite preview` |
-| Hosting | Cloudflare Pages Git integration. Build `bun run build`, output `build` |
+| Hosting | Cloudflare Pages Git integration. Build command `npm run build` (runs `vite build`), output `_site`, unchanged from today, so previews of `v2` work and production needs no settings change |
 
 Scripts: `dev`, `build`, `preview`, `test`, `lint`, `fmt`, `fmt:check`, `check`, `event:new`, `event:review`, `event:build`, `event:exhibitors`.
 
@@ -316,11 +316,11 @@ All with `bun test`. CI runs `lint`, `fmt:check`, `check`, `test`, then `build` 
 - Pipeline: morphology helpers, column guessing, range expansion, registration on the 2026 plan, and the 2026 reproduction test (§1 criterion 5).
 - Golden parity: v2 routes, steps (th and en), search results and area lookup equal the v1 snapshot.
 - End-to-end (Playwright): finder deep link renders card and steps; tapping a booth selects it; language toggle; share link round-trip; event list; legacy redirect; unknown event 404.
-- Build smoke: `build/index.html` and `build/e/bkkibf-2026/index.html` exist; nothing from `events/*/source/`, `venues/*/reference.jpg` or `tools/` appears in `build/`; Zod is not in the client bundle.
+- Build smoke: `_site/index.html` and `_site/e/bkkibf-2026/index.html` exist; nothing from `events/*/source/`, `venues/*/reference.jpg` or `tools/` appears in `_site/`; Zod is not in the client bundle.
 
 ## 10. Rollout
 
-Work on branch `v2`. Cloudflare Pages builds a preview for it automatically. Production stays on the current app until the last step.
+Work on branch `v2`. Cloudflare Pages builds a preview for it automatically with the unchanged settings. Production stays on the current app until the last step.
 
 1. Scaffold SvelteKit, Bun, TS, oxlint, oxfmt, `svelte-check`, CI.
 2. Port core to TS with the venue split. Tests green.
@@ -329,7 +329,7 @@ Work on branch `v2`. Cloudflare Pages builds a preview for it automatically. Pro
 5. Parity checkpoint against the live site on phone and desktop, light and dark.
 6. Event list page and legacy redirect.
 7. Pipeline stages and the 2026 reproduction test. Retire `tools/digitize/`.
-8. Change Cloudflare build settings to `bun run build` / `build`, rewrite `README.md` and `CLAUDE.md`, merge to `main`.
+8. Rewrite `README.md` and `CLAUDE.md`, merge to `main`.
 
 ## 11. Docs
 

@@ -26,7 +26,7 @@
 - Breakpoint 900 px: bottom sheet (max 46vh, Less/More) below, 400 px side panel at or above.
 - Booth labels hidden below 0.42 screen px per map unit.
 - Respect `prefers-reduced-motion` for the route draw and pin pulse.
-- Work on branch `v2`. Do not push to `main` until Task 19.
+- Work on branch `v2`. Pushing `v2` is fine (Cloudflare builds it as a preview). Do not push or merge to `main` until Task 19.
 
 ## Review Focus
 
@@ -275,7 +275,7 @@ import { vitePreprocess } from '@sveltejs/vite-plugin-svelte';
 export default {
   preprocess: vitePreprocess(),
   kit: {
-    adapter: adapter({ pages: 'build', assets: 'build', fallback: undefined, strict: true }),
+    adapter: adapter({ pages: '_site', assets: '_site', fallback: undefined, strict: true }),
     prerender: { entries: ['*'], handleHttpError: 'fail' },
   },
 };
@@ -306,7 +306,7 @@ export default defineConfig({ plugins: [sveltekit()] });
     "skipLibCheck": true,
     "types": ["bun"]
   },
-  "exclude": ["legacy", "build", "node_modules", "tools/golden", "tools/migrate"]
+  "exclude": ["legacy", "_site", "node_modules", "tools/golden", "tools/migrate"]
 }
 ```
 
@@ -316,7 +316,7 @@ export default defineConfig({ plugins: [sveltekit()] });
 {
   "$schema": "./node_modules/oxlint/configuration_schema.json",
   "categories": { "correctness": "error", "suspicious": "warn" },
-  "ignorePatterns": ["legacy/**", "build/**", ".svelte-kit/**", "tools/golden/**", "tools/migrate/**"]
+  "ignorePatterns": ["legacy/**", "_site/**", ".svelte-kit/**", "tools/golden/**", "tools/migrate/**"]
 }
 ```
 
@@ -326,7 +326,7 @@ export default defineConfig({ plugins: [sveltekit()] });
 {
   "printWidth": 120,
   "singleQuote": true,
-  "ignorePatterns": ["legacy/**", "build/**", ".svelte-kit/**", "tests/golden/**", "events/**/booths.json"]
+  "ignorePatterns": ["legacy/**", "_site/**", ".svelte-kit/**", "tests/golden/**", "events/**/booths.json"]
 }
 ```
 
@@ -381,10 +381,9 @@ export const trailingSlash = 'always';
 
 - [ ] **Step 4: Update ignore files**
 
-Append to `.gitignore`:
+Append to `.gitignore` (`_site/` is already there):
 
 ```
-build/
 .svelte-kit/
 test-results/
 playwright-report/
@@ -414,7 +413,7 @@ test('golden snapshot is present', () => {
 - [ ] **Step 6: Run every script once**
 
 Run: `bun run test && bun run lint && bun run fmt && bun run check && bun run build && bun run legacy:test`
-Expected: all succeed; `build/index.html` exists; legacy tests still `pass 14`.
+Expected: all succeed; `_site/index.html` exists; legacy tests still `pass 14`.
 
 - [ ] **Step 7: Replace CI**
 
@@ -3749,7 +3748,7 @@ import { defineConfig, devices } from '@playwright/test';
 
 export default defineConfig({
   testDir: 'tests/e2e',
-  webServer: { command: 'bun run build && bunx serve build -l 4173', port: 4173, reuseExistingServer: !process.env.CI },
+  webServer: { command: 'bun run build && bunx serve _site -l 4173', port: 4173, reuseExistingServer: !process.env.CI },
   use: { baseURL: 'http://localhost:4173' },
   projects: [
     { name: 'phone', use: { ...devices['Pixel 7'] } },
@@ -3831,13 +3830,14 @@ Append to `.github/workflows/ci.yml` under `jobs:`:
 ```bash
 git add -A
 git commit -m "Add Playwright end-to-end tests for the finder"
+git push -u origin v2
 ```
 
-Push `v2` only when the owner approves. Cloudflare Pages uses one build command and output folder for production and previews. `main` still needs `npm run build` into `_site`, so a `v2` preview fails until Task 19 switches the settings. Check parity locally instead.
+Cloudflare builds a preview of `v2` with the existing settings (`npm run build`, output `_site`), which now run `vite build`. Only `main` deploys to production. Use the preview URL from the Cloudflare check on the commit for the parity checkpoint on a real phone.
 
 - [ ] **Step 8: Parity checkpoint (manual, with the owner)**
 
-Run `bun run preview` and `bunx serve legacy -l 5174` side by side. On a phone-sized window (375 × 812) and a desktop window (1280 × 800), in light and dark mode, compare:
+Open the `v2` preview URL next to https://book-booth-finder.pages.dev (still v1), or run `bun run build && bunx serve _site -l 4173` and `bunx serve legacy -l 5174` locally. On a phone-sized window (375 × 812) and a desktop window (1280 × 800), in light and dark mode, compare:
 - the zoomed-out framing
 - K16 from the MRT: route shape, distance, time and steps
 - `#to=H31&n=1`
@@ -4044,7 +4044,7 @@ export const load: PageServerLoad = () => ({ events: eventSummaries() });
 
 If the installed SvelteKit predates `$app/state`, import `page` from `$app/stores` and use `$page.status` and `$page.error`.
 
-In `svelte.config.js`, change the adapter options to `adapter({ pages: 'build', assets: 'build', fallback: '404.html', strict: true })`. Cloudflare Pages serves `404.html` for unknown paths, and the client router renders `+error.svelte` for an unknown `/e/<id>/`.
+In `svelte.config.js`, change the adapter options to `adapter({ pages: '_site', assets: '_site', fallback: '404.html', strict: true })`. Cloudflare Pages serves `404.html` for unknown paths, and the client router renders `+error.svelte` for an unknown `/e/<id>/`.
 
 - [ ] **Step 7: Show the ended notice on past events**
 
@@ -4097,7 +4097,7 @@ test('unknown event shows the not-found page', async ({ page }) => {
 });
 ```
 
-The e2e server is `serve`, which answers unknown paths with `build/404.html` the way Cloudflare Pages does.
+The e2e server is `serve`, which answers unknown paths with `_site/404.html` the way Cloudflare Pages does.
 
 - [ ] **Step 9: Run everything**
 
@@ -6153,7 +6153,7 @@ git commit -m "Add exhibitor import from CSV or XLSX with column guessing and ra
 
 **Interfaces:**
 - Consumes: everything.
-- Produces: a `v2` branch ready to merge, with production build settings documented.
+- Produces: a `v2` branch ready to merge. Production build settings don't change.
 
 - [ ] **Step 1: Write the build smoke test**
 
@@ -6164,22 +6164,22 @@ import { test, expect } from 'bun:test';
 import { existsSync, readdirSync, readFileSync, statSync } from 'node:fs';
 import { join } from 'node:path';
 
-const built = existsSync('build/index.html');
+const built = existsSync('_site/index.html');
 const walk = (dir: string): string[] =>
   readdirSync(dir).flatMap((f) => (statSync(join(dir, f)).isDirectory() ? walk(join(dir, f)) : [join(dir, f)]));
 
 test.skipIf(!built)('pages exist for the list, the event and 404', () => {
-  for (const f of ['build/index.html', 'build/e/bkkibf-2026/index.html', 'build/404.html']) expect(existsSync(f)).toBe(true);
+  for (const f of ['_site/index.html', '_site/e/bkkibf-2026/index.html', '_site/404.html']) expect(existsSync(f)).toBe(true);
 });
 
 test.skipIf(!built)('no source material or tooling is published', () => {
-  const files = walk('build');
+  const files = walk('_site');
   const leaked = files.filter((f) => /reference\.jpg|plan\.(jpe?g|png)|corrections\.json|cells\.json|reads\.json|detect\.json|registration\.json|\/tools\//.test(f));
   expect(leaked).toEqual([]);
 });
 
 test.skipIf(!built)('Zod is not in the client bundle', () => {
-  const js = walk('build/_app').filter((f) => f.endsWith('.js'));
+  const js = walk('_site/_app').filter((f) => f.endsWith('.js'));
   expect(js.filter((f) => readFileSync(f, 'utf8').includes('ZodError'))).toEqual([]);
 });
 ```
@@ -6197,15 +6197,15 @@ git rm -r legacy tools/digitize tools/migrate tools/golden
 
 Then clean up the config that pointed at them:
 - `package.json`: remove the `legacy:test` script.
-- `tsconfig.json`: set `"exclude": ["build", "node_modules"]`.
-- `.oxlintrc.json`: set `"ignorePatterns": ["build/**", ".svelte-kit/**"]`.
-- `.oxfmtrc.json`: set `"ignorePatterns": ["build/**", ".svelte-kit/**", "tests/golden/**", "events/**/booths.json"]`.
-- `.gitignore`: remove the `_site/`, `tools/digitize/out/`, `__pycache__/` and `.venv/` lines.
+- `tsconfig.json`: set `"exclude": ["_site", "node_modules"]`.
+- `.oxlintrc.json`: set `"ignorePatterns": ["_site/**", ".svelte-kit/**"]`.
+- `.oxfmtrc.json`: set `"ignorePatterns": ["_site/**", ".svelte-kit/**", "tests/golden/**", "events/**/booths.json"]`.
+- `.gitignore`: remove the `tools/digitize/out/`, `__pycache__/` and `.venv/` lines. Keep `_site/`.
 - `.editorconfig`: remove the `[*.py]` section.
 
 - [ ] **Step 4: Run CI locally in CI order**
 
-Update `.github/workflows/ci.yml` so `build` runs before `test` (the smoke test needs `build/`):
+Update `.github/workflows/ci.yml` so `build` runs before `test` (the smoke test needs `_site/`):
 
 ```yaml
       - run: bun run lint
@@ -6282,7 +6282,7 @@ https://<site>/e/<event-id>/#to=K16&from=door6
 
 ## Deploy
 
-Cloudflare Pages builds `main` through its Git integration. Build command `bun run build`, output directory `build`.
+Cloudflare Pages builds `main` through its Git integration. Build command `npm run build`, output directory `_site`. The build image installs dependencies from `bun.lock`.
 
 ## Credits
 
@@ -6304,7 +6304,7 @@ A bilingual (Thai default, English) mobile-first booth finder for events at a ve
 
 ```bash
 bun run dev            # vite dev server
-bun run build          # static site into build/
+bun run build          # static site into _site/
 bun run test           # bun test (unit, golden parity, per-event and per-venue checks, build smoke)
 bun run test:e2e       # Playwright against the built site
 bun run lint / fmt / fmt:check / check
@@ -6418,9 +6418,9 @@ git commit -m "Retire v1, add build smoke test, rewrite docs for v2"
 
 - [ ] **Step 9: Switch production (with the owner)**
 
-These steps change production. Ask the owner before each one.
-1. Push the branch: `git push -u origin v2`, then open a PR from `v2` to `main` with a description written with the `mo-ai:pr-description` skill.
-2. The owner opens the Cloudflare Pages project `book-booth-finder`, goes to **Settings → Builds & deployments**, and sets the build command to `bun run build` and the output directory to `build`. If the build image doesn't detect Bun from `bun.lock`, add the environment variable `BUN_VERSION` with the version from `bun --version`.
+This changes production. Ask the owner first.
+1. Push `v2` and open a PR from `v2` to `main`, with a description written using the `mo-ai:pr-description` skill. Check the Cloudflare preview for the last commit.
+2. The Cloudflare settings stay as they are (`npm run build`, output `_site`). If the build log shows dependencies installed with npm instead of Bun and something breaks, add the environment variable `BUN_VERSION` with the version from `bun --version`.
 3. The owner merges the PR. Cloudflare builds `main`.
 4. Check production:
    - `https://book-booth-finder.pages.dev/` lists the event
@@ -6428,4 +6428,3 @@ These steps change production. Ask the owner before each one.
    - `/#to=K16&from=door6` redirects to the 2026 event
    - `/e/nope/` shows the not-found page
    - `/CLAUDE.md` and `/venues/qsncc-lg-5-8/reference.jpg` return the app's 404 page rather than the files
-
