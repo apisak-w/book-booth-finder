@@ -5,9 +5,9 @@
   "description": "Booth finder and walking directions for the National Book Fair & Bangkok International Book Fair at QSNCC (Halls 5–8).",
   "type": "module",
   "scripts": {
-    "dev": "npx --yes serve@14 -l 5173 .",
-    "test": "node --test",
-    "build": "rm -rf _site && mkdir _site && cp -r index.html src data _site/"
+    "dev": "npx --yes serve@14 -l 5173 legacy",
+    "test": "node --test legacy/tests/*.test.js",
+    "build": "rm -rf _site && mkdir _site && cp -r legacy/index.html legacy/src legacy/data _site/"
   },
   "engines": {
     "node": ">=18"
