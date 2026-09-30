@@ -1,7 +1,7 @@
 import { existsSync, readFileSync, writeFileSync } from 'node:fs';
 import { loadEvent, loadVenue } from '../../src/lib/server/catalog';
 import { EventSchema } from '../../src/lib/server/schema';
-import { prepareData } from '../../src/lib/core/prepare';
+import { loadData, prepareData } from '../../src/lib/core/prepare';
 import { createGrid, obstaclesOf } from '../../src/lib/core/grid';
 import { findRoute } from '../../src/lib/core/routing';
 import { isRouteOk } from '../../src/lib/core/types';
@@ -16,6 +16,7 @@ import { extname } from 'node:path';
 import { readCells } from './lib/read';
 import { clusterColours, assignCategories } from './lib/categorise';
 import { spawn } from 'node:child_process';
+import { guessColumns, parseMap, readSheet, toCsv, toExhibitorRows } from './lib/exhibitors';
 
 const readJson = <T>(path: string, fallback?: T): T =>
   existsSync(path) ? JSON.parse(readFileSync(path, 'utf8')) : (fallback as T);
@@ -183,6 +184,26 @@ export async function review(id: string) {
   await new Promise((resolve) => child.on('exit', resolve));
 }
 
+export async function exhibitors(id: string) {
+  const file = process.argv[4];
+  if (!file || !existsSync(file))
+    fail([`usage: bun run event:exhibitors ${id} <file.csv|file.xlsx> [--map booth=Col,th=Col,en=Col]`]);
+  const rows = await readSheet(file);
+  if (!rows.length) fail([`${file} has no rows`]);
+  const mapArg = flag('map');
+  const map = mapArg ? parseMap(mapArg) : guessColumns(Object.keys(rows[0]));
+  if (!map)
+    fail([
+      `Couldn't find the booth and name columns in: ${Object.keys(rows[0]).join(', ')}. Pass --map booth=<col>,th=<col>,en=<col>`,
+    ]);
+  const data = loadData(loadEvent(id));
+  const out = toExhibitorRows(rows, map!, new Set(Object.keys(data.byCode)));
+  if (out.unknown.length)
+    fail([`booth codes not on the map: ${out.unknown.join(', ')}. Fix the spreadsheet or the map, then run again`]);
+  writeFileSync(eventPaths(id).exhibitors, toCsv(out.rows));
+  console.log(`${out.rows.length} exhibitor rows written using columns ${JSON.stringify(map)}`);
+}
+
 const commands: Record<string, (id: string) => Promise<unknown>> = {
   new: create,
   detect,
@@ -191,6 +212,7 @@ const commands: Record<string, (id: string) => Promise<unknown>> = {
   build,
   'ocr-report': ocrReport,
   review,
+  exhibitors,
 };
 if (!cmd || !commands[cmd] || !target)
   fail([`usage: bun tools/pipeline/cli.ts <${Object.keys(commands).join('|')}> <event-id>`]);

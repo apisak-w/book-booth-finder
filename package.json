@@ -19,7 +19,8 @@
     "event:new": "bun tools/pipeline/cli.ts new",
     "event:read": "bun tools/pipeline/cli.ts read",
     "event:ocr-report": "bun tools/pipeline/cli.ts ocr-report",
-    "event:review": "bun tools/pipeline/cli.ts review"
+    "event:review": "bun tools/pipeline/cli.ts review",
+    "event:exhibitors": "bun tools/pipeline/cli.ts exhibitors"
   },
   "devDependencies": {
     "@playwright/test": "^1.63.0",
@@ -29,6 +30,7 @@
     "@types/bun": "^1.4.2",
     "oxfmt": "^0.71.0",
     "oxlint": "^1.86.0",
+    "read-excel-file": "^9.3.10",
     "serve": "^14.2.6",
     "sharp": "^0.35.5",
     "svelte": "^5.57.1",
@@ -36,6 +38,7 @@
     "tesseract.js": "^7.0.0",
     "typescript": "~6",
     "vite": "^8.3.1",
+    "write-excel-file": "^4.1.1",
     "zod": "^4.6.5"
   }
 }
