@@ -55,6 +55,16 @@ Each venue uses pixels of its own `reference.jpg`. Everything for that venue and
 - Storage keys `bf:lang` and `bf:<eventId>:from`, always in try/catch.
 - No verbose code comments.
 
+## Commits
+
+Commit messages follow [Conventional Commits 1.0.0](https://www.conventionalcommits.org/en/v1.0.0/): `<type>[optional scope]: <description>`, with an optional body and footers.
+
+- Types: `feat` (new feature), `fix` (bug fix), `docs`, `style`, `refactor`, `perf`, `test`, `build`, `ci`, `chore`, `revert`.
+- Scopes match the area touched, for example `app`, `map`, `core`, `pipeline`, `review`, `venue`, `event`.
+- Description in the imperative, lower case, no trailing full stop: `fix(pipeline): report ranges with unknown endpoints`.
+- Breaking changes add `!` after the type or scope and a `BREAKING CHANGE:` footer, for example when a landmark id, event id or share-link format changes.
+- Data-only changes to an event use `feat(event)` for a new event and `fix(event)` for corrections.
+
 ## Design
 
 Mitr for display, Anuphan for body. Tokens on `:root` in `src/lib/styles/app.css`, dark mode under `prefers-color-scheme` and `[data-theme]`. The large booth code on the result card is the signature element. Route draws once and the pin pulses, both respect reduced motion. Below 900 px a bottom sheet (46vh, Less/More), at 900 px and above a 400 px side panel.
