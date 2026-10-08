@@ -19,7 +19,7 @@ The plan is mapped onto the venue's reference image with a per-axis scale and of
 
 ## Detection
 
-`detect.json` holds the parameters: the region to search, the floor colour, and the thresholds from the original OpenCV pipeline. Defaults come from the venue outline and the most common colour. The 2026 values are in `events/bkkibf-2026/source/detect.json`.
+`detect.json` holds the parameters: the region to search, the floor colour, and the thresholds from the original OpenCV pipeline. Defaults come from the venue outline and the most common colour. The 2026 values are in `events/bkkibf-2026/source/detect.json`. Keep `roi` inside the hall walls: a wall line inside it blanks every cell within the wall's bounding box. Smaller plans need smaller `lineLength` and `minCell` (see `events/bookexpo-2026/source/detect.json`).
 
 ## Reading codes
 
