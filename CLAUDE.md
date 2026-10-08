@@ -42,7 +42,7 @@ A venue is the building: walls, walkable floor, named areas (halls), doors, scal
 
 ## Coordinates
 
-Each venue uses pixels of its own `reference.jpg`. Everything for that venue and its events is in that space. For `qsncc-lg-5-8` the reference is the 2026 plan (2560 × 1932); back wall at y ≈ 280, lakeside doors at y ≈ 1464, MRT corridor at x < 446, 3 m per 29.5 px. Walking speed is 55 m/min for every venue.
+Each venue uses pixels of its own `reference.jpg`. Everything for that venue and its events is in that space. For `qsncc-lg-5-8` the reference is the 2026 plan (2560 × 1932); back wall at y ≈ 280, lakeside doors at y ≈ 1464, MRT corridor at x < 446, 3 m per 29.5 px. `qsncc-lg-5-7` (Book Expo layout) shares that coordinate space with the east wall at x = 2104; its reference is the Book Expo 2026 plan warped into it. Walking speed is 55 m/min for every venue.
 
 ## Routing
 

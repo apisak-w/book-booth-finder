@@ -20,8 +20,9 @@ const writeEvent = (folder: string, patch: Record<string, unknown>) => {
 };
 
 test('lists repo venues and events', () => {
-  expect(listVenueIds()).toEqual(['qsncc-lg-5-8']);
+  expect(listVenueIds()).toEqual(['qsncc-lg-5-7', 'qsncc-lg-5-8']);
   expect(listEventIds()).toContain('bkkibf-2026');
+  expect(listEventIds()).toContain('bookexpo-2026');
 });
 
 test('loads the 2026 event with its venue', () => {
@@ -29,6 +30,13 @@ test('loads the 2026 event with its venue', () => {
   expect(b.venue.id).toBe('qsncc-lg-5-8');
   expect(b.booths.booths.length).toBe(369);
   expect(b.exhibitors.length).toBe(361);
+});
+
+test('loads Book Expo 2026 with the Halls 5–7 venue', () => {
+  const b = loadEvent('bookexpo-2026');
+  expect(b.venue.id).toBe('qsncc-lg-5-7');
+  expect(b.booths.booths.length).toBe(329);
+  expect(b.exhibitors.length).toBe(320);
 });
 
 test('rejects an event whose id differs from its folder', () => {

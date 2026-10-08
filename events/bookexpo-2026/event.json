@@ -1,0 +1,328 @@
+{
+  "id": "bookexpo-2026",
+  "name": {
+    "th": "มหกรรมหนังสือระดับชาติ ครั้งที่ 31",
+    "en": "Book Expo Thailand 2026"
+  },
+  "subtitle": {
+    "th": "มหกรรมหนังสือระดับชาติ ครั้งที่ 31 · ศูนย์ฯ สิริกิติ์ ฮอลล์ 5–7",
+    "en": "31st National Book Expo · QSNCC Halls 5–7"
+  },
+  "dates": {
+    "start": "2026-10-23",
+    "end": "2026-11-01"
+  },
+  "venue": "qsncc-lg-5-7",
+  "codePattern": "^[A-S]\\d{2}$",
+  "categories": {
+    "kids": {
+      "th": "หนังสือเด็กและการศึกษา",
+      "en": "Children's & educational",
+      "color": "#E968A5"
+    },
+    "fiction": {
+      "th": "หนังสือนิยายและวรรณกรรม",
+      "en": "Fiction & literature",
+      "color": "#EA1E27"
+    },
+    "general": {
+      "th": "หนังสือทั่วไป",
+      "en": "General books",
+      "color": "#304FA1"
+    },
+    "rare": {
+      "th": "หนังสือเก่า",
+      "en": "Rare books",
+      "color": "#965443"
+    },
+    "comic": {
+      "th": "หนังสือการ์ตูนและวัยรุ่น",
+      "en": "Comics & light novels",
+      "color": "#F57F22"
+    },
+    "nonbook": {
+      "th": "Non Books (สื่อการศึกษา/บอร์ดเกม)",
+      "en": "Non-books & board games",
+      "color": "#1AA651"
+    },
+    "special": {
+      "th": "นิทรรศการและเวที",
+      "en": "Exhibitions & stages",
+      "color": "#1D2442"
+    }
+  },
+  "zones": {
+    "A02": {
+      "th": "เวที Author's Salon",
+      "en": "Author's Salon stage",
+      "short": "AUTHOR'S SALON"
+    },
+    "A08": {
+      "th": "สำนักงานศิลปวัฒนธรรมร่วมสมัย (สศร.) กระทรวงวัฒนธรรม",
+      "en": "Office of Contemporary Art and Culture (OCAC), Ministry of Culture"
+    },
+    "A15": {
+      "th": "นิทรรศการจากนักสร้างสรรค์ ถึงคุณ",
+      "en": "Message Maker exhibition"
+    },
+    "A28": {
+      "th": "PUBAT Shop",
+      "en": "PUBAT Shop"
+    },
+    "A31": {
+      "th": "นิทรรศการส่งต่อด้วยใจ เข้าถึงได้ทุกคน",
+      "en": "From UNREAD To UNLOCKED exhibition"
+    },
+    "S01": {
+      "th": "Unread letter to myself · มูลนิธิหนึ่งอ่านล้านตื่น",
+      "en": "Unread letter to myself · One Reader Inspires Million People Foundation"
+    },
+    "S02": {
+      "th": "Little Read Universe: DEAR READER อ่าน สา(ส์)น รัก",
+      "en": "Little Read Universe: DEAR READER"
+    },
+    "S03": {
+      "th": "นิทรรศการเกาะใหม่ที่รอการค้นพบ",
+      "en": "Island Awaits: The Debut Showcase"
+    },
+    "S04": {
+      "th": "นิทรรศการ Unread Message คุณได้รับข้อความใหม่ในเกาะหนังสือ",
+      "en": "Unread Message exhibition"
+    },
+    "S05": {
+      "th": "นิทรรศการเกาะใหม่ที่รอการค้นพบ",
+      "en": "Island Awaits: The Debut Showcase"
+    },
+    "S06": {
+      "th": "นิทรรศการ Unread Message คุณได้รับข้อความใหม่ในเกาะหนังสือ",
+      "en": "Unread Message exhibition"
+    },
+    "S07": {
+      "th": "นิทรรศการเรียงร้อยอักษรา พัชรกิติยาภานุสรณ์",
+      "en": "Her Written Legacy: HRH Princess Bajrakitiyabha Memorial Exhibition"
+    },
+    "S08": {
+      "th": "หนึ่งข้อความ ส่งต่อกำลังใจ",
+      "en": "Write a message, pass it on"
+    },
+    "S09": {
+      "th": "นิทรรศการโครงการประกวดปกหนังสือที่มีการออกแบบโดดเด่นสวยงาม ประจำปี 2569",
+      "en": "100 Annual Book and Cover Design 2026"
+    },
+    "S10": {
+      "th": "นิทรรศการ UNREAD KEY VISUALS",
+      "en": "Unread key visuals exhibition"
+    }
+  },
+  "foyerZones": [
+    {
+      "x": 309,
+      "y": 561,
+      "w": 40,
+      "h": 122,
+      "c": "S01",
+      "vertical": true
+    },
+    {
+      "x": 309,
+      "y": 953,
+      "w": 40,
+      "h": 91,
+      "c": "S02",
+      "vertical": true
+    },
+    {
+      "x": 789,
+      "y": 1486,
+      "w": 189,
+      "h": 31,
+      "c": "S04"
+    },
+    {
+      "x": 1330,
+      "y": 1486,
+      "w": 169,
+      "h": 31,
+      "c": "S06"
+    },
+    {
+      "x": 1523,
+      "y": 1486,
+      "w": 80,
+      "h": 31,
+      "c": "S07"
+    },
+    {
+      "x": 1874,
+      "y": 1486,
+      "w": 30,
+      "h": 31,
+      "c": "S08"
+    },
+    {
+      "x": 1945,
+      "y": 1486,
+      "w": 90,
+      "h": 31,
+      "c": "S09"
+    },
+    {
+      "x": 2075,
+      "y": 1486,
+      "w": 30,
+      "h": 31,
+      "c": "S10"
+    }
+  ],
+  "obstacles": [
+    {
+      "x": 309,
+      "y": 1055,
+      "w": 40,
+      "h": 40,
+      "kind": "info"
+    },
+    {
+      "x": 1651,
+      "y": 1472,
+      "w": 60,
+      "h": 24,
+      "kind": "info"
+    },
+    {
+      "x": 1858,
+      "y": 752,
+      "w": 225,
+      "h": 160,
+      "kind": "stage",
+      "note": "Interview Area"
+    },
+    {
+      "x": 1831,
+      "y": 800,
+      "w": 10,
+      "h": 78,
+      "kind": "other",
+      "note": "Activity board"
+    }
+  ],
+  "aisles": {
+    "signY": 322,
+    "boothMinY": 340,
+    "x": {
+      "A": 495,
+      "B": 584,
+      "C": 673,
+      "D": 764,
+      "E": 854,
+      "F": 943,
+      "G": 1034,
+      "H": 1124,
+      "I": 1213,
+      "J": 1303,
+      "K": 1395,
+      "L": 1484,
+      "M": 1573,
+      "N": 1662,
+      "O": 1754,
+      "P": 1838,
+      "Q": 1924,
+      "R": 2009
+    }
+  },
+  "landmarks": [
+    {
+      "th": "จุดประชาสัมพันธ์และจุดฝากของ (ฝั่ง MRT)",
+      "en": "Information & bag drop, MRT side",
+      "id": "info1",
+      "group": "info",
+      "x": 329,
+      "y": 1075,
+      "icon": "info"
+    },
+    {
+      "th": "Press / Information · กิจกรรม Rally: Stamp Log (หน้าฮอลล์ 7)",
+      "en": "Press & information · Rally stamp log (Hall 7)",
+      "id": "info2",
+      "group": "info",
+      "x": 1681,
+      "y": 1484,
+      "icon": "info"
+    },
+    {
+      "th": "Charge Spot ข้างบูธ C08",
+      "en": "Charge spot by booth C08",
+      "id": "ch1",
+      "group": "charge",
+      "x": 675,
+      "y": 1064,
+      "icon": "charge"
+    },
+    {
+      "th": "Charge Spot ฮอลล์ 5",
+      "en": "Charge spot, Hall 5 lakeside",
+      "id": "ch2",
+      "group": "charge",
+      "x": 557,
+      "y": 1430,
+      "icon": "charge"
+    },
+    {
+      "th": "Charge Spot ฮอลล์ 6",
+      "en": "Charge spot, Hall 6 lakeside",
+      "id": "ch3",
+      "group": "charge",
+      "x": 1099,
+      "y": 1430,
+      "icon": "charge"
+    },
+    {
+      "th": "Charge Spot ฮอลล์ 7",
+      "en": "Charge spot, Hall 7 lakeside",
+      "id": "ch4",
+      "group": "charge",
+      "x": 1643,
+      "y": 1428,
+      "icon": "charge"
+    },
+    {
+      "th": "เวทีกลาง (ฮอลล์ 7)",
+      "en": "Main stage (Hall 7)",
+      "id": "stage",
+      "group": "stage",
+      "x": 1977,
+      "y": 852,
+      "icon": "stage"
+    }
+  ],
+  "quickPicks": [
+    ["booth", "A02"],
+    ["place", "stage"],
+    ["booth", "A28"],
+    ["place", "wc2"],
+    ["place", "info2"]
+  ],
+  "allowedDuplicateCodes": ["B48"],
+  "notes": [
+    "Hall 7 runs to the east wall at x = 2104. That wall was fitted from the three lakeside doors and is past the hall 7/8 partition used for bkkibf-2026. Confirm with PUBAT.",
+    "B48 appears twice on the printed plan. Both blocks belong to Amarin Book Center (Naiin) per the exhibitor table, so neither was renamed.",
+    "Pillars inside the C28, F30, I30 and L30 blocks and beside C42, L44, F08, I08, L08 and O08 are not modelled. The 30 booths are drawn on the half without the pillar.",
+    "This plan draws the toilets about 9 m east of the venue positions (wc1, wc2, wc4, wc5). Venue positions kept.",
+    "Exhibitors come from the thailandbookfair.com exhibitor table (316 rows). CHARGESPOT (doors and the pillar by C08) and the Department of Learning Encouragement donation boxes have no booth and are left out.",
+    "S01 is listed both as \"Unread letter to myself\" and as One Reader Inspires Million People Foundation."
+  ],
+  "text": {
+    "ph": {
+      "th": "เลขบูธ (เช่น K16) หรือชื่อสำนักพิมพ์",
+      "en": "Booth code (e.g. K16) or publisher"
+    },
+    "searchLabel": {
+      "th": "ค้นหาบูธหรือสำนักพิมพ์",
+      "en": "Search booths or publishers"
+    },
+    "exhibitors": {
+      "th": "สำนักพิมพ์ในบูธนี้",
+      "en": "At this booth"
+    }
+  }
+}
