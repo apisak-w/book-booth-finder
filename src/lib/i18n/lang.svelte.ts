@@ -1,4 +1,5 @@
 import { store } from '../storage';
+import { pickLang } from './pick';
 import type { Lang } from './strings';
 
 export const lang = $state<{ current: Lang }>({ current: 'th' });
@@ -9,7 +10,7 @@ const apply = (l: Lang) => {
 };
 
 export function initLang() {
-  apply((store.get('bf:lang') ?? store.get('bf26:lang')) === 'en' ? 'en' : 'th');
+  apply(pickLang(store.get('bf:lang') ?? store.get('bf26:lang'), globalThis.navigator?.languages));
 }
 
 export function setLang(l: Lang) {

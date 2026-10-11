@@ -4,7 +4,7 @@ Handover notes for Claude Code (and humans) working on this repo.
 
 ## What this is
 
-A bilingual (Thai default, English) mobile-first booth finder for events at a venue. Guests search, pick a start point and get a walking route on an SVG floor plan. Users are visitors on phones in crowded halls on weak mobile data: keep it fast, legible and one-handed.
+A bilingual (Thai, English) mobile-first booth finder for events at a venue. Guests search, pick a start point and get a walking route on an SVG floor plan. Users are visitors on phones in crowded halls on weak mobile data: keep it fast, legible and one-handed.
 
 ## Commands
 
@@ -52,6 +52,7 @@ Each venue uses pixels of its own `reference.jpg`. Everything for that venue and
 
 - Every guest-facing string exists in `th` and `en` (tests enforce it).
 - Plain verbs, sentence case, no exclamation marks. Errors say what to do next.
+- Language: a saved toggle choice (`bf:lang`), else the first `th` or `en` in `navigator.languages`, else English. Only the toggle saves. Pages prerender in Thai.
 - Storage keys `bf:lang` and `bf:<eventId>:from`, always in try/catch.
 - No verbose code comments.
 
