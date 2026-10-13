@@ -50,7 +50,7 @@ Body `{ event, kind, place, lat, lng, accuracy }` as JSON. The Function rejects 
 - `0 < accuracy ≤ 100`
 - the event has fewer than 5,000 spots (above that: 503 "Spots are full for this event")
 
-It stores lat and lng rounded to 6 decimals, accuracy rounded to whole metres, `hour` as `YYYY-MM-DDTHH` in UTC, and `purge_after` set to `dates.end` plus 30 days. Every call to `/api/spots` or `/api/admin/*` first runs `DELETE FROM spots WHERE purge_after < date('now')`. The response is 204. Requests must be `application/json`. There are no CORS headers, so other sites cannot post from a browser without a preflight that fails.
+It stores lat and lng rounded to 6 decimals, accuracy rounded to whole metres, `hour` as `YYYY-MM-DDTHH` in UTC, and `purge_after` set to `dates.end` plus 30 days. Every call to `/api/spots` or `/api/admin/*` first runs `DELETE FROM spots WHERE purge_after < ?` with today's UTC date, passed in so tests can set the clock. The response is 204. Requests must be `application/json`. There are no CORS headers, so other sites cannot post from a browser without a preflight that fails.
 
 ### 4.2 `/spots-config.json`
 
@@ -85,7 +85,7 @@ Only venues with `geo` and their events are listed. The Function reads it with `
 
 ### 4.4 Bindings and secrets
 
-`wrangler.toml` with `pages_build_output_dir = "_site"`, D1 binding `DB` (database `booth-spots`, preview database `booth-spots-preview`) and `migrations_dir = "migrations"`. Secrets set in the Cloudflare dashboard for production only: `ADMIN_SETUP_CODE`, `GITHUB_TOKEN` (fine-grained, this repo only, Contents and Pull requests read and write) and `GITHUB_REPO` (`apisak-w/book-booth-finder`).
+D1 binding `DB` is set in the Cloudflare dashboard: `booth-spots` for Production, `booth-spots-preview` for Preview. There is no committed `wrangler.toml`, because one would replace the dashboard bindings and put database ids in the repo. A local `wrangler.toml` for `wrangler pages dev` is git-ignored. The schema is applied with `wrangler d1 execute --file migrations/0001_spots.sql`. Secrets set for Production only: `ADMIN_SETUP_CODE`, `GITHUB_TOKEN` (fine-grained, this repo only, Contents and Pull requests read and write) and `GITHUB_REPO` (`apisak-w/book-booth-finder`). Build variable `VITE_SPOTS=1` turns on the guest card.
 
 ## 5. Admin
 
@@ -135,24 +135,26 @@ GitHub errors return 502 with the GitHub message. Nothing is recorded unless the
 ## 6. Code layout
 
 ```
-functions/api/spots.ts                 onRequestPost → handleSpot
+functions/api/spots.ts                 onRequest → handleSpot
 functions/api/admin/[[path]].ts        onRequest → handleAdmin
 migrations/0001_spots.sql
-wrangler.toml
-src/lib/core/spots.ts                  pure: parse, accept window, review maths, hall flags, pin move
-src/lib/core/geo.ts                    + pinProblems
+src/lib/core/spots.ts                  pure: parse a spot, accept window, offer rule
+src/lib/core/spotReview.ts             pure: review maths, hall flags, pin move, withPins
+src/lib/core/geo.ts                    + metersBetween, pinProblems
 src/lib/api/db.ts                      minimal D1 interface the code uses
 src/lib/api/spots.ts                   handleSpot(request, env)
-src/lib/api/auth.ts                    sessions, challenges, setup code, passkey ceremonies
+src/lib/api/auth.ts                    sessions, challenges, setup code, passkey rows
+src/lib/api/webauthn.ts                passkey ceremonies with @simplewebauthn/server
 src/lib/api/github.ts                  read file, branch, commit, PR
 src/lib/api/admin.ts                   handleAdmin router
-src/lib/server/spotsConfig.ts          builds /spots-config.json from the catalog
+src/lib/server/spotsCatalog.ts         /spots-config.json and the admin venue data from the catalog
 src/routes/spots-config.json/+server.ts
 src/routes/admin/+page.server.ts, +page.svelte
-src/lib/admin/                         admin client: api calls, SpotsMap.svelte, PlaceList.svelte, Decision.svelte, SignIn.svelte
+src/lib/admin/                         admin client: api.ts, places.ts, Admin, SignIn, SpotsMap, DecisionPanel
 src/routes/what-we-keep/+page.svelte
+src/lib/i18n/keep.ts                   What we keep copy, th and en
 src/lib/ui/SpotAsk.svelte              the guest card
-src/lib/ui/spotAsk.ts                  ask state and offer rules
+src/lib/ui/spotAsk.ts                  ask state
 ```
 
 `src/lib/api/` never imports Svelte or Zod and is imported only by `functions/` and tests. `@simplewebauthn/browser` is imported only under `src/lib/admin/`, so it stays out of the guest pages. A build test checks this.
