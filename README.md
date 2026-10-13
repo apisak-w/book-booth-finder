@@ -108,6 +108,10 @@ Guests at a door can send one GPS reading to `/api/spots`. The owner reviews the
 6. Redeploy, open `/admin/`, enter the setup code under "Set up a passkey", then use "Add a passkey" to add a spare on a second device.
 7. Once the "What we keep" page is approved, add the build variable `VITE_SPOTS` = `1` for Production and redeploy. The guest card stays hidden until then.
 
+### Limiting abuse
+
+The app stores nothing about who sends a spot, so it can't rate-limit by sender. One script could fill an event's 5,000-spot cap or flood a door with fake readings. Once the site is on a custom domain, add a Cloudflare rate limiting rule in Security, then WAF: requests to `/api/` from one IP above 5 per 10 seconds are blocked. Cloudflare sees the IP at the edge; the app still stores none. Every pin move still has to pass the map-pin checks, your review and the PR preview.
+
 ### Recovery
 
 If both passkeys are lost, set a new `ADMIN_SETUP_CODE`, redeploy and set up again. A passkey belongs to one web address, so moving to a custom domain also means setting up again there. Replace `GITHUB_TOKEN` before it expires.
