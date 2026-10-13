@@ -5,7 +5,7 @@ export default defineConfig({
   testMatch: '**/*.e2e.ts',
   webServer: {
     command:
-      'VITE_TILE_URL=/__tiles/{z}/{x}/{y}.png VITE_TILE_CREDIT="Test tiles" bun run build && bunx serve _site -l 4173',
+      'VITE_SPOTS=1 VITE_TILE_URL=/__tiles/{z}/{x}/{y}.png VITE_TILE_CREDIT="Test tiles" bun run build && bunx serve _site -l 4173',
     port: 4173,
     reuseExistingServer: !process.env.CI,
   },

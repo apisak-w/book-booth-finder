@@ -67,6 +67,16 @@ export type Strings = {
   compassOff: string;
   offlineMap: string;
   you: string;
+  spotTitle: string;
+  spotBody: string;
+  spotBodyHall: string;
+  spotSend: string;
+  spotNo: string;
+  spotNever: string;
+  spotFine: (door: boolean) => string;
+  whatWeKeep: string;
+  spotSent: string;
+  spotFailed: string;
 };
 
 export const STRINGS: Record<Lang, Strings> = {
@@ -142,6 +152,16 @@ export const STRINGS: Record<Lang, Strings> = {
     compassOff: 'ใช้เข็มทิศในเครื่องนี้ไม่ได้ แผนที่จะแสดงตามผังเดิม',
     offlineMap: 'แผนที่ออฟไลน์',
     you: 'ตำแหน่งของคุณ',
+    spotTitle: 'ช่วยให้แผนที่ตรงขึ้นไหม',
+    spotBody: 'ส่งตำแหน่งที่โทรศัพท์ของคุณบอกว่าเป็นทางเข้านี้ ช่วยให้แผนที่วางตรงที่สำหรับผู้มาคนถัดไป',
+    spotBodyHall: 'ส่งตำแหน่งที่โทรศัพท์ของคุณบอกว่าเป็นฮอลล์นี้ ช่วยให้เราตรวจแผนที่ได้',
+    spotSend: 'ส่งจุดนี้',
+    spotNo: 'ไม่เป็นไร',
+    spotNever: 'ไม่ต้องถามอีกในงานนี้',
+    spotFine: (door) => `ส่ง${door ? 'ทางเข้านี้' : 'ฮอลล์นี้'} ค่า GPS หนึ่งครั้ง และเวลา ไม่มีชื่อ ไม่มีรหัสเครื่อง`,
+    whatWeKeep: 'ข้อมูลที่เราเก็บ',
+    spotSent: 'ขอบคุณ ส่งจุดแล้ว',
+    spotFailed: 'ส่งจุดไม่สำเร็จ ใช้งานต่อได้ตามปกติ',
   },
   en: {
     title: 'Booth Finder',
@@ -215,6 +235,17 @@ export const STRINGS: Record<Lang, Strings> = {
     compassOff: "The compass isn't available on this phone. The map stays as printed.",
     offlineMap: 'Offline map',
     you: 'You are here',
+    spotTitle: 'Help line up the map?',
+    spotBody:
+      'Send where your phone thinks this entrance is. It helps the map sit in the right place for the next guest.',
+    spotBodyHall: 'Send where your phone thinks this hall is. It helps us check the map.',
+    spotSend: 'Send this spot',
+    spotNo: 'No thanks',
+    spotNever: "Don't ask again at this event",
+    spotFine: (door) => `Sends this ${door ? 'entrance' : 'hall'}, one GPS reading and the time. No name, no phone ID.`,
+    whatWeKeep: 'What we keep',
+    spotSent: 'Thanks. Spot sent.',
+    spotFailed: "Couldn't send the spot. You can carry on.",
   },
 };
 
