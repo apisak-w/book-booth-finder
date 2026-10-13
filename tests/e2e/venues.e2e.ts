@@ -210,3 +210,16 @@ test('panning in Add landmark mode does not add a landmark', async ({ page }) =>
   await page.mouse.click(cx, cy);
   await expect(page.locator('[data-lm="wc7"]')).toHaveCount(1);
 });
+
+test('a deleted landmark id is not reused for a new one', async ({ page }) => {
+  await mock(page);
+  await page.goto('/admin/');
+  await page.getByRole('button', { name: /Halls 5–8/ }).click();
+  await page.locator('[data-lm="wc6"]').click();
+  await page.getByRole('button', { name: 'Delete landmark' }).click();
+  await expect(page.locator('[data-lm="wc6"]')).toHaveCount(0);
+  await page.getByRole('button', { name: 'Add landmark' }).click();
+  await page.locator('.plan-canvas').click();
+  await expect(page.locator('[data-lm="wc7"]')).toHaveCount(1);
+  await expect(page.locator('[data-lm="wc6"]')).toHaveCount(0);
+});

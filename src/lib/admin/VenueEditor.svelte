@@ -58,7 +58,7 @@
     ...unnamed.map((x) => `${x} needs a name in Thai and English`),
     ...(venue?.geo ? pinProblems(venue.geo.pins, venue.metersPerPx).map((p) => `Map pins: ${p}`) : []),
   ]);  const lm = $derived(venue?.landmarks.find((l) => l.id === selected) ?? null);
-  const taken = $derived(doc ? doc.events.flatMap((e) => e.ids) : []);
+  const taken = $derived(doc ? [...doc.events.flatMap((e) => e.ids), ...doc.venue.landmarks.map((l) => l.id)] : []);
 
   const center = $derived.by((): LatLng | null => {
     const pins = venue?.geo?.pins ?? [];
