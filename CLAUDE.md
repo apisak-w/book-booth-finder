@@ -34,6 +34,10 @@ src/lib/ui/          sheet, search, results, card, start picker, header, event c
 src/routes/          / (event list), /e/[id]/ (finder), +error
 tools/pipeline/      ingestion CLI and the review tool
 tests/               bun tests, golden v1 snapshot, e2e
+functions/           Cloudflare Pages Functions; they only forward to src/lib/api/
+migrations/          D1 schema for guest spots, decisions, passkeys and sessions
+src/lib/api/         server code for /api/spots and /api/admin/* (no Svelte, no Zod)
+src/lib/admin/       the /admin/ screen; the only place that imports @simplewebauthn/browser
 ```
 
 Keep `src/lib/core/` free of DOM, Svelte and Zod. Zod must never reach the client bundle (a build test checks this).
@@ -59,7 +63,7 @@ Each venue uses pixels of its own `reference.jpg`. Everything for that venue and
 - Every guest-facing string exists in `th` and `en` (tests enforce it).
 - Plain verbs, sentence case, no exclamation marks. Errors say what to do next.
 - Language: a saved toggle choice (`bf:lang`), else the first `th` or `en` in `navigator.languages`, else English. Only the toggle saves. Pages prerender in Thai.
-- Storage keys `bf:lang` and `bf:<eventId>:from`, always in try/catch.
+- Storage keys `bf:lang`, `bf:<eventId>:from` and `bf:<eventId>:asked` (`sent`, `never` or a date), always in try/catch.
 - No verbose code comments.
 
 ## Commits
@@ -84,6 +88,9 @@ Mitr for display, Anuphan for body. Tokens on `:root` in `src/lib/styles/app.css
 - Pointer capture sends events to the `<svg>`; taps are resolved from the `pointerdown` target.
 - Booth labels hide below 0.42 screen px per map unit.
 - Prerender loads events on the server side of SvelteKit; a bad event file fails the build with the file and field named.
+- The guest spot card only shows when built with `VITE_SPOTS=1`, during the event's spot window (7 days before to the last day).
+- Move pin edits `venue.json` through `withPins`, which keeps the file oxfmt-clean. Don't reformat the pins block by hand into another style.
+- `/admin/` is English only and owner-only. Guest-facing copy still needs th and en.
 
 ## Known data issues
 

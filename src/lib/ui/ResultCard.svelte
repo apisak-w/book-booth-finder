@@ -7,6 +7,7 @@
   import StartPicker from './StartPicker.svelte';
   import OutdoorLeg from './OutdoorLeg.svelte';
   import HallConfirm from './HallConfirm.svelte';
+  import SpotAsk from './SpotAsk.svelte';
   import type { LocView } from './locate';
   let {
     data, lang, dest, fromId, route, loc = null, onFrom, onClear, onShare,
@@ -60,6 +61,10 @@
   {:else}
     <div class="summary"><span class="m">{route.meters} {s.meters}</span><span class="t">{s.min(route.minutes)}</span></div>
     <ol class="steps">{#each steps as step, k (k)}<li><span>{step}</span></li>{/each}</ol>
+  {/if}
+
+  {#if loc?.ask}
+    <SpotAsk {lang} kind={loc.ask.kind} onAnswer={loc.ask.onAnswer} />
   {/if}
 
   <div class="actions">

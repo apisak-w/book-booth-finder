@@ -5,17 +5,20 @@
   import { createSearch, type SearchItem } from '$lib/core/search';
   import { parseHash, formatHash } from '$lib/core/hash';
   import { boxAround } from '$lib/core/panzoom';
-  import { georef } from '$lib/core/geo';
+  import { georef, planToLatLng } from '$lib/core/geo';
   import { classify, hallChoices, hallStart } from '$lib/core/locate';
   import { headingFrom, smoothAngle, turnAngle } from '$lib/core/compass';
   import { WALK_M_PER_MIN } from '$lib/core/types';
-  import type { Booth, Dest, Landmark, Point, Surroundings } from '$lib/core/types';
+  import type { Booth, Dest, LatLng, Landmark, Point, Surroundings } from '$lib/core/types';
   import { STRINGS, fmtRange, nameIn, textFor } from '$lib/i18n/strings';
-  import { eventStatus } from '$lib/core/status';
+  import { eventStatus, todayIn } from '$lib/core/status';
   import { lang } from '$lib/i18n/lang.svelte';
   import { store } from '$lib/storage';
   import { Finder } from '$lib/ui/finder.svelte';
   import { Locator } from '$lib/ui/locator.svelte';
+  import { acceptsSpots, canOffer, type Reading, type SpotKind } from '$lib/core/spots';
+  import { afterAnswer, askKey, mayAsk } from '$lib/ui/spotAsk';
+  import { SPOTS_ON } from '$lib/ui/spotConfig';
   import type { LocView } from '$lib/ui/locate';
   import { TILE_CREDIT, TILE_URL } from '$lib/map/tileConfig';
   import type { CompassView, StreetView, Turn, YouMark } from '$lib/map/street';
@@ -36,6 +39,7 @@
   const f = new Finder(data);
   const search = createSearch(data);
   const FROM_KEY = `bf:${data.event.id}:from`;
+  const ASK_KEY = askKey(data.event.id);
   const geo = data.venue.geo ? georef(data.venue.geo.pins) : null;
   const loc = new Locator();
 
@@ -44,7 +48,8 @@
   let toastTimer: ReturnType<typeof setTimeout>;
   let isPast = $state(false);
   let surroundings = $state<Surroundings | null>(null);
-  let hall = $state<{ guess: string | null } | null>(null);
+  let hall = $state<{ guess: string | null; reading: Reading | null } | null>(null);
+  let ask = $state<{ kind: SpotKind; place: string; reading: Reading } | null>(null);
   let farKm = $state<number | null>(null);
   let banner = $state('');
   let bannerTimer: ReturnType<typeof setTimeout>;
@@ -84,6 +89,7 @@
               }
             : null,
           hall: hall ? { choices: hallChoices(data.venue, hall.guess), guess: hall.guess } : null,
+          ask: ask ? { kind: ask.kind, onAnswer: answerSpot } : null,
           onStart: startLocating,
           onStop: () => stopLocating(true),
           onInside: () => outside && handOff(outside.entrance),
@@ -102,8 +108,9 @@
     untrack(() => {
       if (w.kind === 'arrived') handOff(w.entrance);
       else if (w.kind === 'inside') {
+        const r = reading();
         stopLocating(true);
-        hall = { guess: w.hall };
+        hall = { guess: w.hall, reading: r };
       } else if (w.kind === 'far') {
         stopLocating(true);
         farKm = Math.round(w.meters / 100) / 10;
@@ -153,6 +160,7 @@
   function clearRoute() {
     if (loc.state === 'on' || loc.state === 'asking') stopLocating(true);
     hall = null;
+    ask = null;
     f.dest = null;
     writeHash();
   }
@@ -184,6 +192,7 @@
   function startLocating() {
     farKm = null;
     hall = null;
+    ask = null;
     loc.start();
     if (!surroundings)
       fetch(`/v/${data.venue.id}/surroundings.json`)
@@ -202,14 +211,51 @@
       map.frame(f.dest, f.routeOk);
     }
   }
+  const reading = (): Reading | null => (loc.fix ? { ...loc.fix, at: loc.fixAt } : null);
+  function offerSpot(kind: SpotKind, place: string, r: Reading | null, doorAt: LatLng | null) {
+    if (!SPOTS_ON || !geo || !r) return;
+    if (!acceptsSpots(data.event.dates, data.venue.timezone, new Date())) return;
+    const today = todayIn(data.venue.timezone);
+    if (!mayAsk(store.get(ASK_KEY), today) || !canOffer(r, Date.now(), doorAt)) return;
+    store.set(ASK_KEY, today);
+    ask = { kind, place, reading: r };
+  }
+  async function answerSpot(send: boolean, never: boolean) {
+    const a = ask;
+    ask = null;
+    if (!a) return;
+    store.set(ASK_KEY, afterAnswer(send, never, todayIn(data.venue.timezone)));
+    if (!send) return;
+    try {
+      const res = await fetch('/api/spots', {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({
+          event: data.event.id,
+          kind: a.kind,
+          place: a.place,
+          lat: a.reading.lat,
+          lng: a.reading.lng,
+          accuracy: a.reading.accuracy,
+        }),
+      });
+      showToast(res.ok ? s.spotSent : s.spotFailed);
+    } catch {
+      showToast(s.spotFailed);
+    }
+  }
   function handOff(lm: Landmark) {
+    const r = reading();
     setFrom(lm.id);
     showBanner(s.arrived(nameOf(lm)));
+    if (geo) offerSpot('door', lm.id, r, planToLatLng(geo, [lm.x, lm.y]));
   }
   function pickHall(id: string) {
-    const start = hallStart(data, id);
+    const start = hallStart(data, id),
+      r = hall?.reading ?? null;
     hall = null;
     if (start) setFrom(start);
+    offerSpot('hall', id, r, null);
   }
 
   const onOrient = (e: DeviceOrientationEvent) => {

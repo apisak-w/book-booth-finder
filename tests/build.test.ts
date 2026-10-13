@@ -8,7 +8,12 @@ const walk = (dir: string): string[] =>
   readdirSync(dir).flatMap((f) => (statSync(join(dir, f)).isDirectory() ? walk(join(dir, f)) : [join(dir, f)]));
 
 test.skipIf(!built)('pages exist for the list, the event and 404', () => {
-  for (const f of ['_site/index.html', '_site/e/bkkibf-2026/index.html', '_site/404.html'])
+  for (const f of [
+    '_site/index.html',
+    '_site/e/bkkibf-2026/index.html',
+    '_site/404.html',
+    '_site/what-we-keep/index.html',
+  ])
     expect(existsSync(f)).toBe(true);
 });
 
@@ -30,4 +35,20 @@ test.skipIf(!built)('Zod is not in the client bundle', () => {
 test.skipIf(!built)('each venue street drawing is published', () => {
   for (const id of listVenueIds().filter((v) => existsSync(surroundingsPath(v))))
     expect(existsSync(`_site/v/${id}/surroundings.json`)).toBe(true);
+});
+
+test.skipIf(!built)('the spots config is published', () => {
+  const cfg = JSON.parse(readFileSync('_site/spots-config.json', 'utf8'));
+  expect(Object.keys(cfg).sort()).toEqual(['events', 'venues']);
+});
+
+test.skipIf(!built)('the admin page is not indexed and passkey code stays out of the guest pages', () => {
+  expect(readFileSync('_site/admin/index.html', 'utf8')).toContain('noindex');
+  const dir = '_site/e/bkkibf-2026';
+  const html = readFileSync(join(dir, 'index.html'), 'utf8');
+  const chunks = [...html.matchAll(/href="([^"]*_app\/[^"]+\.js)"/g)].map((m) =>
+    m[1].startsWith('/') ? join('_site', m[1]) : join(dir, m[1]),
+  );
+  expect(chunks.length).toBeGreaterThan(0);
+  expect(chunks.filter((f) => readFileSync(f, 'utf8').includes('WebAuthn is not supported'))).toEqual([]);
 });
