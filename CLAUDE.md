@@ -15,6 +15,7 @@ bun run test           # bun test (unit, golden parity, per-event and per-venue 
 bun run test:e2e       # Playwright against the built site
 bun run lint / fmt / fmt:check / check
 bun run event:new|detect|read|review|build|exhibitors|ocr-report <event-id>
+bun run venue:surroundings <venue-id> [--meters 400]   street drawing from OpenStreetMap (needs map pins)
 ```
 
 Run `bun run test` after any change to `venues/`, `events/`, `src/lib/core/` or `src/lib/i18n/`.
@@ -23,6 +24,7 @@ Run `bun run test` after any change to `venues/`, `events/`, `src/lib/core/` or 
 
 ```
 venues/<id>/venue.json + reference.jpg   fixed geometry: walls, floor, areas, doors, venue landmarks
+venues/<id>/surroundings.json            generated street drawing in plan pixels, served at /v/<id>/surroundings.json
 events/<id>/event.json, booths.json, exhibitors.csv, source/   per-event content; source/ is pipeline input, never published
 src/lib/core/        pure TS: types, geometry, grid, routing, search, directions, prepare, hash, status, panzoom
 src/lib/server/      Zod schemas and the catalog loader (build time only)
@@ -48,6 +50,10 @@ Each venue uses pixels of its own `reference.jpg`. Everything for that venue and
 
 `createGrid(venue, blockers)` rasterises `venue.floor` ops in order, punches door boxes, blocks booths, pillars and event obstacles with 2 px padding, then stores clearance. `findRoute` runs 8-way A* with clearance cost and no corner cutting, string-pulls with line of sight, and returns `{P, len, meters, minutes, doorsUsed, areas}`, `{same}` or `{fail}`. `tests/golden/v1.json` pins the 2026 routes, steps, search results and hall lookup to v1 exactly. v1 is gone, so the file can't be regenerated. If a change moves these results on purpose, edit the affected entries by hand and say why in the commit.
 
+## Street map and GPS
+
+`venue.geo` pins plan pixels to latitude and longitude (`src/lib/core/geo.ts` fits an affine to Web Mercator) and lists the street entrances. The street map is drawn inside the plan SVG, so the plan keeps its printed orientation and the streets turn to match it. Tiles come from `VITE_TILE_URL` (`{z}/{x}/{y}` template, a style with no text labels) and `VITE_TILE_CREDIT`; unset or failing tiles fall back to `surroundings.json` with an "Offline map" chip. `src/lib/core/locate.ts` turns a fix into weak, far, inside, arrived or outside; the UI only reacts to that. GPS is never used to place a guest in an aisle. The position never leaves the phone and is never stored.
+
 ## Content rules
 
 - Every guest-facing string exists in `th` and `en` (tests enforce it).
@@ -72,7 +78,7 @@ Mitr for display, Anuphan for body. Tokens on `:root` in `src/lib/styles/app.css
 
 ## Gotchas
 
-- Map layer ids `layer-base|booths|zones|marks|route|pins`; CSS targets `#layer-route`.
+- Map layer ids `layer-street|base|booths|zones|marks|route|pins|you`, all inside `#map-turn` (compass rotation). CSS targets `#layer-route`.
 - `viewport.frame()` waits one animation frame before measuring. Keep it.
 - The viewBox aspect ratio always equals the element's (`clampVB`). Never set `h` on its own.
 - Pointer capture sends events to the `<svg>`; taps are resolved from the `pointerdown` target.
