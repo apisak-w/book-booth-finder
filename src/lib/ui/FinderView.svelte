@@ -151,6 +151,8 @@
     map.frame(f.dest, f.routeOk);
   }
   function clearRoute() {
+    if (loc.state === 'on' || loc.state === 'asking') stopLocating(true);
+    hall = null;
     f.dest = null;
     writeHash();
   }
@@ -228,6 +230,10 @@
     }
     heading = null;
     turning = true;
+    if (outside) {
+      const [x, y] = outside.p;
+      map.frameBox([x - 250, y - 250, x + 250, y + 250], 0);
+    }
     addEventListener('deviceorientationabsolute', onOrient as EventListener);
     addEventListener('deviceorientation', onOrient);
   }

@@ -151,3 +151,27 @@ test('the compass button shows on the street map, turns the map and stops on dra
   await expect(page.getByRole('button', { name: 'Turn the map as I turn' })).toHaveAttribute('aria-pressed', 'false');
   await expect(page.locator('#map-turn')).not.toHaveAttribute('transform', /rotate\(/);
 });
+
+test('clearing the route stops locating', async ({ page, context }) => {
+  await open(context, page, -200, 560);
+  await expect(page.locator('#layer-you .dot')).toHaveCount(1);
+  await page.getByRole('button', { name: 'Clear route' }).click();
+  await expect(page.locator('#layer-you .dot')).toHaveCount(0);
+  await expect(page.locator('#layer-street')).toHaveCount(0);
+});
+
+test('turning on the compass centres the map on the guest', async ({ page, context }) => {
+  await context.grantPermissions(['geolocation', 'accelerometer', 'gyroscope', 'magnetometer']);
+  await context.setGeolocation(at(-200, 560));
+  await page.goto('/e/bkkibf-2026/#to=A42');
+  await page.getByRole('button', { name: 'EN', exact: true }).click();
+  await page.locator('.locbtn').click();
+  await page.getByRole('button', { name: 'Turn the map as I turn' }).click();
+  const map = (await page.locator('#map').boundingBox())!;
+  await expect
+    .poll(async () => {
+      const d = (await page.locator('#layer-you .dot').boundingBox())!;
+      return Math.hypot(d.x + d.width / 2 - (map.x + map.width / 2), d.y + d.height / 2 - (map.y + map.height / 2));
+    })
+    .toBeLessThan(Math.min(map.width, map.height) * 0.1);
+});
