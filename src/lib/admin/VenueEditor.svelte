@@ -1,8 +1,8 @@
 <script lang="ts">
   import { onMount, untrack } from 'svelte';
-  import { georef, pinProblems, planToLatLng } from '$lib/core/geo';
+  import { georef, planToLatLng } from '$lib/core/geo';
   import type { LatLng, Point, Venue } from '$lib/core/types';
-  import { unreachableLandmarks } from '$lib/core/venueChecks';
+  import { draftProblems, unreachableLandmarks } from '$lib/core/venueChecks';
   import {
     addLandmark,
     deleteLandmark,
@@ -52,12 +52,11 @@
   const venue = $derived(hist?.present ?? null);
   const changes = $derived(doc && venue ? diffVenue(doc.venue, venue) : []);
   const unreachable = $derived(venue ? unreachableLandmarks(venue) : []);
-  const unnamed = $derived(venue ? venue.landmarks.filter((l) => !l.th.trim() || !l.en.trim()).map((l) => l.id) : []);
   const problems = $derived([
     ...unreachable.map((x) => `${x} can't be reached on foot from the starting point`),
-    ...unnamed.map((x) => `${x} needs a name in Thai and English`),
-    ...(venue?.geo ? pinProblems(venue.geo.pins, venue.metersPerPx).map((p) => `Map pins: ${p}`) : []),
-  ]);  const lm = $derived(venue?.landmarks.find((l) => l.id === selected) ?? null);
+    ...(venue ? draftProblems(venue) : []),
+  ]);
+  const lm = $derived(venue?.landmarks.find((l) => l.id === selected) ?? null);
   const taken = $derived(doc ? [...doc.events.flatMap((e) => e.ids), ...doc.venue.landmarks.map((l) => l.id)] : []);
 
   const center = $derived.by((): LatLng | null => {
@@ -266,6 +265,7 @@
           />
         {:else if lm}
           <LandmarkPanel
+            base={doc.venue}
             {venue}
             {lm}
             events={doc.events}

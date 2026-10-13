@@ -1,9 +1,10 @@
 <script lang="ts">
   import { GROUP_ORDER, ICON_NAMES, type Landmark, type Venue } from '$lib/core/types';
-  import { DEFAULT_ICON, deleteBlockers, isDoor } from '$lib/core/venueEdit';
+  import { DEFAULT_ICON, deleteBlockersFor, isDoor } from '$lib/core/venueEdit';
   import type { EventRef } from '$lib/core/venueChecks';
 
   let {
+    base,
     venue,
     lm,
     events,
@@ -12,6 +13,7 @@
     onDelete,
     onEntrance,
   }: {
+    base: Venue;
     venue: Venue;
     lm: Landmark;
     events: EventRef[];
@@ -21,7 +23,7 @@
     onEntrance: (on: boolean) => void;
   } = $props();
   const TYPE_NAME = { entry: 'Entrance', wc: 'Toilets', info: 'Information', charge: 'Charging', stage: 'Stage', other: 'Other' };
-  const blockers = $derived(deleteBlockers(venue, lm.id, events));
+  const blockers = $derived(deleteBlockersFor(base, venue, lm.id, events));
   const entrance = $derived(!!venue.geo?.entrances.includes(lm.id));
 </script>
 

@@ -1,6 +1,9 @@
 import { test, expect } from 'bun:test';
 import { addLandmark, deleteLandmark, moveLandmark, setPin, updateLandmark } from '../src/lib/core/venueEdit';
-import { unreachableLandmarks, venueEditProblems, type EventRef } from '../src/lib/core/venueChecks';
+import { draftProblems, unreachableLandmarks, venueEditProblems, type EventRef } from '../src/lib/core/venueChecks';
+import { createGrid } from '../src/lib/core/grid';
+import { findRoute } from '../src/lib/core/routing';
+import { isRouteOk } from '../src/lib/core/types';
 import { loadVenue } from '../src/lib/server/catalog';
 import { fakeLatLng } from './helpers/fake-geo';
 import { bareVenue, pinnedVenue } from './helpers/pinned-venue';
@@ -66,4 +69,51 @@ test('unreachable landmarks are named, the real venues have none', () => {
   expect(unreachableLandmarks({ ...base, floor: [] })).toEqual(
     base.landmarks.filter((l) => l.id !== base.origin).map((l) => l.id),
   );
+});
+
+const slowUnreachable = (v: typeof base) => {
+  const origin = v.landmarks.find((l) => l.id === v.origin)!;
+  const grid = createGrid(v, []);
+  return v.landmarks
+    .filter((l) => l.id !== origin.id && !isRouteOk(findRoute(grid, v, origin, { kind: 'place', lm: l })))
+    .map((l) => l.id);
+};
+
+test('the fast walking check agrees with routing on real and broken floors', () => {
+  const pinned = loadVenue('qsncc-lg-5-7');
+  const cases = [
+    base,
+    pinned,
+    { ...base, floor: [] },
+    { ...base, floor: base.floor.slice(0, 1) },
+    { ...base, floor: base.floor.filter((f) => f.op === 'add').slice(1) },
+  ];
+  for (const v of cases) expect(unreachableLandmarks(v)).toEqual(slowUnreachable(v));
+});
+
+test('the walking check is fast enough to run on every edit', () => {
+  for (let i = 0; i < 3; i++) unreachableLandmarks(base);
+  const t = performance.now();
+  for (let i = 0; i < 5; i++) unreachableLandmarks(base);
+  expect((performance.now() - t) / 5).toBeLessThan(25);
+});
+
+test('draftProblems catches what the server would refuse', () => {
+  expect(draftProblems(base)).toEqual([]);
+  const blank = updateLandmark(base, 'wc1', { en: '  ' });
+  expect(draftProblems(blank)).toEqual(['wc1 needs a name in Thai and English']);
+  const v = pinnedVenue().venue;
+  const none = { ...v, geo: { ...v.geo!, entrances: [] } };
+  expect(draftProblems(none)).toEqual(['Pick at least one street entrance']);
+  const noEntries = setPin(
+    { ...base, landmarks: base.landmarks.map((l) => ({ ...l, group: l.group === 'entry' ? 'other' : l.group })) },
+    {
+      id: 'p1',
+      ...fakeLatLng(446, 280),
+      x: 446,
+      y: 280,
+    },
+  );
+  expect(draftProblems(noEntries)).toContain('Pick at least one street entrance');
+  expect(draftProblems(noEntries)).toContain('Map pins: needs at least 3 map pins');
 });

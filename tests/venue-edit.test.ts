@@ -3,6 +3,7 @@ import {
   addLandmark,
   defaultEntrances,
   deleteBlockers,
+  deleteBlockersFor,
   deleteLandmark,
   diffVenue,
   moveLandmark,
@@ -109,4 +110,13 @@ test('diffVenue lists every change in plain words', () => {
     ...defaultEntrances(base).map((id) => `Made ${id} a street entrance`),
   ]);
   expect(diffVenue(base, base)).toEqual([]);
+});
+
+test('a draft cannot delete what the opened copy protects', () => {
+  const opened = setEntrance(pinnedVenue().venue, 'wc1', true);
+  const draft = setEntrance(opened, 'wc1', false);
+  expect(deleteBlockers(draft, 'wc1', [])).toEqual([]);
+  expect(deleteBlockersFor(opened, draft, 'wc1', [])).toEqual(['it is a street entrance']);
+  const added = addLandmark(draft, { group: 'wc', icon: 'wc', th: 'ก', en: 'A', x: 1, y: 1 });
+  expect(deleteBlockersFor(opened, added.venue, added.id, [])).toEqual([]);
 });

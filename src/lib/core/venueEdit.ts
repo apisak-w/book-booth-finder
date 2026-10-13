@@ -66,6 +66,13 @@ export function deleteBlockers(v: Venue, id: string, events: EventRef[] = []): s
   return why;
 }
 
+export function deleteBlockersFor(base: Venue, v: Venue, id: string, events: EventRef[] = []): string[] {
+  const why = deleteBlockers(v, id, events);
+  if (base.landmarks.some((l) => l.id === id))
+    for (const w of deleteBlockers(base, id, events)) if (!why.includes(w)) why.push(w);
+  return why;
+}
+
 export function deleteLandmark(v: Venue, id: string, events: EventRef[] = []): Venue {
   const why = deleteBlockers(v, id, events);
   if (why.length) throw new EditError(`${id} can't be deleted: ${why.join('; ')}`);
