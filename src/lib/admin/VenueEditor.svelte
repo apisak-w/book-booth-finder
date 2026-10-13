@@ -1,6 +1,7 @@
 <script lang="ts">
-  import { onMount } from 'svelte';
-  import type { Venue } from '$lib/core/types';
+  import { onMount, untrack } from 'svelte';
+  import { georef, pinProblems, planToLatLng } from '$lib/core/geo';
+  import type { LatLng, Point, Venue } from '$lib/core/types';
   import { unreachableLandmarks } from '$lib/core/venueChecks';
   import {
     addLandmark,
@@ -8,6 +9,9 @@
     diffVenue,
     isDoor,
     moveLandmark,
+    nextPinId,
+    removePin,
+    setPin,
     setEntrance,
     updateLandmark,
   } from '$lib/core/venueEdit';
@@ -16,10 +20,14 @@
   import { clearDraft, isStale, push, readDraft, redo, start, undo, writeDraft, type History } from './history';
   import LandmarkPanel from './LandmarkPanel.svelte';
   import PlanCanvas from './PlanCanvas.svelte';
+  import PinPanel from './PinPanel.svelte';
+  import StreetPicker from './StreetPicker.svelte';
+  import { parseLatLng } from './osm';
   import SaveDialog from './SaveDialog.svelte';
 
   let {
     id,
+    mode,
     onClose,
     onSaved,
   }: { id: string; mode: 'select' | 'pins'; onClose: () => void; onSaved: (message: string, link: string) => void } =
@@ -27,7 +35,11 @@
 
   let doc = $state<VenueDoc | null>(null);
   let hist = $state<History<Venue> | null>(null);
-  let tool = $state<'select' | 'add'>('select');
+  let tool = $state<'select' | 'add' | 'pins'>(untrack(() => mode));
+  let selectedPin = $state<string | null>(null);
+  let pending = $state<Point | null>(null);
+  let found = $state<LatLng | null>(null);
+  let findText = $state('');
   let selected = $state<string | null>(null);
   let opacity = $state(0.6);
   let note = $state('');
@@ -44,10 +56,48 @@
   const problems = $derived([
     ...unreachable.map((x) => `${x} can't be reached on foot from the starting point`),
     ...unnamed.map((x) => `${x} needs a name in Thai and English`),
-  ]);
-  const lm = $derived(venue?.landmarks.find((l) => l.id === selected) ?? null);
+    ...(venue?.geo ? pinProblems(venue.geo.pins, venue.metersPerPx).map((p) => `Map pins: ${p}`) : []),
+  ]);  const lm = $derived(venue?.landmarks.find((l) => l.id === selected) ?? null);
   const taken = $derived(doc ? doc.events.flatMap((e) => e.ids) : []);
 
+  const center = $derived.by((): LatLng | null => {
+    const pins = venue?.geo?.pins ?? [];
+    if (venue && pins.length >= 3) {
+      const v = venue.view;
+      return planToLatLng(georef(pins), [v.x + v.w / 2, v.y + v.h / 2]);
+    }
+    if (pins.length) return { lat: pins[0].lat, lng: pins[0].lng };
+    return found;
+  });
+
+  function placeOnWorld(ll: LatLng) {
+    if (!venue) return;
+    if (pending) {
+      const pinId = nextPinId(venue);
+      apply(setPin(venue, { id: pinId, x: pending[0], y: pending[1], lat: ll.lat, lng: ll.lng }));
+      pending = null;
+      selectedPin = pinId;
+    } else if (selectedPin) {
+      const p = venue.geo?.pins.find((q) => q.id === selectedPin);
+      if (p) apply(setPin(venue, { ...p, lat: ll.lat, lng: ll.lng }));
+    }
+  }
+  function placeOnPlan(x: number, y: number) {
+    if (!venue) return;
+    const p = selectedPin ? venue.geo?.pins.find((q) => q.id === selectedPin) : null;
+    if (p) apply(setPin(venue, { ...p, x, y }));
+    else pending = [x, y];
+  }
+  function findVenue() {
+    found = parseLatLng(findText);
+    if (!found) error = 'Paste two numbers, latitude then longitude.';
+  }
+  function useMyLocation() {
+    navigator.geolocation?.getCurrentPosition(
+      (p) => (found = { lat: p.coords.latitude, lng: p.coords.longitude }),
+      () => (error = "Couldn't get this device's location. Paste the venue's coordinates instead."),
+    );
+  }
   function apply(next: Venue) {
     if (!hist || !doc) return;
     hist = push(hist, next);
@@ -136,8 +186,9 @@
       </span>
     {/if}
     {#if !readonly && hist}
-      <button type="button" class="btn" aria-pressed={tool === 'select'} onclick={() => (tool = 'select')}>Select</button>
-      <button type="button" class="btn" aria-pressed={tool === 'add'} onclick={() => (tool = 'add')}>Add landmark</button>
+      <button type="button" class="btn" aria-pressed={tool === 'select'} onclick={() => { tool = 'select'; pending = null; selectedPin = null; }}>Select</button>
+      <button type="button" class="btn" aria-pressed={tool === 'add'} onclick={() => { tool = 'add'; pending = null; selectedPin = null; }}>Add landmark</button>
+      <button type="button" class="btn" aria-pressed={tool === 'pins'} onclick={() => { tool = 'pins'; selected = null; }}>Map pins</button>
       <button type="button" class="btn" disabled={!hist.past.length} onclick={() => hist && step(undo(hist))}>Undo</button>
       <button type="button" class="btn" disabled={!hist.future.length} onclick={() => hist && step(redo(hist))}>Redo</button>
       <button type="button" class="btn" disabled={!changes.length} onclick={discard}>Discard changes</button>
@@ -156,7 +207,7 @@
     <ul class="editor-problems">{#each problems as p (p)}<li>{p}</li>{/each}</ul>
   {/if}
   {#if venue && doc}
-    <div class="editor-body">
+    <div class="editor-body" class:pins={tool === 'pins'}>
       <div class="editor-plan">
         <PlanCanvas
           {venue}
@@ -165,6 +216,7 @@
           mode={tool}
           {selected}
           pins={venue.geo?.pins ?? []}
+          {pending}
           {unreachable}
           {readonly}
           onSelect={(x) => (selected = x)}
@@ -175,11 +227,44 @@
             selected = r.id;
             tool = 'select';
           }}
+          onPlanPoint={placeOnPlan}
         />
         <label class="editor-opacity">Printed plan <input type="range" min="0" max="1" step="0.05" bind:value={opacity} /></label>
       </div>
+      {#if tool === 'pins'}
+        <div class="editor-street">
+          {#if center}
+            <StreetPicker {center} pins={venue.geo?.pins ?? []} onPick={placeOnWorld} />
+          {:else}
+            <div class="find-venue">
+              <b>Find the venue on the street map</b>
+              <label>Paste the venue's coordinates <input bind:value={findText} placeholder="13.72361, 100.55972" /></label>
+              <button type="button" class="btn primary" onclick={findVenue}>Show on the street map</button>
+              <button type="button" class="btn" onclick={useMyLocation}>Use this device's location</button>
+              <span class="lm-note">In Google Maps, right-click the venue and copy the numbers.</span>
+            </div>
+          {/if}
+        </div>
+      {/if}
       <aside class="editor-side">
-        {#if lm}
+        {#if tool === 'pins'}
+          <PinPanel
+            {venue}
+            {selectedPin}
+            {pending}
+            {readonly}
+            onSelectPin={(x) => {
+              selectedPin = selectedPin === x ? null : x;
+              pending = null;
+            }}
+            onPaste={placeOnWorld}
+            onRemove={(x) => {
+              apply(removePin(venue, x));
+              if (selectedPin === x) selectedPin = null;
+            }}
+            onEntrance={(x, on) => tryApply(() => setEntrance(venue, x, on))}
+          />
+        {:else if lm}
           <LandmarkPanel
             {venue}
             {lm}
@@ -197,6 +282,7 @@
         {/if}
       </aside>
     </div>
+
   {/if}
   {#if confirming && doc}
     <SaveDialog {changes} pr={doc.pr} busy={saving} onCancel={() => (confirming = false)} onSave={save} />

@@ -103,3 +103,57 @@ test.describe('on a phone', () => {
     await expect(page.getByRole('button', { name: 'Add landmark' })).toHaveCount(0);
   });
 });
+
+const PNG = Buffer.from(
+  'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII=',
+  'base64',
+);
+
+test('map pins: find the venue, click the plan, then the street map', async ({ page }) => {
+  await mock(page);
+  await page.route(/tile\.openstreetmap\.org/, (r) => r.fulfill({ contentType: 'image/png', body: PNG }));
+  await page.goto('/admin/');
+  await page.getByRole('button', { name: /Halls 5–8/ }).click();
+  await page.getByRole('button', { name: 'Map pins' }).click();
+  await page.getByLabel("Paste the venue's coordinates").fill('13.7236, 100.5597');
+  await page.getByRole('button', { name: 'Show on the street map' }).click();
+  await expect(page.getByText('© OpenStreetMap contributors')).toBeVisible();
+  const onScreen = await page.locator('.street-picker svg').evaluate((svg) => {
+    const r = svg.getBoundingClientRect();
+    return [...svg.querySelectorAll('image')].filter((i) => {
+      const b = i.getBoundingClientRect();
+      return b.right > r.left && b.left < r.right && b.bottom > r.top && b.top < r.bottom;
+    }).length;
+  });
+  expect(onScreen).toBeGreaterThan(0);
+  await page.locator('.plan-canvas').click();
+  await expect(page.getByText('Now click the same spot on the street map')).toBeVisible();
+  await page.locator('.street-picker svg').click();
+  await expect(page.locator('.pin-row')).toHaveCount(1);
+  await expect(page.locator('.pin-row')).toContainText('13.72360, 100.55970');
+  await expect(page.getByText('Add at least 3 pins')).toBeVisible();
+});
+
+test('map pins: with no street tiles, pasting coordinates still works', async ({ page }) => {
+  await mock(page);
+  await page.route(/tile\.openstreetmap\.org/, (r) => r.fulfill({ status: 503, body: '' }));
+  await page.goto('/admin/');
+  await page.getByRole('button', { name: /Halls 5–8/ }).click();
+  await page.getByRole('button', { name: 'Map pins' }).click();
+  await page.getByLabel("Paste the venue's coordinates").fill('13.7236, 100.5597');
+  await page.getByRole('button', { name: 'Show on the street map' }).click();
+  await page.locator('.plan-canvas').click();
+  await page.getByLabel('Paste coordinates for this pin').fill('13.72401, 100.55912');
+  await page.getByRole('button', { name: 'Set pin' }).click();
+  await expect(page.locator('.pin-row')).toContainText('13.72401, 100.55912');
+  await expect(page.getByText('© OpenStreetMap contributors')).toBeVisible();
+});
+
+test('Add map pins from Guest spots opens the editor in map pins mode', async ({ page }) => {
+  await mock(page);
+  await page.goto('/admin/');
+  await page.getByRole('navigation', { name: 'Admin sections' }).getByRole('button', { name: 'Guest spots' }).click();
+  await page.getByRole('button', { name: 'Add map pins' }).click();
+  await expect(page.getByRole('button', { name: 'Map pins' })).toHaveAttribute('aria-pressed', 'true');
+  await expect(page.getByLabel("Paste the venue's coordinates")).toBeVisible();
+});
