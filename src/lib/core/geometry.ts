@@ -10,7 +10,7 @@ export function pointInPolygon(x: number, y: number, poly: Point[]): boolean {
   return inside;
 }
 
-export function areaAt(venue: Venue, x: number, y: number): string | null {
+export function areaAt(venue: Pick<Venue, 'areas'>, x: number, y: number): string | null {
   for (const a of venue.areas) if (pointInPolygon(x, y, a.bounds)) return a.id;
   return null;
 }
