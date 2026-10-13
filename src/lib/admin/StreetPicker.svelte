@@ -1,6 +1,6 @@
 <script lang="ts">
   import { untrack } from 'svelte';
-  import { latLngOf, worldPx } from '$lib/core/geo';
+  import { FIT_Z, latLngOf, worldPx } from '$lib/core/geo';
   import type { GeoPin, LatLng, Point } from '$lib/core/types';
   import { OSM_CREDIT, OSM_MAX_Z, OSM_MIN_Z, osmTiles, screenToWorld } from './osm';
 
@@ -12,7 +12,7 @@
   let c = $state<Point>(o);
   let drag: { x: number; y: number; c: Point; moved: boolean } | null = null;
 
-  const s = $derived(2 ** (20 - z));
+  const s = $derived(2 ** (FIT_Z - z));
   const tiles = $derived(osmTiles(c, z, w, h));
   const vb = $derived(`${c[0] - o[0] - (w * s) / 2} ${c[1] - o[1] - (h * s) / 2} ${w * s} ${h * s}`);
 

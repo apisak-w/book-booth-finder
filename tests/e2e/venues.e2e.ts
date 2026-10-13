@@ -4,11 +4,11 @@ import { readFileSync } from 'node:fs';
 const venue = JSON.parse(readFileSync('venues/qsncc-lg-5-8/venue.json', 'utf8'));
 const event = JSON.parse(readFileSync('events/bkkibf-2026/event.json', 'utf8'));
 const bare = { ...venue, geo: undefined };
-const docFor = (v: typeof venue) => ({
+const docFor = (v: typeof venue, pr: string | null = null) => ({
   venue: v,
   sha: 'sha-1',
-  ref: 'main',
-  pr: null,
+  ref: pr ? 'admin/qsncc-lg-5-8' : 'main',
+  pr,
   events: [
     {
       id: event.id,
@@ -19,7 +19,7 @@ const docFor = (v: typeof venue) => ({
   ],
 });
 
-async function mock(page: Page, v: typeof venue = venue) {
+async function mock(page: Page, v: typeof venue = venue, pr: string | null = null) {
   const saved: Record<string, unknown>[] = [];
   await page.route(/\/api\/admin\/me$/, (r) =>
     r.fulfill({ json: { signedIn: true, hasPasskeys: true, passkeys: [] } }),
@@ -29,7 +29,7 @@ async function mock(page: Page, v: typeof venue = venue) {
       json: { venues: [{ id: venue.id, name: venue.name, landmarks: venue.landmarks.length, pins: 0, pr: null }] },
     }),
   );
-  await page.route(/\/api\/admin\/venue\?id=/, (r) => r.fulfill({ json: docFor(v) }));
+  await page.route(/\/api\/admin\/venue\?id=/, (r) => r.fulfill({ json: docFor(v, pr) }));
   await page.route(/\/api\/admin\/venue\/reference/, (r) => r.fulfill({ status: 404, json: { error: 'none' } }));
   await page.route(/\/api\/admin\/venue\/save$/, async (r) => {
     saved.push(r.request().postDataJSON());
@@ -222,4 +222,42 @@ test('a deleted landmark id is not reused for a new one', async ({ page }) => {
   await page.locator('.plan-canvas').click();
   await expect(page.locator('[data-lm="wc7"]')).toHaveCount(1);
   await expect(page.locator('[data-lm="wc6"]')).toHaveCount(0);
+});
+
+test('keys do nothing behind the save dialog', async ({ page }) => {
+  await mock(page);
+  await page.goto('/admin/');
+  await addToilet(page);
+  await page.getByRole('button', { name: 'Save' }).click();
+  await page.keyboard.press('Control+z');
+  await expect(page.getByRole('dialog')).toContainText('Added wc7 (Toilets, Hall 9)');
+  await page.getByRole('button', { name: 'Cancel' }).click();
+  await expect(page.locator('[data-lm="wc7"]')).toHaveCount(1);
+});
+
+test('the old-draft notice goes away once you make a new change', async ({ page }) => {
+  await mock(page);
+  await page.addInitScript((v) => {
+    localStorage.setItem(
+      'bf:admin:qsncc-lg-5-8:draft',
+      JSON.stringify({ venue: v, sha: 'older', ref: 'main', at: '2026-10-13T07:05:00.000Z' }),
+    );
+  }, venue);
+  await page.goto('/admin/');
+  await page.getByRole('button', { name: /Halls 5–8/ }).click();
+  await expect(page.getByText('The venue changed since your unsaved changes were made')).toBeVisible();
+  await page.getByRole('button', { name: 'Add landmark' }).click();
+  await page.locator('.plan-canvas').click();
+  await expect(page.getByText('The venue changed since your unsaved changes were made')).toHaveCount(0);
+});
+
+test('an open pull request is named in the editor banner', async ({ page }) => {
+  await mock(page, venue, 'https://github.com/apisak-w/book-booth-finder/pull/12');
+  await page.goto('/admin/');
+  await page.getByRole('button', { name: /Halls 5–8/ }).click();
+  await expect(page.locator('.editor-ref')).toHaveText('Continuing pull request #12 · View pull request');
+  await expect(page.getByRole('link', { name: 'View pull request' })).toHaveAttribute(
+    'href',
+    'https://github.com/apisak-w/book-booth-finder/pull/12',
+  );
 });

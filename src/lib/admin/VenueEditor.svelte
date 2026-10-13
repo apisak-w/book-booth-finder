@@ -99,6 +99,7 @@
   }
   function apply(next: Venue) {
     if (!hist || !doc) return;
+    staleDraft = false;
     hist = push(hist, next);
     writeDraft(store, id, { venue: next, sha: doc.sha, ref: doc.ref, at: new Date().toISOString() });
     error = '';
@@ -112,6 +113,7 @@
   }
   function step(h: History<Venue>) {
     if (!doc) return;
+    staleDraft = false;
     hist = h;
     writeDraft(store, id, { venue: h.present, sha: doc.sha, ref: doc.ref, at: new Date().toISOString() });
   }
@@ -152,7 +154,7 @@
     }
   }
   function onKey(e: KeyboardEvent) {
-    if (readonly || !hist || (e.target as HTMLElement).closest('input, select, textarea')) return;
+    if (readonly || confirming || !hist || (e.target as HTMLElement).closest('input, select, textarea')) return;
     const mod = e.metaKey || e.ctrlKey;
     if (mod && e.key.toLowerCase() === 'z') {
       e.preventDefault();
@@ -181,7 +183,7 @@
     <b>{venue?.name.en ?? id}</b>
     {#if doc}
       <span class="editor-ref">
-        {#if doc.pr}Continuing <a href={doc.pr} target="_blank" rel="noopener">the open pull request</a>{:else}Editing main{/if}
+        {#if doc.pr}Continuing pull request #{doc.pr.match(/\/pull\/(\d+)/)?.[1] ?? ''} · <a href={doc.pr} target="_blank" rel="noopener">View pull request</a>{:else}Editing main{/if}
       </span>
     {/if}
     {#if !readonly && hist}
