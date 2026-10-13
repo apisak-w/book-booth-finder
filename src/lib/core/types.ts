@@ -2,6 +2,9 @@ export type I18n = { th: string; en: string };
 export type Rect = { x: number; y: number; w: number; h: number };
 export type Box = [number, number, number, number];
 export type Point = [number, number];
+export type LatLng = { lat: number; lng: number };
+export type GeoPin = { id: string; x: number; y: number; lat: number; lng: number };
+export type VenueGeo = { pins: GeoPin[]; entrances: string[] };
 
 export const GROUP_ORDER = ['entry', 'wc', 'info', 'charge', 'stage', 'other'] as const;
 export type LandmarkGroup = (typeof GROUP_ORDER)[number];
