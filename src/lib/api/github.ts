@@ -94,9 +94,21 @@ export async function listDir(g: GitHub, path: string, ref: string): Promise<{ n
 }
 
 export async function proposeChange(g: GitHub, c: Change): Promise<string> {
+  const owner = g.repo.split('/')[0];
+  const head = encodeURIComponent(`${owner}:${c.branch}`);
   const main = (await call<{ object: { sha: string } }>(g, 'GET', '/git/ref/heads/main'))!;
   const pr = await openPr(g, c.branch);
-  const ref = pr ? c.branch : 'main';
+  let ref = pr ? c.branch : main.object.sha;
+  let branch: { object: { sha: string } } | null = null;
+  let reset = false;
+  if (!pr) {
+    branch = await call<{ object: { sha: string } }>(g, 'GET', `/git/ref/heads/${c.branch}`, undefined, true);
+    if (branch) {
+      const closed = (await call<{ head: { sha: string } }[]>(g, 'GET', `/pulls?state=closed&head=${head}`))!;
+      if (closed.some((p) => p.head.sha === branch!.object.sha)) reset = true;
+      else ref = c.branch;
+    }
+  }
   const file = (await call<{ content: string; sha: string }>(
     g,
     'GET',
@@ -105,11 +117,8 @@ export async function proposeChange(g: GitHub, c: Change): Promise<string> {
   if (c.expectSha !== undefined && file.sha !== c.expectSha)
     throw new GitHubConflict('This venue changed since you opened it. Reload, then save again');
   const next = c.edit(fromBase64(file.content));
-  if (!pr) {
-    const branch = await call(g, 'GET', `/git/ref/heads/${c.branch}`, undefined, true);
-    if (branch) await call(g, 'PATCH', `/git/refs/heads/${c.branch}`, { sha: main.object.sha, force: true });
-    else await call(g, 'POST', '/git/refs', { ref: `refs/heads/${c.branch}`, sha: main.object.sha });
-  }
+  if (!pr && !branch) await call(g, 'POST', '/git/refs', { ref: `refs/heads/${c.branch}`, sha: main.object.sha });
+  if (reset) await call(g, 'PATCH', `/git/refs/heads/${c.branch}`, { sha: main.object.sha, force: true });
   await call(g, 'PUT', `/contents/${c.path}`, {
     message: next.message,
     content: toBase64(next.text),
@@ -117,10 +126,16 @@ export async function proposeChange(g: GitHub, c: Change): Promise<string> {
     branch: c.branch,
   });
   if (pr) return pr.url;
-  return (await call<{ html_url: string }>(g, 'POST', '/pulls', {
-    title: c.title,
-    head: c.branch,
-    base: 'main',
-    body: c.body,
-  }))!.html_url;
+  try {
+    return (await call<{ html_url: string }>(g, 'POST', '/pulls', {
+      title: c.title,
+      head: c.branch,
+      base: 'main',
+      body: c.body,
+    }))!.html_url;
+  } catch (e) {
+    const again = e instanceof GitHubError && e.message.includes(': 422') ? await openPr(g, c.branch) : null;
+    if (again) return again.url;
+    throw e;
+  }
 }

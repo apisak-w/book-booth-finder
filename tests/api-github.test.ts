@@ -35,7 +35,7 @@ test('first move: reads main, makes the branch, commits and opens a pull request
   expect(await proposeChange(gh.github, change())).toBe('https://github.com/apisak-w/book-booth-finder/pull/8');
   expect(writes(gh.calls)).toEqual(['POST /git/refs', 'PUT /contents/venues/v/venue.json', 'POST /pulls']);
   expect(gh.calls.find((c) => c.method === 'GET' && c.path.startsWith('/contents/'))!.path).toBe(
-    '/contents/venues/v/venue.json?ref=main',
+    '/contents/venues/v/venue.json?ref=main-sha',
   );
   const [ref, put, pr] = gh.calls.filter((c) => c.method !== 'GET');
   expect(ref.body).toEqual({ ref: 'refs/heads/spots/v', sha: 'main-sha' });
@@ -59,7 +59,7 @@ test('a pull request already open: adds one commit to it', async () => {
 });
 
 test('a branch left from a merged pull request is reset to main first', async () => {
-  const gh = fakeGitHub(text, { branch: true });
+  const gh = fakeGitHub(text, { branch: true, mergedHead: 'old-sha' });
   await proposeChange(gh.github, change());
   expect(writes(gh.calls)).toEqual([
     'PATCH /git/refs/heads/spots/v',
@@ -117,4 +117,26 @@ test('a stale expected sha is refused before anything is written', async () => {
   const ok = fakeGitHub(text);
   await proposeChange(ok.github, { ...change(), expectSha: 'file-sha' });
   expect(writes(ok.calls)).toContain('PUT /contents/venues/v/venue.json');
+});
+
+test('with no PR open, the file is read at the main commit the branch is cut from', async () => {
+  const gh = fakeGitHub(text);
+  await proposeChange(gh.github, change());
+  expect(gh.calls.find((c) => c.method === 'GET' && c.path.startsWith('/contents/'))!.path).toBe(
+    '/contents/venues/v/venue.json?ref=main-sha',
+  );
+});
+
+test('a branch with unmerged work and no PR is built on, not reset', async () => {
+  const gh = fakeGitHub(text, { branch: true });
+  expect(await proposeChange(gh.github, change())).toBe('https://github.com/apisak-w/book-booth-finder/pull/8');
+  expect(writes(gh.calls)).toEqual(['PUT /contents/venues/v/venue.json', 'POST /pulls']);
+  expect(gh.calls.find((c) => c.method === 'GET' && c.path.startsWith('/contents/'))!.path).toBe(
+    '/contents/venues/v/venue.json?ref=spots%2Fv',
+  );
+});
+
+test('when another save opened the PR first, its link is returned', async () => {
+  const gh = fakeGitHub(text, { prRace: true });
+  expect(await proposeChange(gh.github, change())).toBe('https://github.com/apisak-w/book-booth-finder/pull/7');
 });
