@@ -8,3 +8,6 @@ playwright-report/
 events/*/source/*.tmp.*
 events/*/source/cells.json
 *.traineddata
+.wrangler/
+wrangler.toml
+.dev.vars
