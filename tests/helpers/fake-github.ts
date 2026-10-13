@@ -53,7 +53,7 @@ export function fakeRepo(
       const f = files[p];
       if (f !== undefined) {
         const bytes = typeof f === 'string' ? new TextEncoder().encode(f) : f;
-        if (accept.includes('raw')) return new Response(bytes, { status: 200 });
+        if (accept.includes('raw')) return new Response(new Uint8Array(bytes), { status: 200 });
         return reply(200, {
           content: toBase64(typeof f === 'string' ? f : new TextDecoder().decode(f)),
           sha: `sha-${p}`,
