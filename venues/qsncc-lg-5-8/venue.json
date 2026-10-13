@@ -374,5 +374,38 @@
       "icon": "lift"
     }
   ],
+  "geo": {
+    "pins": [
+      {
+        "id": "hall5-back-mrt-corner",
+        "x": 446,
+        "y": 280,
+        "lat": 13.723897,
+        "lng": 100.559618
+      },
+      {
+        "id": "hall8-back-corner",
+        "x": 2391,
+        "y": 280,
+        "lat": 13.723931,
+        "lng": 100.557692
+      },
+      {
+        "id": "hall8-door-side-corner",
+        "x": 2391,
+        "y": 1440,
+        "lat": 13.724939,
+        "lng": 100.5577
+      },
+      {
+        "id": "hall5-door-side-mrt-corner",
+        "x": 446,
+        "y": 1464,
+        "lat": 13.724944,
+        "lng": 100.559669
+      }
+    ],
+    "entrances": ["mrt", "door5", "door6", "door7", "door8"]
+  },
   "origin": "mrt"
 }
