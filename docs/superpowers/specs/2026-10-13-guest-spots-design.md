@@ -1,6 +1,6 @@
 # Guest spots and the admin review: design
 
-Date: 2026-10-13 · Status: agreed in chat · Builds on: `docs/superpowers/specs/2026-10-13-gps-street-map-design.md` (plan 1, PR apisak-w/book-booth-finder#5)
+Date: 2026-10-13 · Status: agreed in chat · Builds on: `docs/superpowers/specs/2026-10-13-gps-street-map-design.md` (plan 1, merged into `main` as `529bfb8`; `main` has no measured map pins yet, so the feature shows nothing until they land)
 
 Mockups: https://claude.ai/artifact/XHgHtjkv7a8dTBSswgZvu8, row "4 again": 4d (guest card) and 4e (Guest spots review).
 

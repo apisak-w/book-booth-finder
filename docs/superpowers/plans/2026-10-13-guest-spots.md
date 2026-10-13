@@ -8,7 +8,7 @@
 
 **Tech Stack:** SvelteKit 2 (adapter-static), Svelte 5 runes, TypeScript, Bun test with `bun:sqlite` standing in for D1, Playwright, Cloudflare Pages Functions, D1, `@simplewebauthn/server` and `@simplewebauthn/browser` 14, GitHub REST API.
 
-**Spec:** `docs/superpowers/specs/2026-10-13-guest-spots-design.md` (builds on `docs/superpowers/specs/2026-10-13-gps-street-map-design.md` and plan 1 on branch `claude/booth-map-gps-overlay-b3d3fa`).
+**Spec:** `docs/superpowers/specs/2026-10-13-guest-spots-design.md` (builds on `docs/superpowers/specs/2026-10-13-gps-street-map-design.md` and plan 1, merged into `main` as `529bfb8`).
 
 ## Global Constraints
 
@@ -25,11 +25,12 @@
 - The guest card shows only when the site is built with `VITE_SPOTS=1`.
 - No verbose code comments. Commits follow Conventional Commits with scopes `core`, `app`, `docs`.
 - Run `bun run test` after any change to `venues/`, `events/`, `src/lib/core/` or `src/lib/i18n/`. `tests/golden/v1.json` must keep passing unchanged.
+- `main` has no measured map pins yet: no venue has `geo` and no `surroundings.json` exists. Unit tests that need pins use `pinnedVenue()` (Task 3): the real `qsncc-lg-5-8` venue with `fakePins()`. Tests that read real pins use `skipIf(!venue.geo)`, so the guest-card and admin-map e2e tests skip until measured pins land. Never commit test pins to `venues/`.
 
 ## Review Focus
 
-1. The guest's GPS reading is cleared when locating stops at the hand-off, before the card can use it. Expected: the card still appears with that reading. Pinned by the door e2e test in Task 8.
-2. An event that has ended or not yet opened for spots. Expected: no card, since the server would refuse it anyway. Pinned by the `acceptsSpots` test in Task 2 and the existing `locate.e2e.ts` running unchanged against the past `bkkibf-2026` (Task 8 runs it).
+1. The guest's GPS reading is cleared when locating stops at the hand-off, before the card can use it. Expected: the card still appears with that reading. Pinned by the door e2e test in Task 8, which skips until measured pins land (see Task 8 step 7 for running it before then).
+2. An event that has ended or not yet opened for spots. Expected: no card, since the server would refuse it anyway. Pinned by the `acceptsSpots` test in Task 2; `FinderView.offerSpot` checks `acceptsSpots` before showing the card (Task 8).
 3. A captured passkey sign-in response sent a second time. Expected: refused, because its challenge was used. Pinned by the replay test in Task 11.
 4. Someone who later learns the setup code tries to register their own passkey. Expected: refused, because the code works once. Pinned by the set-up test in Task 11.
 5. A second Move pin while the first PR is still open. Expected: a commit on the same PR, not a second branch that would conflict. Pinned by the open-PR test in Task 10.
@@ -43,7 +44,7 @@ src/lib/core/geo.ts                      + metersBetween, pinProblems
 src/lib/core/geometry.ts                 areaAt takes Pick<Venue, 'areas'>
 src/lib/core/spots.ts                    spot types, acceptsSpots, parseSpot, canOffer
 src/lib/core/spotReview.ts               review maths, hall check, pin move, withPins
-src/lib/server/spotsCatalog.ts           buildSpotsConfig, adminVenues
+src/lib/server/spotsCatalog.ts           catalogItems, spotsConfigFrom/buildSpotsConfig, adminVenuesFrom/adminVenues
 src/routes/spots-config.json/+server.ts  prerendered config for the Function
 src/lib/api/db.ts                        Db/Env types, jsonResponse, purge, loadConfig
 src/lib/api/spots.ts                     handleSpot
@@ -68,7 +69,7 @@ src/lib/admin/types.ts, places.ts, api.ts, admin.css
 src/lib/admin/Admin.svelte, SignIn.svelte, SpotsMap.svelte, DecisionPanel.svelte
 src/routes/admin/+page.server.ts, +page.svelte
 src/lib/styles/app.css                   + .spotask, .keep
-tests/helpers/fake-d1.ts, fake-github.ts
+tests/helpers/fake-d1.ts, fake-github.ts, pinned-venue.ts
 tests/geo.test.ts, venues.test.ts, spots.test.ts, spot-review.test.ts, spots-catalog.test.ts,
 tests/api-spots.test.ts, spot-ask.test.ts, keep.test.ts, api-auth.test.ts, api-github.test.ts,
 tests/api-admin.test.ts, admin-places.test.ts, build.test.ts, strings.test.ts
@@ -358,6 +359,7 @@ git commit -m "feat(core): check guest map spots"
 
 - Modify: `src/lib/core/geometry.ts:13` (`areaAt` takes `Pick<Venue, 'areas'>`)
 - Create: `src/lib/core/spotReview.ts`
+- Create: `tests/helpers/pinned-venue.ts`
 - Test: `tests/spot-review.test.ts`
 
 **Interfaces:**
@@ -378,8 +380,25 @@ git commit -m "feat(core): check guest map spots"
   - `moveProblems(r, pins, { id, x, y }, metersPerPx): string[]`
   - `hallCheck(spots, hall: string, areas: Area[], pins: GeoPin[]): HallCheck`
   - `withPins(venueJsonText: string, pins: GeoPin[]): string` (rewrites only the `"pins"` array, keeping the file's formatting)
+  - `tests/helpers/pinned-venue.ts`: `pinnedVenue(): { venue: Venue; text: string }`, the real `qsncc-lg-5-8` venue with `geo: { pins: fakePins(), entrances: ['mrt', 'door5', 'door6', 'door7', 'door8'] }` and its JSON text. Used again in Tasks 4, 11 and 12.
 
-- [ ] **Step 1: Write the failing tests**
+- [ ] **Step 1: Write the fixture and the failing tests**
+
+Create `tests/helpers/pinned-venue.ts`:
+
+```ts
+import type { Venue } from '../../src/lib/core/types';
+import { loadVenue } from '../../src/lib/server/catalog';
+import { fakePins } from './fake-geo';
+
+export function pinnedVenue(): { venue: Venue; text: string } {
+  const venue: Venue = {
+    ...loadVenue('qsncc-lg-5-8'),
+    geo: { pins: fakePins(), entrances: ['mrt', 'door5', 'door6', 'door7', 'door8'] },
+  };
+  return { venue, text: `${JSON.stringify(venue, null, 2)}\n` };
+}
+```
 
 Create `tests/spot-review.test.ts`:
 
@@ -399,6 +418,7 @@ import {
 } from '../src/lib/core/spotReview';
 import type { Area } from '../src/lib/core/types';
 import { fakeLatLng, fakePins, M } from './helpers/fake-geo';
+import { pinnedVenue } from './helpers/pinned-venue';
 
 const mrt = { id: 'mrt', x: 252, y: 560 };
 const days = { fair: { start: '2026-10-15', end: '2026-10-25', tz: 'Asia/Bangkok' } };
@@ -499,14 +519,18 @@ test('hall confirms are flagged when most land in another hall', () => {
 });
 
 test('withPins rewrites only the pins and keeps the file format', () => {
-  const text = readFileSync('venues/qsncc-lg-5-8/venue.json', 'utf8');
-  const venue = JSON.parse(text);
-  expect(withPins(text, venue.geo.pins)).toBe(text);
-  const pins = movePin(venue.geo.pins, mrt, { lat: 13.7231, lng: 100.5612 });
+  const { venue, text } = pinnedVenue();
+  expect(withPins(text, venue.geo!.pins)).toBe(text);
+  const pins = movePin(venue.geo!.pins, mrt, { lat: 13.7231, lng: 100.5612 });
   const next = withPins(text, pins);
   expect(JSON.parse(next)).toEqual({ ...venue, geo: { ...venue.geo, pins } });
   expect(next.split('\n').length).toBe(text.split('\n').length + 7);
   expect(() => withPins('{}', pins)).toThrow('venue.json has no map pins');
+});
+
+const realText = readFileSync('venues/qsncc-lg-5-8/venue.json', 'utf8');
+test.skipIf(!JSON.parse(realText).geo)('withPins leaves the real venue file byte for byte', () => {
+  expect(withPins(realText, JSON.parse(realText).geo.pins)).toBe(realText);
 });
 ```
 
@@ -649,7 +673,7 @@ Expected: PASS.
 - [ ] **Step 6: Commit**
 
 ```bash
-git add src/lib/core/geometry.ts src/lib/core/spotReview.ts tests/spot-review.test.ts
+git add src/lib/core/geometry.ts src/lib/core/spotReview.ts tests/helpers/pinned-venue.ts tests/spot-review.test.ts
 git commit -m "feat(core): review guest spots and move a map pin"
 ```
 
@@ -667,7 +691,7 @@ git commit -m "feat(core): review guest spots and move a map pin"
 **Interfaces:**
 
 - Consumes: `listEventIds`, `loadEvent` from `src/lib/server/catalog.ts`; `georef`, `planToLatLng`; `SpotsConfig` (Task 2).
-- Produces: `buildSpotsConfig(root?: string): SpotsConfig`, served as `/spots-config.json` and read by the Functions in Tasks 5 and 11.
+- Produces: `type CatalogItem = { id: string; event: EventFile; venue: Venue }`, `catalogItems(root?): CatalogItem[]`, `spotsConfigFrom(items: CatalogItem[]): SpotsConfig`, and `buildSpotsConfig(root?: string): SpotsConfig`, served as `/spots-config.json` and read by the Functions in Tasks 5 and 11. The `...From` form lets tests pass a venue with fixture pins.
 
 - [ ] **Step 1: Write the failing tests**
 
@@ -677,30 +701,29 @@ Create `tests/spots-catalog.test.ts`:
 import { test, expect } from 'bun:test';
 import { metersBetween } from '../src/lib/core/geo';
 import { listEventIds, loadEvent } from '../src/lib/server/catalog';
-import { buildSpotsConfig } from '../src/lib/server/spotsCatalog';
+import { buildSpotsConfig, spotsConfigFrom } from '../src/lib/server/spotsCatalog';
+import { LAT0, LNG0 } from './helpers/fake-geo';
+import { pinnedVenue } from './helpers/pinned-venue';
 
-const cfg = buildSpotsConfig();
+const fair = { id: 'bkkibf-2026', event: loadEvent('bkkibf-2026').event, venue: pinnedVenue().venue };
 
-test('every event at a venue with map pins is listed with its doors and halls', () => {
-  for (const id of listEventIds()) {
-    const { event, venue } = loadEvent(id);
-    if (!venue.geo) {
-      expect(cfg.events[id]).toBeUndefined();
-      continue;
-    }
-    expect(cfg.events[id]).toEqual({
-      venue: venue.id,
-      start: event.dates.start,
-      end: event.dates.end,
-      tz: venue.timezone,
-      doors: venue.geo.entrances,
-      halls: venue.areas.map((a) => a.id),
-    });
-  }
+test('an event at a venue with map pins is listed with its doors, halls and the venue centre', () => {
+  const cfg = spotsConfigFrom([fair]);
+  expect(cfg.events['bkkibf-2026']).toEqual({
+    venue: 'qsncc-lg-5-8',
+    start: fair.event.dates.start,
+    end: fair.event.dates.end,
+    tz: fair.venue.timezone,
+    doors: ['mrt', 'door5', 'door6', 'door7', 'door8'],
+    halls: fair.venue.areas.map((a) => a.id),
+  });
+  expect(metersBetween(cfg.venues['qsncc-lg-5-8'], { lat: LAT0, lng: LNG0 })).toBeLessThan(300);
 });
 
-test('the venue centre sits among the map pins', () => {
-  expect(metersBetween(cfg.venues['qsncc-lg-5-8'], { lat: 13.7236, lng: 100.5597 })).toBeLessThan(300);
+test('venues without map pins are left out', () => {
+  expect(spotsConfigFrom([{ ...fair, venue: { ...fair.venue, geo: undefined } }])).toEqual({ events: {}, venues: {} });
+  const cfg = buildSpotsConfig();
+  for (const id of listEventIds()) expect(!!cfg.events[id]).toBe(!!loadEvent(id).venue.geo);
 });
 ```
 
@@ -709,7 +732,7 @@ Append to `tests/build.test.ts`:
 ```ts
 test.skipIf(!built)('the spots config is published', () => {
   const cfg = JSON.parse(readFileSync('_site/spots-config.json', 'utf8'));
-  expect(cfg.events['bkkibf-2026'].venue).toBe('qsncc-lg-5-8');
+  expect(Object.keys(cfg).sort()).toEqual(['events', 'venues']);
 });
 ```
 
@@ -725,14 +748,19 @@ Create `src/lib/server/spotsCatalog.ts`:
 ```ts
 import { georef, planToLatLng } from '../core/geo';
 import type { SpotsConfig } from '../core/spots';
+import type { EventFile, Venue } from '../core/types';
 import { listEventIds, loadEvent } from './catalog';
+
+export type CatalogItem = { id: string; event: EventFile; venue: Venue };
 
 const round6 = (v: number) => Math.round(v * 1e6) / 1e6;
 
-export function buildSpotsConfig(root = process.cwd()): SpotsConfig {
+export const catalogItems = (root = process.cwd()): CatalogItem[] =>
+  listEventIds(root).map((id) => ({ id, ...loadEvent(id, root) }));
+
+export function spotsConfigFrom(items: CatalogItem[]): SpotsConfig {
   const cfg: SpotsConfig = { events: {}, venues: {} };
-  for (const id of listEventIds(root)) {
-    const { event, venue } = loadEvent(id, root);
+  for (const { id, event, venue } of items) {
     if (!venue.geo) continue;
     if (!cfg.venues[venue.id]) {
       const pts = venue.walls.flat(),
@@ -755,6 +783,8 @@ export function buildSpotsConfig(root = process.cwd()): SpotsConfig {
   }
   return cfg;
 }
+
+export const buildSpotsConfig = (root = process.cwd()) => spotsConfigFrom(catalogItems(root));
 ```
 
 Create `src/routes/spots-config.json/+server.ts`:
@@ -1790,7 +1820,7 @@ function pickHall(id: string) {
 - [ ] **Step 7: Run the e2e tests, old and new**
 
 Run: `bunx playwright test tests/e2e/spots.e2e.ts tests/e2e/locate.e2e.ts`
-Expected: PASS on both projects. `locate.e2e.ts` does not fix the clock, so `bkkibf-2026` has ended, no card appears and its tests are unchanged.
+Expected: while `qsncc-lg-5-8` has no map pins (as on `main` today), both files report their tests as skipped. To exercise the card before measured pins land, add a temporary `geo` block to `venues/qsncc-lg-5-8/venue.json` with the four `fakePins()` values and `"entrances": ["mrt", "door5", "door6", "door7", "door8"]`, run the command again (expected: PASS on both projects, and `locate.e2e.ts` shows no card because it doesn't fix the clock and `bkkibf-2026` has ended), then restore the file with `git checkout venues/qsncc-lg-5-8/venue.json`. Never commit those pins.
 
 - [ ] **Step 8: Run unit tests, lint and type checks**
 
@@ -2443,7 +2473,6 @@ Create `tests/api-admin.test.ts`:
 
 ```ts
 import { test, expect, beforeEach } from 'bun:test';
-import { readFileSync } from 'node:fs';
 import { handleAdmin, type AdminDeps } from '../src/lib/api/admin';
 import { b64url, type Ceremonies } from '../src/lib/api/auth';
 import type { Env } from '../src/lib/api/db';
@@ -2453,12 +2482,12 @@ import type { SpotsConfig } from '../src/lib/core/spots';
 import type { Venue } from '../src/lib/core/types';
 import { fakeDb } from './helpers/fake-d1';
 import { fakeGitHub } from './helpers/fake-github';
+import { pinnedVenue } from './helpers/pinned-venue';
 
 const ORIGIN = 'https://booth.example';
 const CODE = 'correct horse battery staple';
 const PR8 = 'https://github.com/apisak-w/book-booth-finder/pull/8';
-const venueText = readFileSync('venues/qsncc-lg-5-8/venue.json', 'utf8');
-const venue = JSON.parse(venueText) as Venue;
+const { venue, text: venueText } = pinnedVenue();
 const mrt = venue.landmarks.find((l) => l.id === 'mrt')!;
 const g = georef(venue.geo!.pins);
 const cfg: SpotsConfig = {
@@ -3010,7 +3039,7 @@ git commit -m "feat(app): add the admin API for guest spots"
 - Consumes: `reviewDoor`, `entrancePin`, `doorStatus`, `moveProblems`, `hallCheck`, `ALL_FILTERS`, `GOOD_ACCURACY_M`, `NEAR_PIN_M` and types (Task 3); `SPOT_KEEP_DAYS` (Task 2); the admin API (Task 11); `StreetLayer.svelte` (plan 1) with props `{ geo, surroundings, tileUrl, vb, pxPerUnit, onTiles }`; `/v/<venue>/surroundings.json` (plan 1).
 - Produces:
   - `type AdminEvent = { id: string; name: I18n; start: string; end: string }`, `type AdminVenue = { id; name: I18n; timezone; metersPerPx; walls: Point[][]; areas: Area[]; pins: GeoPin[]; entrances: Landmark[]; events: AdminEvent[] }`
-  - `adminVenues(root?): AdminVenue[]` (venues with map pins, with their events)
+  - `adminVenuesFrom(items: CatalogItem[]): AdminVenue[]` and `adminVenues(root?): AdminVenue[]` (venues with map pins, with their events)
   - `places.ts`: `type Decision` (same shape as Task 11), `type DoorPlace`, `type HallPlace`, `type Place`, `STATUS_TEXT`, `eventDays(v)`, `placesFor(v, spots, decisions, filters): Place[]`, `placeNote(p, v): string`
   - `/admin/` page (prerendered, `noindex`)
 
@@ -3021,14 +3050,15 @@ Expected: `package.json` lists it under `devDependencies`.
 
 - [ ] **Step 2: Write the failing unit tests**
 
-Append to `tests/spots-catalog.test.ts` (add `adminVenues` to the `spotsCatalog` import):
+Append to `tests/spots-catalog.test.ts` (add `adminVenuesFrom` to the `spotsCatalog` import):
 
 ```ts
 test('adminVenues lists venues with map pins, their entrances and events', () => {
-  const v = adminVenues().find((x) => x.id === 'qsncc-lg-5-8')!;
-  expect(v.entrances.map((l) => l.id)).toEqual(loadEvent('bkkibf-2026').venue.geo!.entrances);
-  expect(v.events.map((e) => e.id)).toContain('bkkibf-2026');
-  expect(v.pins.length).toBeGreaterThanOrEqual(3);
+  const [v] = adminVenuesFrom([fair]);
+  expect(v.entrances.map((l) => l.id)).toEqual(['mrt', 'door5', 'door6', 'door7', 'door8']);
+  expect(v.events.map((e) => e.id)).toEqual(['bkkibf-2026']);
+  expect(v.pins).toHaveLength(4);
+  expect(adminVenuesFrom([{ ...fair, venue: { ...fair.venue, geo: undefined } }])).toEqual([]);
 });
 ```
 
@@ -3039,9 +3069,11 @@ import { test, expect } from 'bun:test';
 import { placeNote, placesFor, type Decision } from '../src/lib/admin/places';
 import { georef, planToLatLng } from '../src/lib/core/geo';
 import { ALL_FILTERS, type StoredSpot } from '../src/lib/core/spotReview';
-import { adminVenues } from '../src/lib/server/spotsCatalog';
+import { loadEvent } from '../src/lib/server/catalog';
+import { adminVenuesFrom } from '../src/lib/server/spotsCatalog';
+import { pinnedVenue } from './helpers/pinned-venue';
 
-const v = adminVenues().find((x) => x.id === 'qsncc-lg-5-8')!;
+const [v] = adminVenuesFrom([{ id: 'bkkibf-2026', event: loadEvent('bkkibf-2026').event, venue: pinnedVenue().venue }]);
 const mrt = v.entrances.find((l) => l.id === 'mrt')!;
 const g = georef(v.pins);
 const ev = v.events[0];
@@ -3105,7 +3137,7 @@ test('hall confirms that mostly land in another hall are flagged', () => {
 - [ ] **Step 3: Run them to see them fail**
 
 Run: `bun test tests/admin-places.test.ts tests/spots-catalog.test.ts`
-Expected: FAIL with `Export named 'adminVenues' not found`.
+Expected: FAIL with `Export named 'adminVenuesFrom' not found`.
 
 - [ ] **Step 4: Add the venue data and the place logic**
 
@@ -3128,13 +3160,12 @@ export type AdminVenue = {
 };
 ```
 
-Append to `src/lib/server/spotsCatalog.ts` (add `import type { AdminVenue } from '../admin/types';` and `import type { Landmark } from '../core/types';` at the top):
+Append to `src/lib/server/spotsCatalog.ts` (add `import type { AdminVenue } from '../admin/types';` at the top and add `Landmark` to the `../core/types` import):
 
 ```ts
-export function adminVenues(root = process.cwd()): AdminVenue[] {
+export function adminVenuesFrom(items: CatalogItem[]): AdminVenue[] {
   const byVenue = new Map<string, AdminVenue>();
-  for (const id of listEventIds(root)) {
-    const { event, venue } = loadEvent(id, root);
+  for (const { id, event, venue } of items) {
     if (!venue.geo) continue;
     let v = byVenue.get(venue.id);
     if (!v) {
@@ -3158,6 +3189,8 @@ export function adminVenues(root = process.cwd()): AdminVenue[] {
   }
   return [...byVenue.values()];
 }
+
+export const adminVenues = (root = process.cwd()) => adminVenuesFrom(catalogItems(root));
 ```
 
 Create `src/lib/admin/places.ts`:
@@ -3262,17 +3295,18 @@ import { loadVenue } from '../../src/lib/server/catalog';
 import { georef, planToLatLng } from '../../src/lib/core/geo';
 
 const venue = loadVenue('qsncc-lg-5-8');
-test.skip(!venue.geo, 'qsncc-lg-5-8 has no map pins yet');
 const g = venue.geo ? georef(venue.geo.pins) : null;
 const mrt = venue.landmarks.find((l) => l.id === 'mrt')!;
-const spots = Array.from({ length: 6 }, (_, k) => ({
-  event: 'bkkibf-2026',
-  kind: 'door',
-  place: 'mrt',
-  ...planToLatLng(g!, [mrt.x + 59 + 5 * Math.cos(k), mrt.y + 5 * Math.sin(k)]),
-  accuracy: 8,
-  hour: '2026-03-27T03',
-}));
+const spots = g
+  ? Array.from({ length: 6 }, (_, k) => ({
+      event: 'bkkibf-2026',
+      kind: 'door',
+      place: 'mrt',
+      ...planToLatLng(g, [mrt.x + 59 + 5 * Math.cos(k), mrt.y + 5 * Math.sin(k)]),
+      accuracy: 8,
+      hour: '2026-03-27T03',
+    }))
+  : [];
 
 async function mock(page: Page, signedIn: boolean, list = spots) {
   await page.route(/\/api\/admin\/me$/, (r) => r.fulfill({ json: { signedIn, hasPasskeys: true, passkeys: [] } }));
@@ -3286,7 +3320,15 @@ test('signed out: offers passkey sign-in and set-up', async ({ page }) => {
   await expect(page.getByText('Set up a passkey')).toBeVisible();
 });
 
+test('signed in with no venue pinned yet: says so', async ({ page }) => {
+  test.skip(!!g, 'qsncc-lg-5-8 has map pins');
+  await mock(page, true);
+  await page.goto('/admin/');
+  await expect(page.getByText('No venue has map pins yet.')).toBeVisible();
+});
+
 test('signed in: shows what guests suggest and opens a pull request on Move pin', async ({ page }) => {
+  test.skip(!g, 'qsncc-lg-5-8 has no map pins yet');
   await mock(page, true);
   let posted: unknown = null;
   await page.route(/\/api\/admin\/decisions$/, async (r) => {
@@ -3312,6 +3354,7 @@ test('signed in: shows what guests suggest and opens a pull request on Move pin'
 });
 
 test('Move pin stays off with too few spots and says why', async ({ page }) => {
+  test.skip(!g, 'qsncc-lg-5-8 has no map pins yet');
   await mock(page, true, spots.slice(0, 2));
   await page.goto('/admin/');
   await expect(page.getByRole('button', { name: 'Move pin' })).toBeDisabled();
@@ -3337,7 +3380,7 @@ test.skipIf(!built)('the admin page is not indexed and passkey code stays out of
 - [ ] **Step 7: Run them to see them fail**
 
 Run: `bunx playwright test tests/e2e/admin.e2e.ts --project=desktop`
-Expected: FAIL, because `/admin/` is a 404 page.
+Expected: FAIL, because `/admin/` is a 404 page. On `main` today, the two map tests skip (no pins), so the signed-out and "no venue pinned yet" tests are the ones that run.
 
 - [ ] **Step 8: Build the admin client**
 
@@ -3964,7 +4007,7 @@ Create `src/routes/admin/+page.svelte`:
 - [ ] **Step 9: Run the e2e and build tests**
 
 Run: `bunx playwright test tests/e2e/admin.e2e.ts && bun test tests/build.test.ts`
-Expected: PASS on both projects. The build test finds no WebAuthn code in the event page's chunks.
+Expected: PASS on both projects (map tests skipped while there are no pins). The build test finds no WebAuthn code in the event page's chunks. To run the map tests before measured pins land, use the same temporary `geo` block as in Task 8 step 7 and restore the file afterwards.
 
 - [ ] **Step 10: Run everything**
 
@@ -4106,7 +4149,7 @@ git commit -m "docs: explain guest spots, the admin screen and their setup"
 
 - [ ] **Step 5: Manual check before turning the card on**
 
-On a deploy with the setup done, check each of these and note the result in the PR:
+This needs measured map pins for the venue merged first: on `main` today no venue has `geo`, so neither "Use my location" nor the card nor the admin map appears. On a deploy with pins and the setup done, check each of these and note the result in the PR:
 
 1. `/admin/` on a phone: set up with the code, sign out, sign in with Face ID or Touch ID, add a spare passkey.
 2. Using the same code again is refused.
@@ -4138,8 +4181,8 @@ On a deploy with the setup done, check each of these and note the result in the 
   - `Decision` has the same fields in `admin.ts` (Task 11) and `places.ts` (Task 12).
   - `Ceremonies` (Task 9) is implemented by `webauthn` and by the test fake.
   - `Change.edit` returns `{ text, message }` in both Task 10 and Task 11.
-- `withPins` keeps `venue.json` byte-identical on a round trip and oxfmt-clean after a move. Both were checked against the real `qsncc-lg-5-8` file while writing this plan.
-- Move-check thresholds were checked numerically against the fake pins and the real `qsncc-lg-5-8` pins:
+- `withPins` keeps `venue.json` byte-identical on a round trip and oxfmt-clean after a move. Both were checked against `qsncc-lg-5-8` with the temporary pins it had before plan 1 merged. The tests now use `pinnedVenue()`, plus a round-trip test on the real file that runs once it has pins.
+- Move-check thresholds were checked numerically against `fakePins()` with the real `mrt` landmark (252, 560), which is the setup `pinnedVenue()` gives Tasks 11 and 12:
   - a 6 m move passes
   - a 91 m move fails on fit error
   - the bent-corner and mirrored cases fail as the tests expect
