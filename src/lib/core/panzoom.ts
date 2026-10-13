@@ -1,4 +1,4 @@
-import type { Box, Dest, Rect, RouteOk } from './types';
+import type { Box, Dest, Point, Rect, RouteOk } from './types';
 
 export type VB = { x: number; y: number; w: number; h: number };
 export const MIN_W = 170;
@@ -56,3 +56,17 @@ export function frameTarget(dest: Dest | null, route: RouteOk | null): { box: Bo
   }
   return { box: [x0, y0 - 70, x1, y1], pad: route ? 60 : 160 };
 }
+
+export function unionRect(a: Rect, b: Rect | null): Rect {
+  if (!b) return a;
+  const x = Math.min(a.x, b.x),
+    y = Math.min(a.y, b.y);
+  return { x, y, w: Math.max(a.x + a.w, b.x + b.w) - x, h: Math.max(a.y + a.h, b.y + b.h) - y };
+}
+
+export const boxAround = (ps: Point[]): Box => [
+  Math.min(...ps.map((p) => p[0])),
+  Math.min(...ps.map((p) => p[1])),
+  Math.max(...ps.map((p) => p[0])),
+  Math.max(...ps.map((p) => p[1])),
+];
