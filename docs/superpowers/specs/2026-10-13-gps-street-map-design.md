@@ -12,13 +12,13 @@ Indoors on QSNCC Level LG, phone GPS is off by 20–50 m. Halls 5–8 are about 
 
 ## 2. Decisions
 
-| # | Question | Decision |
-| - | -------- | -------- |
-| 1 | What GPS is for | Outside: street map, walk to the best entrance, hand off to the hall plan at the door (1a). Indoors: one tap "Which hall are you in?" with the GPS guess marked (1b). |
-| 2 | Map facing | The plan stays as printed; the street map is turned to match it (2a). A compass button turns the map with the phone (2c), off by default. |
-| 3 | Map images | A raster tile provider when online (3b). When tiles fail (offline, quota, key refused), fall back to a small bundled street drawing of the area around the venue (3a) with an "Offline map" chip (E). |
-| 4 | Pinning the plan to the Earth | Satellite pins first (4b). Guests improve them later (plan 2). |
-| 5 | Asking for location | Only after the guest taps "Use my location" (5a). If refused, a plain note and the start list (5b). |
+| #   | Question                      | Decision                                                                                                                                                                                              |
+| --- | ----------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 1   | What GPS is for               | Outside: street map, walk to the best entrance, hand off to the hall plan at the door (1a). Indoors: one tap "Which hall are you in?" with the GPS guess marked (1b).                                 |
+| 2   | Map facing                    | The plan stays as printed; the street map is turned to match it (2a). A compass button turns the map with the phone (2c), off by default.                                                             |
+| 3   | Map images                    | A raster tile provider when online (3b). When tiles fail (offline, quota, key refused), fall back to a small bundled street drawing of the area around the venue (3a) with an "Offline map" chip (E). |
+| 4   | Pinning the plan to the Earth | Satellite pins first (4b). Guests improve them later (plan 2).                                                                                                                                        |
+| 5   | Asking for location           | Only after the guest taps "Use my location" (5a). If refused, a plain note and the start list (5b).                                                                                                   |
 
 ## 3. Behaviour
 

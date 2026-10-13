@@ -77,12 +77,14 @@ tests/e2e/locate.e2e.ts
 ### Task 1: Geo core
 
 **Files:**
+
 - Create: `src/lib/core/geo.ts`
 - Modify: `src/lib/core/types.ts` (add types after `Point`)
 - Create: `tests/helpers/fake-geo.ts`
 - Test: `tests/geo.test.ts`
 
 **Interfaces:**
+
 - Consumes: `Point` from `src/lib/core/types.ts`.
 - Produces:
   - types `LatLng = { lat: number; lng: number }`, `GeoPin = { id: string; x: number; y: number; lat: number; lng: number }`, `VenueGeo = { pins: GeoPin[]; entrances: string[] }` in `types.ts`.
@@ -374,12 +376,14 @@ git commit -m "feat(core): fit plan pixels to map coordinates"
 ### Task 2: Map pins on the venue schema
 
 **Files:**
+
 - Modify: `src/lib/core/types.ts` (`Venue` type)
 - Modify: `src/lib/server/schema.ts` (`VenueSchema`)
 - Modify: `tests/schema.test.ts`
 - Modify: `tests/venues.test.ts`
 
 **Interfaces:**
+
 - Consumes: `VenueGeo`, `georef` from Task 1.
 - Produces: `Venue.geo?: VenueGeo`. Schema rule: `geo.pins` has at least 3 items with `lat` in [-85, 85], `lng` in [-180, 180]; `geo.entrances` has at least 1 landmark id.
 
@@ -406,7 +410,9 @@ test('a venue without map pins is still valid', () => {
 });
 
 test('map pins need at least 3 pins and 1 entrance', () => {
-  expect(VenueSchema.safeParse({ ...venueJson(), geo: { pins: fakePins().slice(0, 2), entrances: ['mrt'] } }).success).toBe(false);
+  expect(
+    VenueSchema.safeParse({ ...venueJson(), geo: { pins: fakePins().slice(0, 2), entrances: ['mrt'] } }).success,
+  ).toBe(false);
   expect(VenueSchema.safeParse({ ...venueJson(), geo: { pins: fakePins(), entrances: [] } }).success).toBe(false);
 });
 
@@ -466,16 +472,16 @@ import { georef } from '../src/lib/core/geo';
 and inside the `describe(`venue ${id}`, () => {` block, after the last test, add:
 
 ```ts
-    test.skipIf(!venue.geo)('map pins match the plan', () => {
-      const geo = venue.geo!;
-      const g = georef(geo.pins);
-      expect(g.mirrored).toBe(false);
-      expect(Math.abs(g.mPerPx / venue.metersPerPx - 1)).toBeLessThan(0.05);
-      expect(g.aspect).toBeGreaterThan(0.95);
-      expect(g.skewDeg).toBeLessThan(3);
-      if (geo.pins.length >= 4) expect(g.residualM).toBeLessThan(5);
-      for (const e of geo.entrances) expect(venue.landmarks.some((l) => l.id === e)).toBe(true);
-    });
+test.skipIf(!venue.geo)('map pins match the plan', () => {
+  const geo = venue.geo!;
+  const g = georef(geo.pins);
+  expect(g.mirrored).toBe(false);
+  expect(Math.abs(g.mPerPx / venue.metersPerPx - 1)).toBeLessThan(0.05);
+  expect(g.aspect).toBeGreaterThan(0.95);
+  expect(g.skewDeg).toBeLessThan(3);
+  if (geo.pins.length >= 4) expect(g.residualM).toBeLessThan(5);
+  for (const e of geo.entrances) expect(venue.landmarks.some((l) => l.id === e)).toBe(true);
+});
 ```
 
 - [ ] **Step 6: Run the whole suite**
@@ -497,10 +503,12 @@ git commit -m "feat(venue): accept map pins and street entrances"
 **Needs:** a person, or an agent with the in-app browser. Coordinates must come from a satellite or map view. Never guess them.
 
 **Files:**
+
 - Modify: `venues/qsncc-lg-5-8/venue.json`
 - Modify: `venues/qsncc-lg-5-7/venue.json`
 
 **Interfaces:**
+
 - Consumes: the schema from Task 2 and the check in `tests/venues.test.ts`.
 - Produces: `geo` on both venues. Both venues share one plan coordinate space, so they share the same pins. Entrances: `["mrt", "door5", "door6", "door7", "door8"]` for `qsncc-lg-5-8` and `["mrt", "door5", "door6", "door7"]` for `qsncc-lg-5-7`. `west` is not a street entrance: it opens onto the MRT corridor.
 
@@ -552,10 +560,12 @@ git commit -m "feat(venue): pin the QSNCC LG plans to the map" -m "Pins measured
 ### Task 4: Classify a GPS fix
 
 **Files:**
+
 - Create: `src/lib/core/locate.ts`
 - Test: `tests/locate.test.ts`
 
 **Interfaces:**
+
 - Consumes: `Georef`, `georef`, `latLngToPlan` (Task 1); `pointInPolygon`, `areaAt` from `src/lib/core/geometry.ts`; `EventData`, `Landmark`, `LatLng`, `Point`, `Venue`.
 - Produces:
   - `FAR_M = 1500`, `ARRIVE_M = 30`, `WEAK_M = 100`
@@ -639,7 +649,9 @@ test('pickEntrance ignores entrances with no indoor route, then falls back to di
 test('streetEntrances falls back to every entry landmark when the venue has no pins', () => {
   const plain = loadData(bundle);
   const bare = { ...plain, venue: { ...plain.venue, geo: undefined } };
-  expect(streetEntrances(bare).map((l) => l.id)).toEqual(bare.landmarks.filter((l) => l.group === 'entry').map((l) => l.id));
+  expect(streetEntrances(bare).map((l) => l.id)).toEqual(
+    bare.landmarks.filter((l) => l.group === 'entry').map((l) => l.id),
+  );
 });
 
 test('hallChoices offers the guess and its neighbours, or every hall', () => {
@@ -746,10 +758,12 @@ git commit -m "feat(core): classify a GPS fix against the venue"
 ### Task 5: Compass maths
 
 **Files:**
+
 - Create: `src/lib/core/compass.ts`
 - Test: `tests/compass.test.ts`
 
 **Interfaces:**
+
 - Consumes: `norm360` from Task 1.
 - Produces: `norm180(d)`, `turnAngle(northDeg, heading)`, `smoothAngle(prev: number | null, next: number, k?)`, `headingFrom(e: { webkitCompassHeading?: number | null; alpha: number | null; absolute?: boolean }, screenAngle?): number | null`.
   - `turnAngle` is the SVG `rotate()` in degrees that makes the direction the guest faces point up. `northDeg` is where north points on the plan, clockwise from plan-up.
@@ -838,6 +852,7 @@ git commit -m "feat(core): turn the map to the way the guest faces"
 ### Task 6: Bundled street drawing (code)
 
 **Files:**
+
 - Modify: `src/lib/core/types.ts` (add `SHAPE_KINDS`, `ShapeKind`, `Surroundings`)
 - Modify: `src/lib/server/schema.ts` (add `SurroundingsSchema`)
 - Modify: `src/lib/server/catalog.ts` (add `surroundingsPath`, `loadSurroundings`)
@@ -848,6 +863,7 @@ git commit -m "feat(core): turn the map to the way the guest faces"
 - Test: `tests/surroundings.test.ts`, `tests/venues.test.ts`, `tests/build.test.ts`
 
 **Interfaces:**
+
 - Consumes: `georef`, `latLngToPlan`, `planToLatLng`, `Georef` (Task 1); `Venue`, `Box`, `I18n`, `Point`.
 - Produces:
   - `SHAPE_KINDS = ['park', 'water', 'building', 'road', 'path'] as const`, `ShapeKind`, `Surroundings = { credit: string; bounds: Box; shapes: { kind: ShapeKind; d: string; w?: number }[]; labels: { x: number; y: number; text: I18n; size: number }[] }` in `types.ts`. `d` is an SVG path in plan pixels made of `M x yLx y…Z` with integers. `w` is the stroke width in plan pixels for roads and paths.
@@ -936,15 +952,29 @@ test('osmToSurroundings projects, orders, sizes and labels', () => {
   const els: OsmElement[] = [
     {
       type: 'way',
-      tags: { highway: 'primary', name: 'Ratchadaphisek', 'name:th': 'ถนนรัชดาภิเษก', 'name:en': 'Ratchadaphisek Road' },
+      tags: {
+        highway: 'primary',
+        name: 'Ratchadaphisek',
+        'name:th': 'ถนนรัชดาภิเษก',
+        'name:en': 'Ratchadaphisek Road',
+      },
       geometry: [at(-500, 0), at(-500, 1000)],
     },
     {
       type: 'way',
-      tags: { highway: 'primary', name: 'Ratchadaphisek', 'name:th': 'ถนนรัชดาภิเษก', 'name:en': 'Ratchadaphisek Road' },
+      tags: {
+        highway: 'primary',
+        name: 'Ratchadaphisek',
+        'name:th': 'ถนนรัชดาภิเษก',
+        'name:en': 'Ratchadaphisek Road',
+      },
       geometry: [at(-500, 1000), at(-500, 3000)],
     },
-    { type: 'way', tags: { building: 'yes' }, geometry: [at(9000, 9000), at(9100, 9000), at(9100, 9100), at(9000, 9000)] },
+    {
+      type: 'way',
+      tags: { building: 'yes' },
+      geometry: [at(9000, 9000), at(9100, 9000), at(9100, 9100), at(9000, 9000)],
+    },
     {
       type: 'relation',
       tags: { natural: 'water', name: 'Lake', 'name:en': 'Benjakitti Lake' },
@@ -1160,7 +1190,11 @@ export function osmToSurroundings(els: OsmElement[], g: Georef, bounds: Box, mPe
     const line = kind === 'road' || kind === 'path';
     const geoms =
       el.type === 'relation'
-        ? stitch((el.members ?? []).filter((m) => m.geometry && (m.role === 'outer' || m.role === 'inner')).map((m) => m.geometry!))
+        ? stitch(
+            (el.members ?? [])
+              .filter((m) => m.geometry && (m.role === 'outer' || m.role === 'inner'))
+              .map((m) => m.geometry!),
+          )
         : el.geometry
           ? [el.geometry]
           : [];
@@ -1171,7 +1205,12 @@ export function osmToSurroundings(els: OsmElement[], g: Georef, bounds: Box, mPe
     const text = nameOf(tags);
     if (!text || kind === 'building' || kind === 'path') continue;
     if (!line)
-      labels.push({ x: Math.round(avg(rings[0], 0)), y: Math.round(avg(rings[0], 1)), text, size: Math.round(7 / mPerPx) });
+      labels.push({
+        x: Math.round(avg(rings[0], 0)),
+        y: Math.round(avg(rings[0], 1)),
+        text,
+        size: Math.round(7 / mPerPx),
+      });
     else if (ROAD_M[tags.highway] >= LABEL_ROAD_M) {
       const len = lengthOf(rings[0]),
         prev = roads.get(text.en);
@@ -1267,7 +1306,9 @@ export async function surroundings(id: string) {
   const out = osmToSurroundings((await res.json()).elements, g, bounds, venue.metersPerPx);
   const path = join('venues', id, 'surroundings.json');
   writeFileSync(path, stringifyJson(out));
-  console.log(`${out.shapes.length} shapes and ${out.labels.length} labels, ${Math.round(statSync(path).size / 1024)} KB, written to ${path}`);
+  console.log(
+    `${out.shapes.length} shapes and ${out.labels.length} labels, ${Math.round(statSync(path).size / 1024)} KB, written to ${path}`,
+  );
 }
 ```
 
@@ -1293,14 +1334,14 @@ import { loadSurroundings, surroundingsPath } from '../src/lib/server/catalog';
 and inside the venue `describe`, add:
 
 ```ts
-    test.skipIf(!existsSync(surroundingsPath(id)))('street drawing covers the plan and stays small', () => {
-      const s = loadSurroundings(id)!;
-      const [x0, y0, x1, y1] = s.bounds,
-        v = venue.view;
-      expect(x0 <= v.x && y0 <= v.y && x1 >= v.x + v.w && y1 >= v.y + v.h).toBe(true);
-      expect(s.shapes.length).toBeGreaterThan(0);
-      expect(statSync(surroundingsPath(id)).size).toBeLessThanOrEqual(150_000);
-    });
+test.skipIf(!existsSync(surroundingsPath(id)))('street drawing covers the plan and stays small', () => {
+  const s = loadSurroundings(id)!;
+  const [x0, y0, x1, y1] = s.bounds,
+    v = venue.view;
+  expect(x0 <= v.x && y0 <= v.y && x1 >= v.x + v.w && y1 >= v.y + v.h).toBe(true);
+  expect(s.shapes.length).toBeGreaterThan(0);
+  expect(statSync(surroundingsPath(id)).size).toBeLessThanOrEqual(150_000);
+});
 ```
 
 In `tests/build.test.ts`, add:
@@ -1333,6 +1374,7 @@ git commit -m "feat(pipeline): draw the streets around a venue from OpenStreetMa
 **Needs:** network access to overpass-api.de. Depends on Task 3.
 
 **Files:**
+
 - Create: `venues/qsncc-lg-5-8/surroundings.json`
 - Create: `venues/qsncc-lg-5-7/surroundings.json`
 
@@ -1363,11 +1405,13 @@ git commit -m "feat(venue): add the street drawing around QSNCC"
 ### Task 8: Viewport bounds, view hook and framing a box
 
 **Files:**
+
 - Modify: `src/lib/core/panzoom.ts` (add `unionRect`, `boxAround`)
 - Modify: `src/lib/map/viewport.ts` (full replacement below)
 - Test: `tests/panzoom.test.ts`
 
 **Interfaces:**
+
 - Consumes: `Rect`, `Box`, `Point` from `types.ts`.
 - Produces:
   - `unionRect(a: Rect, b: Rect | null): Rect`, `boxAround(ps: Point[]): Box` in `panzoom.ts`.
@@ -1646,6 +1690,7 @@ git commit -m "feat(map): let the viewport report its view and pan beyond the pl
 ### Task 9: Street and position layers, strings and styles
 
 **Files:**
+
 - Create: `src/lib/map/tiles.ts`, `src/lib/map/tileConfig.ts`, `src/lib/map/street.ts`
 - Create: `src/lib/map/StreetLayer.svelte`, `src/lib/map/YouLayer.svelte`
 - Modify: `src/lib/map/FloorMap.svelte` (full replacement)
@@ -1654,6 +1699,7 @@ git commit -m "feat(map): let the viewport report its view and pan beyond the pl
 - Test: `tests/tiles.test.ts`
 
 **Interfaces:**
+
 - Consumes: `Georef`, `FIT_Z`, `TILE`, `apply`, `latLngOf`, `latLngToPlan` (Task 1); `VB` (panzoom); `ViewportHooks`, `setBounds`, `frameBox` (Task 8); `Surroundings` (Task 6).
 - Produces:
   - `tiles.ts`: `MIN_TILE_Z = 13`, `MAX_TILE_Z = 19`, `MAX_TILES = 48`, `tileZoom(g, pxPerUnit): number`, `visibleTiles(vb, g, z, max?): { origin: Point; tiles: { x: number; y: number }[] }`, `tileMatrix(g, z, origin: Point): Affine`, `tileHref(tpl, z, x, y): string`.
@@ -1795,27 +1841,27 @@ export type CompassView = { on: boolean; northDeg: number; toggle: () => void };
 In `src/lib/i18n/strings.ts`, add to the `Strings` type after `floorPlan: string;`:
 
 ```ts
-  useLocation: string;
-  useLocationHint: string;
-  locating: string;
-  stopLocating: string;
-  locOff: string;
-  locUnavailable: string;
-  locWeak: string;
-  locFar: (km: number) => string;
-  walkTo: (n: string) => string;
-  thenInside: (m: number) => string;
-  imInside: string;
-  arrived: (n: string) => string;
-  whichHall: string;
-  hallHint: string;
-  gpsGuess: string;
-  pickFromList: string;
-  turnWithMe: string;
-  stopTurning: string;
-  compassOff: string;
-  offlineMap: string;
-  you: string;
+useLocation: string;
+useLocationHint: string;
+locating: string;
+stopLocating: string;
+locOff: string;
+locUnavailable: string;
+locWeak: string;
+locFar: (km: number) => string;
+walkTo: (n: string) => string;
+thenInside: (m: number) => string;
+imInside: string;
+arrived: (n: string) => string;
+whichHall: string;
+hallHint: string;
+gpsGuess: string;
+pickFromList: string;
+turnWithMe: string;
+stopTurning: string;
+compassOff: string;
+offlineMap: string;
+you: string;
 ```
 
 In `STRINGS.th`, after `floorPlan: 'ผังงาน',` add:
@@ -2123,29 +2169,29 @@ Expected: PASS.
 In `src/lib/styles/app.css`, in the bare `:root` block, after `--focus: #2f7fd1;` add:
 
 ```css
-  --s-ground: #f2efe9;
-  --s-water: #aad3df;
-  --s-park: #c8facc;
-  --s-building: #d9d0c9;
-  --s-road: #ffffff;
-  --s-path: #e8e2d6;
-  --s-label: #4a4a4a;
-  --you: #2f7fd1;
-  --tiles: 1;
+--s-ground: #f2efe9;
+--s-water: #aad3df;
+--s-park: #c8facc;
+--s-building: #d9d0c9;
+--s-road: #ffffff;
+--s-path: #e8e2d6;
+--s-label: #4a4a4a;
+--you: #2f7fd1;
+--tiles: 1;
 ```
 
 In both dark blocks (`@media (prefers-color-scheme: dark) { :root:not([data-theme='light']) {` and `:root[data-theme='dark'] {`), after `--focus: #6aa8ff;` add:
 
 ```css
-    --s-ground: #141d33;
-    --s-water: #1f3a52;
-    --s-park: #1c3328;
-    --s-building: #2a3552;
-    --s-road: #3a4668;
-    --s-path: #2f3a58;
-    --s-label: #c9d4ee;
-    --you: #6aa8ff;
-    --tiles: 0.7;
+--s-ground: #141d33;
+--s-water: #1f3a52;
+--s-park: #1c3328;
+--s-building: #2a3552;
+--s-road: #3a4668;
+--s-path: #2f3a58;
+--s-label: #c9d4ee;
+--you: #6aa8ff;
+--tiles: 0.7;
 ```
 
 Append to the end of `src/lib/styles/app.css`:
@@ -2280,6 +2326,7 @@ git commit -m "feat(map): draw the street map and the guest's position in plan s
 ### Task 10: Use my location, outdoor leg, hand-off and hall check
 
 **Files:**
+
 - Create: `src/lib/ui/locate.ts`, `src/lib/ui/locator.svelte.ts`
 - Create: `src/lib/ui/OutdoorLeg.svelte`, `src/lib/ui/HallConfirm.svelte`, `src/lib/ui/MapBanner.svelte`
 - Modify: `src/lib/ui/finder.svelte.ts`
@@ -2291,6 +2338,7 @@ git commit -m "feat(map): draw the street map and the guest's position in plan s
 - Test: `tests/e2e/locate.e2e.ts`
 
 **Interfaces:**
+
 - Consumes: `classify`, `hallChoices`, `hallStart`, `Fix`, `Where` (Task 4); `georef` (Task 1); `boxAround` (Task 8); `FloorMap` props and exports (Task 9); `TILE_URL`, `TILE_CREDIT`; strings from Task 9.
 - Produces:
   - `src/lib/ui/locate.ts`: `LocState = 'idle' | 'asking' | 'on' | 'denied' | 'unavailable'`; `LocView = { state; weak: boolean; farKm: number | null; outside: { entrance: Landmark; meters: number; minutes: number; inside: number | null } | null; hall: { choices: string[]; guess: string | null } | null; onStart(); onStop(); onInside(); onHall(id: string); onList() }`.
@@ -2334,7 +2382,13 @@ const PNG = Buffer.from(
 
 test.skip(!g, 'qsncc-lg-5-8 has no map pins yet');
 
-async function open(context: BrowserContext, page: import('@playwright/test').Page, x: number, y: number, accuracy = 15) {
+async function open(
+  context: BrowserContext,
+  page: import('@playwright/test').Page,
+  x: number,
+  y: number,
+  accuracy = 15,
+) {
   await context.grantPermissions(['geolocation']);
   await context.setGeolocation(at(x, y, accuracy));
   await page.goto('/e/bkkibf-2026/#to=A42');
@@ -3145,9 +3199,11 @@ git commit -m "feat(app): walk guests to the best entrance and hand off to the h
 ### Task 11: Compass button behaviour
 
 **Files:**
+
 - Test: `tests/e2e/locate.e2e.ts` (append)
 
 **Interfaces:**
+
 - Consumes: `CompassView` wired in Task 10; `turnAngle`, `headingFrom`, `smoothAngle` (Task 5).
 - Produces: nothing new. This task proves the button appears only on the street map, toggles, and that dragging turns it off.
 
@@ -3204,6 +3260,7 @@ git commit -m "test(app): cover the compass button on the street map"
 ### Task 12: Handover notes
 
 **Files:**
+
 - Modify: `CLAUDE.md`
 - Modify: `README.md`
 
