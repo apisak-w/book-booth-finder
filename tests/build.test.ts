@@ -31,3 +31,8 @@ test.skipIf(!built)('each venue street drawing is published', () => {
   for (const id of listVenueIds().filter((v) => existsSync(surroundingsPath(v))))
     expect(existsSync(`_site/v/${id}/surroundings.json`)).toBe(true);
 });
+
+test.skipIf(!built)('the spots config is published', () => {
+  const cfg = JSON.parse(readFileSync('_site/spots-config.json', 'utf8'));
+  expect(Object.keys(cfg).sort()).toEqual(['events', 'venues']);
+});
