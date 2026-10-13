@@ -40,3 +40,17 @@ function sorted(v: unknown): unknown {
 }
 
 export const canonical = (value: unknown) => JSON.stringify(sorted(value));
+
+export function orderLike(value: unknown, like: unknown): unknown {
+  if (Array.isArray(value)) {
+    const tpl = Array.isArray(like) ? like : [];
+    return value.map((v, i) => orderLike(v, tpl[i] ?? tpl[0]));
+  }
+  if (value && typeof value === 'object') {
+    const v = value as Record<string, unknown>;
+    const t = like && typeof like === 'object' && !Array.isArray(like) ? (like as Record<string, unknown>) : {};
+    const keys = [...Object.keys(t).filter((k) => k in v), ...Object.keys(v).filter((k) => !(k in t))];
+    return Object.fromEntries(keys.map((k) => [k, orderLike(v[k], t[k])]));
+  }
+  return value;
+}

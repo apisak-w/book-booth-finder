@@ -1,4 +1,4 @@
-import { canonical, formatVenueJson } from '../core/jsonFormat';
+import { canonical, formatVenueJson, orderLike } from '../core/jsonFormat';
 import type { EventFile, I18n, Venue } from '../core/types';
 import { venueEditProblems, type EventRef } from '../core/venueChecks';
 import { diffVenue } from '../core/venueEdit';
@@ -86,7 +86,7 @@ export async function saveVenue(g: GitHub, id: string, body: Record<string, unkn
       const changes = diffVenue(base, next);
       if (!changes.length) throw new Refused('Nothing changed');
       return {
-        text: formatVenueJson(next),
+        text: formatVenueJson(orderLike(next, base)),
         message: `fix(venue): edit ${id} from the admin\n\n${changes.map((c) => `- ${c}`).join('\n')}`,
       };
     },

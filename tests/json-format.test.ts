@@ -1,6 +1,6 @@
 import { test, expect } from 'bun:test';
 import { readFileSync } from 'node:fs';
-import { canonical, formatVenueJson } from '../src/lib/core/jsonFormat';
+import { canonical, formatVenueJson, orderLike } from '../src/lib/core/jsonFormat';
 import { pinnedVenue } from './helpers/pinned-venue';
 
 const files = [
@@ -44,4 +44,20 @@ test('a pinned venue writes its pins expanded and its entrances on one line', ()
 test('canonical ignores key order but not content', () => {
   expect(canonical({ b: 1, a: [{ y: 2, x: 1 }] })).toBe(canonical({ a: [{ x: 1, y: 2 }], b: 1 }));
   expect(canonical({ a: 1 })).not.toBe(canonical({ a: 2 }));
+});
+
+test('orderLike puts keys back in the order of the file, new keys last', () => {
+  const like = { a: 1, list: [{ id: 'x', n: 1 }], z: 0 };
+  const value = {
+    z: 0,
+    extra: true,
+    list: [
+      { n: 2, id: 'y' },
+      { n: 3, id: 'z' },
+    ],
+    a: 1,
+  };
+  expect(JSON.stringify(orderLike(value, like))).toBe(
+    '{"a":1,"list":[{"id":"y","n":2},{"id":"z","n":3}],"z":0,"extra":true}',
+  );
 });

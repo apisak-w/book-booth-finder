@@ -124,6 +124,24 @@ test('saving commits the formatted venue to admin/<id> and opens a PR', async ()
   });
 });
 
+test('a save keeps the file key order even when the editor sends keys in another order', async () => {
+  const next = addLandmark(base, { group: 'wc', icon: 'wc', th: 'ห้องน้ำ', en: 'Toilets, Hall 9', x: 1200, y: 700 }, [
+    'info1',
+  ]).venue;
+  const shuffled = {
+    ...Object.fromEntries(Object.entries(next).reverse()),
+    landmarks: next.landmarks.map((l) => Object.fromEntries(Object.entries(l).reverse())),
+  };
+  const r = await call('POST', 'venue/save', {
+    id: 'qsncc-lg-5-8',
+    venue: shuffled,
+    sha: 'sha-venues/qsncc-lg-5-8/venue.json',
+  });
+  expect(r.status).toBe(200);
+  const put = repo.calls.find((c) => c.method === 'PUT')!;
+  expect(fromBase64(put.body!.content as string)).toBe(formatVenueJson(next));
+});
+
 test('a stale copy, a refused change, an unknown field or no change writes nothing', async () => {
   const stale = await save(base, 'older');
   expect(stale.status).toBe(409);
