@@ -84,7 +84,18 @@
       onSetUp={(code, name) => run(async () => { await setUp(code, name); await load(); })}
     />
   {:else if tab === 'venues'}
-    <VenuesTab venues={venueList} onOpen={openVenue} />
+    <VenuesTab
+      venues={venueList}
+      {open}
+      onOpen={openVenue}
+      onClose={() => (open = null)}
+      onSaved={(m, l) => {
+        done(m, l);
+        getVenues()
+          .then((r) => (venueList = r.venues))
+          .catch(() => {});
+      }}
+    />
   {:else}
     <SpotsTab {venues} {venueList} {busy} {run} onDone={done} onAddPins={(id) => openVenue(id, 'pins')} />
   {/if}

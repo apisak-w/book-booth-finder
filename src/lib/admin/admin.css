@@ -494,3 +494,249 @@
   flex-direction: column;
   min-width: 0;
 }
+
+.editor {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  min-height: 0;
+}
+.editor-bar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 16px;
+  border-bottom: 1px solid var(--line);
+}
+.editor-bar b {
+  font-family: Mitr, sans-serif;
+  font-weight: 500;
+  font-size: 17px;
+}
+.editor-bar .btn[aria-pressed='true'] {
+  background: var(--chip);
+  border-color: var(--ink);
+}
+.editor-ref {
+  margin-right: auto;
+  font-size: 13px;
+  color: var(--muted);
+}
+.editor-note,
+.editor-error {
+  margin: 0;
+  padding: 8px 16px;
+  font-size: 13px;
+}
+.editor-note {
+  background: var(--chip);
+}
+.editor-error {
+  background: rgba(179, 38, 30, 0.1);
+  color: #b3261e;
+  font-weight: 600;
+}
+.editor-problems {
+  margin: 0;
+  padding: 8px 16px 8px 34px;
+  font-size: 13px;
+  color: #b3261e;
+}
+.editor-body {
+  display: grid;
+  flex: 1;
+  grid-template-columns: minmax(0, 1fr) 300px;
+  min-height: 0;
+}
+.editor-plan {
+  position: relative;
+  min-height: 420px;
+  background: var(--outside);
+}
+.plan-canvas {
+  display: block;
+  width: 100%;
+  height: 100%;
+  min-height: 420px;
+  touch-action: none;
+}
+.plan-canvas.picking {
+  cursor: crosshair;
+}
+.editor-opacity {
+  position: absolute;
+  left: 12px;
+  bottom: 12px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 10px;
+  border-radius: 8px;
+  background: var(--panel);
+  font-size: 12px;
+}
+.pc-ground {
+  fill: var(--outside);
+}
+.pc-wall {
+  fill: var(--floor);
+  fill-opacity: 0.55;
+  stroke: var(--wall);
+  stroke-width: 4;
+}
+.pc-area {
+  font:
+    600 40px Mitr,
+    sans-serif;
+  fill: var(--ink);
+  fill-opacity: 0.35;
+  text-anchor: middle;
+}
+.pc-door {
+  fill: var(--sun);
+  fill-opacity: 0.7;
+}
+.pc-catch {
+  fill: transparent;
+}
+.pc-lm circle {
+  fill: var(--panel);
+  stroke: var(--ink);
+  stroke-width: 3;
+}
+.pc-lm text {
+  font:
+    600 20px Mitr,
+    sans-serif;
+  fill: var(--ink);
+  text-anchor: middle;
+  pointer-events: none;
+}
+.pc-lm.sel circle {
+  stroke: var(--blue);
+  stroke-width: 6;
+}
+.pc-lm.bad circle {
+  stroke: #b3261e;
+  stroke-width: 6;
+}
+.pc-lm:not(.door) {
+  cursor: grab;
+}
+.pc-pin circle,
+.pc-pending {
+  fill: var(--sun);
+  stroke: var(--ink);
+  stroke-width: 3;
+}
+.pc-pending {
+  fill-opacity: 0.5;
+  stroke-dasharray: 6 4;
+}
+.pc-pin text {
+  font:
+    600 20px Mitr,
+    sans-serif;
+  fill: var(--ink);
+  text-anchor: middle;
+  pointer-events: none;
+}
+.editor-side {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 16px;
+  border-left: 1px solid var(--line);
+  overflow-y: auto;
+}
+.lm-panel {
+  display: grid;
+  gap: 10px;
+}
+.lm-head {
+  display: flex;
+  flex-direction: column;
+}
+.lm-head b {
+  font-family: Mitr, sans-serif;
+  font-weight: 500;
+  font-size: 17px;
+}
+.lm-head span,
+.lm-note {
+  font-size: 12.5px;
+  color: var(--muted);
+}
+.lm-panel label {
+  display: grid;
+  gap: 4px;
+  font-size: 13px;
+  font-weight: 600;
+}
+.lm-panel input:not([type='checkbox']),
+.lm-panel select {
+  min-height: 38px;
+  padding: 0 10px;
+  border: 1.5px solid var(--line);
+  border-radius: 10px;
+  background: var(--panel);
+  color: var(--text);
+  font: inherit;
+  font-weight: 400;
+}
+.lm-panel .lm-check {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.save-scrim {
+  position: fixed;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  padding: 16px;
+  background: rgba(19, 48, 107, 0.35);
+}
+.save-dialog {
+  display: grid;
+  gap: 12px;
+  width: min(100%, 460px);
+  padding: 20px;
+  border-radius: 16px;
+  background: var(--panel);
+  box-shadow: 0 12px 30px rgba(19, 48, 107, 0.25);
+}
+.save-dialog h2 {
+  margin: 0;
+  font-family: Mitr, sans-serif;
+  font-weight: 500;
+  font-size: 19px;
+}
+.save-dialog ul {
+  margin: 0;
+  padding-left: 18px;
+  font-size: 14px;
+}
+.save-btns {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+}
+.linkish {
+  border: 0;
+  background: none;
+  color: var(--blue);
+  font: inherit;
+  font-weight: 600;
+  cursor: pointer;
+}
+@media (max-width: 899px) {
+  .editor-body {
+    grid-template-columns: 1fr;
+  }
+  .editor-side {
+    border-left: 0;
+    border-top: 1px solid var(--line);
+  }
+}
