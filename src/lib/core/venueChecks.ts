@@ -21,6 +21,7 @@ export const LOCKED_FIELDS = [
   'outside',
   'doors',
   'depth',
+  'origin',
 ] as const;
 
 export function venueEditProblems(base: Venue, next: Venue, events: EventRef[]): string[] {
@@ -37,6 +38,7 @@ export function venueEditProblems(base: Venue, next: Venue, events: EventRef[]):
     if (why.length) out.push(`${l.id} can't be deleted: ${why.join('; ')}`);
   }
   for (const l of next.landmarks) {
+    if (!l.th.trim() || !l.en.trim()) out.push(`${l.id} needs a name in Thai and English`);
     const b = base.landmarks.find((x) => x.id === l.id);
     if (b && isDoor(base, l.id) && (b.x !== l.x || b.y !== l.y)) out.push(`${l.id} is a door and can't move`);
     if (!b) {

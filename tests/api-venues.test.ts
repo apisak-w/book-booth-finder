@@ -159,6 +159,31 @@ test('a stale copy, a refused change, an unknown field or no change writes nothi
   expect(repo.calls.filter((c) => c.method !== 'GET')).toEqual([]);
 });
 
+test('an empty sha, a new starting point or a blank name is refused before any write', async () => {
+  const empty = await save(base, '');
+  expect(empty.status).toBe(409);
+  expect((await empty.json()).error).toBe('Reload the venue, then save again');
+  const origin = await save({ ...base, origin: 'wc1' });
+  expect((await origin.json()).error).toContain("origin can't be changed in the admin yet");
+  const blank = await save({
+    ...base,
+    landmarks: base.landmarks.map((l) => (l.id === 'wc1' ? { ...l, en: '   ' } : l)),
+  });
+  expect((await blank.json()).error).toContain('wc1 needs a name in Thai and English');
+  expect(repo.calls.filter((c) => c.method !== 'GET')).toEqual([]);
+});
+
+test('a venue file without gridCell can still be saved', async () => {
+  const { gridCell: _gridCell, ...noGrid } = base;
+  repo = fakeRepo({ ...files, 'venues/qsncc-lg-5-8/venue.json': formatVenueJson(noGrid) });
+  const next = {
+    ...noGrid,
+    landmarks: noGrid.landmarks.map((l) => (l.id === 'wc1' ? { ...l, en: 'Toilets by Hall 5' } : l)),
+  };
+  const r = await save(next);
+  expect(await r.json()).toEqual({ pr: 'https://github.com/apisak-w/book-booth-finder/pull/10' });
+});
+
 test('without GitHub settings the venue routes say what to set', async () => {
   const r = await handleAdmin(new Request(`${ORIGIN}/api/admin/venues`, { headers: { cookie } }), env, {
     ...deps(),

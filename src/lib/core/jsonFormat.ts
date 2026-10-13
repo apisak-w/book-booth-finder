@@ -54,3 +54,13 @@ export function orderLike(value: unknown, like: unknown): unknown {
   }
   return value;
 }
+
+export function hasUnknownKeys(input: unknown, known: unknown): boolean {
+  if (Array.isArray(input)) return !Array.isArray(known) || input.some((v, i) => hasUnknownKeys(v, known[i]));
+  if (input && typeof input === 'object') {
+    if (!known || typeof known !== 'object' || Array.isArray(known)) return true;
+    const k = known as Record<string, unknown>;
+    return Object.entries(input).some(([key, v]) => !(key in k) || hasUnknownKeys(v, k[key]));
+  }
+  return false;
+}

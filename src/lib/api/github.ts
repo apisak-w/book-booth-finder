@@ -102,7 +102,7 @@ export async function proposeChange(g: GitHub, c: Change): Promise<string> {
     'GET',
     `/contents/${c.path}?ref=${encodeURIComponent(ref)}`,
   ))!;
-  if (c.expectSha && file.sha !== c.expectSha)
+  if (c.expectSha !== undefined && file.sha !== c.expectSha)
     throw new GitHubConflict('This venue changed since you opened it. Reload, then save again');
   const next = c.edit(fromBase64(file.content));
   if (!pr) {

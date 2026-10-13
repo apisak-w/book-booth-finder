@@ -1,4 +1,4 @@
-import { canonical, formatVenueJson, orderLike } from '../core/jsonFormat';
+import { formatVenueJson, hasUnknownKeys, orderLike } from '../core/jsonFormat';
 import type { EventFile, I18n, Venue } from '../core/types';
 import { venueEditProblems, type EventRef } from '../core/venueChecks';
 import { diffVenue } from '../core/venueEdit';
@@ -67,9 +67,9 @@ export async function venueReference(g: GitHub, id: string) {
 export async function saveVenue(g: GitHub, id: string, body: Record<string, unknown>): Promise<string> {
   const parsed = VenueSchema.safeParse(body.venue);
   if (!parsed.success) throw new Refused(formatIssues(parsed.error));
-  if (canonical(parsed.data) !== canonical(body.venue))
+  if (hasUnknownKeys(body.venue, parsed.data))
     throw new Refused("The venue has fields the admin doesn't know. Reload, then try again");
-  if (typeof body.sha !== 'string') throw new Refused('Reload the venue, then save again');
+  if (typeof body.sha !== 'string' || !body.sha) throw new Refused('Reload the venue, then save again');
   const next = body.venue as Venue;
   const { ref } = await refFor(g, id);
   const events = await eventRefs(g, id, ref);
