@@ -61,10 +61,11 @@ test('each filter leaves out its spots, and turning it off lets them back in', (
   expect(reviewDoor([late, stray], pin, { ...ALL_FILTERS, eventDays: false }, days).good).toEqual([late, stray]);
 });
 
-test('kept shows until a newer spot arrives', () => {
+test('kept shows right after Keep and until a spot from a later hour arrives', () => {
   const r = reviewDoor(ring(mrt.x + 100, mrt.y), pin, ALL_FILTERS, days);
   expect(doorStatus(r, '2026-10-16T05:00:00.000Z')).toBe('kept');
-  expect(doorStatus(r, '2026-10-16T03:30:00.000Z')).toBe('move');
+  expect(doorStatus(r, '2026-10-16T03:30:00.000Z')).toBe('kept');
+  expect(doorStatus(r, '2026-10-16T02:59:00.000Z')).toBe('move');
   expect(doorStatus(r, null)).toBe('move');
 });
 

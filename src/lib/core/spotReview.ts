@@ -67,7 +67,7 @@ export function reviewDoor(spots: StoredSpot[], pin: LatLng, filters: Filters, d
 
 export function doorStatus(r: PlaceReview, keptAt: string | null): DoorStatus {
   const all = [...r.good, ...r.left];
-  return keptAt && all.every((s) => `${s.hour}:59:59.999Z` < keptAt) ? 'kept' : r.status;
+  return keptAt && all.every((s) => s.hour <= keptAt.slice(0, 13)) ? 'kept' : r.status;
 }
 
 export function movePin(pins: GeoPin[], p: PinPlace, to: LatLng): GeoPin[] {
