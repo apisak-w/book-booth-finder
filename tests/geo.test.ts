@@ -6,8 +6,10 @@ import {
   invert,
   latLngOf,
   latLngToPlan,
+  metersBetween,
   metersPerWorldPx,
   norm360,
+  pinProblems,
   planToLatLng,
   worldPx,
   type Affine,
@@ -91,4 +93,20 @@ test('latLngToPlan and planToLatLng round trip through the pins', () => {
 test('norm360 wraps any angle into [0, 360)', () => {
   expect(norm360(-90)).toBe(270);
   expect(norm360(720)).toBe(0);
+});
+
+test('metersBetween measures short distances on the ground', () => {
+  expect(metersBetween(fakeLatLng(1400, 900), fakeLatLng(1500, 900))).toBeCloseTo(100 * M, 1);
+  expect(metersBetween(fakeLatLng(1400, 900), fakeLatLng(1400, 1000))).toBeCloseTo(100 * M, 1);
+});
+
+test('pinProblems passes a clean fit and names what is wrong', () => {
+  expect(pinProblems(fakePins(), M)).toEqual([]);
+  expect(pinProblems(fakePins().slice(0, 2), M)).toEqual(['needs at least 3 map pins']);
+  expect(pinProblems(fakePins(), M * 1.2).some((p) => p.startsWith('scale is'))).toBe(true);
+  const mirrored = fakePins().map((p) => ({ ...p, x: 2800 - p.x }));
+  expect(pinProblems(mirrored, M)).toContain('the fit is mirrored');
+  const bent = fakePins();
+  bent[2] = { ...bent[2], ...fakeLatLng(bent[2].x + 400, bent[2].y) };
+  expect(pinProblems(bent, M).some((p) => p.startsWith('fit error'))).toBe(true);
 });

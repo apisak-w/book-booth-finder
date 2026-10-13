@@ -112,3 +112,23 @@ export function georef(pins: GeoPin[]): Georef {
 
 export const latLngToPlan = (g: Georef, ll: LatLng): Point => apply(g.toPlan, worldPx(ll.lat, ll.lng));
 export const planToLatLng = (g: Georef, p: Point): LatLng => latLngOf(apply(g.toWorld, p));
+
+const M_PER_DEG = (2 * Math.PI * R) / 360;
+
+export function metersBetween(a: LatLng, b: LatLng): number {
+  const k = Math.cos(rad((a.lat + b.lat) / 2));
+  return Math.hypot((b.lat - a.lat) * M_PER_DEG, (b.lng - a.lng) * M_PER_DEG * k);
+}
+
+export function pinProblems(pins: GeoPin[], metersPerPx: number): string[] {
+  if (pins.length < 3) return ['needs at least 3 map pins'];
+  const g = georef(pins),
+    out: string[] = [];
+  const off = g.mPerPx / metersPerPx - 1;
+  if (g.mirrored) out.push('the fit is mirrored');
+  if (Math.abs(off) >= 0.05) out.push(`scale is ${(off * 100).toFixed(1)}% off metersPerPx`);
+  if (g.aspect <= 0.95) out.push(`the fit is stretched (aspect ${g.aspect.toFixed(3)})`);
+  if (g.skewDeg >= 3) out.push(`the fit is skewed by ${g.skewDeg.toFixed(1)}°`);
+  if (pins.length >= 4 && g.residualM >= 5) out.push(`fit error is ${g.residualM.toFixed(1)} m`);
+  return out;
+}
