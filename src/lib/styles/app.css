@@ -1103,3 +1103,26 @@ h2.sec.gap {
   font-weight: 600;
   box-shadow: 0 3px 12px rgba(19, 48, 107, 0.3);
 }
+
+.keep {
+  max-width: 640px;
+  margin: 0 auto;
+  padding: 20px 16px 48px;
+  color: var(--text);
+  line-height: 1.6;
+}
+.keep h1 {
+  margin: 0 0 12px;
+  font-family: Mitr, sans-serif;
+  font-weight: 500;
+  font-size: 24px;
+}
+.keep h2 {
+  margin: 24px 0 6px;
+  font-family: Mitr, sans-serif;
+  font-weight: 500;
+  font-size: 18px;
+}
+.keep p {
+  margin: 0;
+}

@@ -8,7 +8,12 @@ const walk = (dir: string): string[] =>
   readdirSync(dir).flatMap((f) => (statSync(join(dir, f)).isDirectory() ? walk(join(dir, f)) : [join(dir, f)]));
 
 test.skipIf(!built)('pages exist for the list, the event and 404', () => {
-  for (const f of ['_site/index.html', '_site/e/bkkibf-2026/index.html', '_site/404.html'])
+  for (const f of [
+    '_site/index.html',
+    '_site/e/bkkibf-2026/index.html',
+    '_site/404.html',
+    '_site/what-we-keep/index.html',
+  ])
     expect(existsSync(f)).toBe(true);
 });
 
