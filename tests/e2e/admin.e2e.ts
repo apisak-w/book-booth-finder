@@ -19,6 +19,16 @@ const spots = g
 async function mock(page: Page, signedIn: boolean, list = spots) {
   await page.route(/\/api\/admin\/me$/, (r) => r.fulfill({ json: { signedIn, hasPasskeys: true, passkeys: [] } }));
   await page.route(/\/api\/admin\/spots/, (r) => r.fulfill({ json: { spots: list, decisions: [] } }));
+  await page.route(/\/api\/admin\/venues$/, (r) =>
+    r.fulfill({
+      json: {
+        venues: [
+          { id: 'qsncc-lg-5-8', name: { th: 'ฮอลล์ 5–8', en: 'QSNCC Halls 5–8' }, landmarks: 13, pins: 0, pr: null },
+          { id: 'qsncc-lg-5-7', name: { th: 'ฮอลล์ 5–7', en: 'QSNCC Halls 5–7' }, landmarks: 12, pins: 0, pr: null },
+        ],
+      },
+    }),
+  );
 }
 
 test('signed out with a passkey: one big sign-in button, set-up tucked away', async ({ page }) => {
@@ -50,12 +60,16 @@ test('first visit: set-up steps, and a wrong code shows inside the card', async 
   await expect(page.locator('.signin-card [role="alert"]')).toHaveText('That setup code is wrong');
 });
 
-test('signed in with no venue pinned yet: says so', async ({ page }) => {
+test('signed in: Venues opens first, and Guest spots offers to add map pins', async ({ page }) => {
   test.skip(!!g, 'qsncc-lg-5-8 has map pins');
   await mock(page, true);
   await page.goto('/admin/');
-  await expect(page.getByRole('navigation', { name: 'Admin sections' })).toContainText('Guest spots');
-  await expect(page.getByText('No venue has map pins yet.')).toBeVisible();
+  const tabs = page.getByRole('navigation', { name: 'Admin sections' });
+  await expect(tabs.getByRole('button', { name: 'Venues' })).toHaveAttribute('aria-current', 'page');
+  await expect(page.getByRole('button', { name: /QSNCC Halls 5–8/ })).toContainText('Not on the street map yet');
+  await tabs.getByRole('button', { name: 'Guest spots' }).click();
+  await expect(page.getByRole('heading', { name: 'No venue is on the street map yet' })).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Add map pins' })).toHaveCount(2);
 });
 
 test('signed in: shows what guests suggest and opens a pull request on Move pin', async ({ page }) => {
@@ -67,6 +81,7 @@ test('signed in: shows what guests suggest and opens a pull request on Move pin'
     await r.fulfill({ json: { pr: 'https://github.com/apisak-w/book-booth-finder/pull/8' } });
   });
   await page.goto('/admin/');
+  await page.getByRole('navigation', { name: 'Admin sections' }).getByRole('button', { name: 'Guest spots' }).click();
   const place = page.getByRole('button', { name: /MRT QSNCC station \(exit 3\)/ });
   await expect(place).toContainText('6 spots · suggests a move');
   await place.click();
@@ -89,6 +104,7 @@ test('Move pin stays off with too few spots and says why', async ({ page }) => {
   test.skip(!g, 'qsncc-lg-5-8 has no map pins yet');
   await mock(page, true, spots.slice(0, 2));
   await page.goto('/admin/');
+  await page.getByRole('navigation', { name: 'Admin sections' }).getByRole('button', { name: 'Guest spots' }).click();
   await expect(page.getByRole('button', { name: 'Move pin' })).toBeDisabled();
   await expect(page.getByText('Only 2 good spots. Moving a pin needs 5.')).toBeVisible();
 });
