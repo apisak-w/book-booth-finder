@@ -1,6 +1,6 @@
 import { test, expect } from 'bun:test';
-import { acceptsSpots, addDays, parseSpot, type SpotsConfig } from '../src/lib/core/spots';
-import { LAT0, LNG0 } from './helpers/fake-geo';
+import { acceptsSpots, addDays, canOffer, parseSpot, type SpotsConfig } from '../src/lib/core/spots';
+import { fakeLatLng, LAT0, LNG0 } from './helpers/fake-geo';
 
 const cfg: SpotsConfig = {
   events: {
@@ -61,4 +61,15 @@ test('bad spots say what is wrong', () => {
   expect(err({ ...good, accuracy: 101 })).toBe('This GPS reading is too rough');
   expect(err({ ...good, lat: LAT0 + 0.03 })).toBe('This spot is too far from the venue');
   expect(parseSpot(good, cfg, at('2026-11-01T00:00:00Z'))).toEqual({ error: 'This event is not taking spots now' });
+});
+
+test('a spot is offered only for a fresh, close, accurate reading', () => {
+  const door = fakeLatLng(252, 560);
+  const r = { ...fakeLatLng(452, 560), accuracy: 20, at: 1_000_000 };
+  expect(canOffer(r, 1_060_000, door)).toBe(true);
+  expect(canOffer(null, 1_000_000, door)).toBe(false);
+  expect(canOffer({ ...r, accuracy: 51 }, 1_000_000, door)).toBe(false);
+  expect(canOffer(r, 1_120_001, door)).toBe(false);
+  expect(canOffer({ ...r, ...fakeLatLng(1852, 560) }, 1_000_000, door)).toBe(false);
+  expect(canOffer({ ...r, ...fakeLatLng(1852, 560) }, 1_000_000, null)).toBe(true);
 });

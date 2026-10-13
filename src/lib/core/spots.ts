@@ -61,3 +61,13 @@ export function parseSpot(body: unknown, cfg: SpotsConfig, now: Date): { row: Sp
     },
   };
 }
+
+export const OFFER_MAX_ACCURACY_M = 50;
+export const OFFER_MAX_AGE_MS = 120_000;
+export const OFFER_DOOR_M = 150;
+export type Reading = LatLng & { accuracy: number; at: number };
+
+export function canOffer(r: Reading | null, now: number, doorAt: LatLng | null): boolean {
+  if (!r || r.accuracy > OFFER_MAX_ACCURACY_M || now - r.at > OFFER_MAX_AGE_MS) return false;
+  return !doorAt || metersBetween(r, doorAt) <= OFFER_DOOR_M;
+}

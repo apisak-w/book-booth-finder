@@ -4,6 +4,7 @@ import type { LocState } from './locate';
 export class Locator {
   state = $state<LocState>('idle');
   fix = $state<Fix | null>(null);
+  fixAt = $state(0);
   #id: number | null = null;
   #paused = false;
   #onVis = () => {
@@ -33,6 +34,7 @@ export class Locator {
     this.#paused = false;
     if (typeof document !== 'undefined') document.removeEventListener('visibilitychange', this.#onVis);
     this.fix = null;
+    this.fixAt = 0;
     this.state = next;
   }
 
@@ -41,6 +43,7 @@ export class Locator {
       (p) => {
         this.state = 'on';
         this.fix = { lat: p.coords.latitude, lng: p.coords.longitude, accuracy: p.coords.accuracy };
+        this.fixAt = Date.now();
       },
       (e) => {
         if (e.code === 1) this.stop('denied');
