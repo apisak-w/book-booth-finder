@@ -217,6 +217,10 @@ test('move commits the new pin to a pull request and records it', async () => {
   const next = JSON.parse(fromBase64(put.body!.content as string)) as Venue;
   expect(next.geo!.pins.find((p) => p.id === 'mrt')).toMatchObject({ x: mrt.x, y: mrt.y });
   expect(String(put.body!.message)).toStartWith('fix(venue): move the mrt map pin from guest spots');
+  expect(gh.calls.find((c) => c.method === 'POST' && c.path === '/git/refs')!.body).toEqual({
+    ref: 'refs/heads/admin/qsncc-lg-5-8',
+    sha: 'main-sha',
+  });
   expect(db.raw.query('SELECT action, spots, pr FROM decisions').all()).toEqual([
     { action: 'move', spots: 6, pr: PR8 },
   ]);

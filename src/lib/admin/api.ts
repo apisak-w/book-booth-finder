@@ -1,5 +1,7 @@
 import { startAuthentication, startRegistration } from '@simplewebauthn/browser';
 import type { Filters, StoredSpot } from '$lib/core/spotReview';
+import type { I18n, Venue } from '$lib/core/types';
+import type { EventRef } from '$lib/core/venueChecks';
 import type { Decision } from './places';
 
 export type Me = {
@@ -39,3 +41,12 @@ export const getSpots = (venue: string) =>
   call<{ spots: StoredSpot[]; decisions: Decision[] }>('GET', `spots?venue=${encodeURIComponent(venue)}`);
 export const decide = (venue: string, place: string, action: 'keep' | 'move', filters: Filters) =>
   call<{ ok?: true; pr?: string }>('POST', 'decisions', { venue, place, action, filters });
+
+export type VenueSummary = { id: string; name: I18n; landmarks: number; pins: number; pr: string | null };
+export type VenueDoc = { venue: Venue; sha: string; ref: string; pr: string | null; events: EventRef[] };
+
+export const getVenues = () => call<{ venues: VenueSummary[] }>('GET', 'venues');
+export const getVenue = (id: string) => call<VenueDoc>('GET', `venue?id=${encodeURIComponent(id)}`);
+export const referenceUrl = (id: string) => `/api/admin/venue/reference?id=${encodeURIComponent(id)}`;
+export const saveVenue = (id: string, venue: Venue, sha: string) =>
+  call<{ pr: string }>('POST', 'venue/save', { id, venue, sha });

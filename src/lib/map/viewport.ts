@@ -20,12 +20,16 @@ export type Viewport = {
   destroy(): void;
 };
 
-export type ViewportHooks = { onView?: (vb: VB, pxPerUnit: number) => void; onPan?: () => void };
+export type ViewportHooks = {
+  onView?: (vb: VB, pxPerUnit: number) => void;
+  onPan?: () => void;
+  grab?: (target: Element | null) => boolean;
+};
 
 export function createViewport(
   svg: SVGSVGElement,
   venue: Venue,
-  onTap: (target: Element | null) => void,
+  onTap: (target: Element | null, at: [number, number]) => void,
   hooks: ViewportHooks = {},
 ): Viewport {
   const view = venue.view;
@@ -82,6 +86,7 @@ export function createViewport(
   let pinch: { d: number; mx: number; my: number } | null = null;
 
   const onDown = (e: PointerEvent) => {
+    if (hooks.grab?.(e.target as Element)) return;
     svg.setPointerCapture(e.pointerId);
     pointers.set(e.pointerId, { x: e.clientX, y: e.clientY });
     cancelAnimationFrame(anim);
@@ -135,7 +140,7 @@ export function createViewport(
     }
     if (pointers.size === 0) {
       svg.classList.remove('dragging');
-      if (down && !down.moved && e.type === 'pointerup') onTap(down.target);
+      if (down && !down.moved && e.type === 'pointerup') onTap(down.target, [down.start.x, down.start.y]);
       down = null;
     }
   };

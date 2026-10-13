@@ -1,5 +1,6 @@
 import { georef, latLngToPlan, metersBetween, pinProblems, planToLatLng } from './geo';
 import { areaAt } from './geometry';
+import { formatVenueJson } from './jsonFormat';
 import { todayIn } from './status';
 import type { SpotKind } from './spots';
 import type { Area, GeoPin, LatLng } from './types';
@@ -97,15 +98,7 @@ export function hallCheck(spots: StoredSpot[], hall: string, areas: Area[], pins
 }
 
 export function withPins(text: string, pins: GeoPin[]): string {
-  const start = text.indexOf('"pins": [');
-  if (start < 0) throw new Error('venue.json has no map pins');
-  const open = start + '"pins": '.length;
-  let depth = 0,
-    end = open;
-  for (; end < text.length; end++) {
-    if (text[end] === '[') depth++;
-    else if (text[end] === ']' && --depth === 0) break;
-  }
-  const indent = text.slice(text.lastIndexOf('\n', start) + 1, start);
-  return text.slice(0, open) + JSON.stringify(pins, null, 2).replace(/\n/g, `\n${indent}`) + text.slice(end + 1);
+  const venue = JSON.parse(text) as { geo?: { pins: GeoPin[] } };
+  if (!venue.geo) throw new Error('venue.json has no map pins');
+  return formatVenueJson({ ...venue, geo: { ...venue.geo, pins } });
 }

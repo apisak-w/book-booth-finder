@@ -29,7 +29,9 @@ import {
   type Ceremonies,
 } from './auth';
 import { jsonResponse, loadConfig, notSetUp, purge, type Env } from './db';
-import { GitHubError, proposeChange, type GitHub } from './github';
+import { Refused } from './errors';
+import { GitHubConflict, GitHubError, proposeChange, type GitHub } from './github';
+import { adminBranch, listVenues, readVenue, saveVenue, venueReference, VENUE_ID } from './venues';
 
 export type AdminDeps = { ceremonies: Ceremonies; github: (env: Env) => GitHub | null; now: () => Date };
 export type Decision = {
@@ -44,8 +46,6 @@ export type Decision = {
 };
 type Ctx = { req: Request; env: Env; deps: AdminDeps; now: Date; url: URL; body: Record<string, unknown> };
 type Handler = (c: Ctx) => Promise<Response>;
-
-class Refused extends Error {}
 
 const withCookie = (res: Response, cookie: string) => {
   res.headers.append('set-cookie', cookie);
@@ -84,7 +84,14 @@ export async function handleAdmin(req: Request, env: Env, deps: AdminDeps): Prom
     'POST signin/verify': signinVerify,
     'POST signout': signout,
   };
-  const closed: Record<string, Handler> = { 'GET spots': spots, 'POST decisions': decide };
+  const closed: Record<string, Handler> = {
+    'GET spots': spots,
+    'POST decisions': decide,
+    'GET venues': venuesList,
+    'GET venue': venueGet,
+    'GET venue/reference': venueImage,
+    'POST venue/save': venueSave,
+  };
   if (Object.hasOwn(open, key)) return open[key](ctx);
   if (!Object.hasOwn(closed, key)) return jsonResponse(404, { error: 'Unknown admin endpoint' });
   if (!(await signedIn(env.DB, req, now))) return jsonResponse(401, { error: 'Sign in first' });
@@ -226,8 +233,8 @@ async function decide(c: Ctx) {
   try {
     const pr = await proposeChange(gh, {
       path: `venues/${venue}/venue.json`,
-      branch: `spots/${venue}`,
-      title: `fix(venue): line up ${venue} map pins from guest spots`,
+      branch: adminBranch(venue),
+      title: `fix(venue): update ${venue} from the admin`,
       body: 'Map pin moves from the guest spots review. Check the street map on the Cloudflare preview before merging.',
       edit: (text) => {
         const v = JSON.parse(text) as Venue;
@@ -247,6 +254,51 @@ async function decide(c: Ctx) {
     return jsonResponse(200, { pr });
   } catch (e) {
     if (e instanceof Refused) return jsonResponse(409, { error: e.message });
+    if (e instanceof GitHubError) return jsonResponse(502, { error: e.message });
+    throw e;
+  }
+}
+
+const NO_GITHUB = { error: 'Set GITHUB_TOKEN and GITHUB_REPO in Cloudflare first' };
+
+function venueId(c: Ctx, from: unknown): string | null {
+  return typeof from === 'string' && VENUE_ID.test(from) ? from : null;
+}
+
+async function venuesList(c: Ctx) {
+  const gh = c.deps.github(c.env);
+  if (!gh) return jsonResponse(503, NO_GITHUB);
+  return jsonResponse(200, { venues: await listVenues(gh) });
+}
+
+async function venueGet(c: Ctx) {
+  const gh = c.deps.github(c.env);
+  if (!gh) return jsonResponse(503, NO_GITHUB);
+  const id = venueId(c, c.url.searchParams.get('id'));
+  if (!id) return jsonResponse(400, { error: 'Unknown venue id' });
+  const v = await readVenue(gh, id);
+  return v ? jsonResponse(200, v) : jsonResponse(404, { error: 'No such venue' });
+}
+
+async function venueImage(c: Ctx) {
+  const gh = c.deps.github(c.env);
+  if (!gh) return jsonResponse(503, NO_GITHUB);
+  const id = venueId(c, c.url.searchParams.get('id'));
+  if (!id) return jsonResponse(400, { error: 'Unknown venue id' });
+  const bytes = await venueReference(gh, id);
+  if (!bytes) return jsonResponse(404, { error: 'This venue has no printed plan' });
+  return new Response(bytes, { headers: { 'content-type': 'image/jpeg', 'cache-control': 'private, max-age=300' } });
+}
+
+async function venueSave(c: Ctx) {
+  const gh = c.deps.github(c.env);
+  if (!gh) return jsonResponse(503, NO_GITHUB);
+  const id = venueId(c, c.body.id);
+  if (!id) return jsonResponse(400, { error: 'Unknown venue id' });
+  try {
+    return jsonResponse(200, { pr: await saveVenue(gh, id, c.body) });
+  } catch (e) {
+    if (e instanceof Refused || e instanceof GitHubConflict) return jsonResponse(409, { error: e.message });
     if (e instanceof GitHubError) return jsonResponse(502, { error: e.message });
     throw e;
   }
