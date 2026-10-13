@@ -62,7 +62,13 @@ beforeEach(async () => {
 test('the venue list comes from main with counts and open PRs', async () => {
   const r = await (await call('GET', 'venues')).json();
   expect(r.venues).toEqual([
-    { id: 'qsncc-lg-5-8', name: base.name, landmarks: base.landmarks.length, pins: 0, pr: null },
+    {
+      id: 'qsncc-lg-5-8',
+      name: base.name,
+      landmarks: base.landmarks.length,
+      pins: base.geo?.pins.length ?? 0,
+      pr: null,
+    },
   ]);
 });
 

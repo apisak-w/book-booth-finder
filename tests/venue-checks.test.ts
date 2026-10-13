@@ -3,9 +3,9 @@ import { addLandmark, deleteLandmark, moveLandmark, setPin, updateLandmark } fro
 import { unreachableLandmarks, venueEditProblems, type EventRef } from '../src/lib/core/venueChecks';
 import { loadVenue } from '../src/lib/server/catalog';
 import { fakeLatLng } from './helpers/fake-geo';
-import { pinnedVenue } from './helpers/pinned-venue';
+import { bareVenue, pinnedVenue } from './helpers/pinned-venue';
 
-const base = loadVenue('qsncc-lg-5-8');
+const base = bareVenue();
 const fair: EventRef = { id: 'fair', name: { th: 'งาน', en: 'Fair' }, refs: ['wc2'], ids: ['info1'] };
 
 test('a normal edit passes', () => {

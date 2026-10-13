@@ -10,3 +10,9 @@ export function pinnedVenue(): { venue: Venue; text: string } {
   };
   return { venue, text: formatVenueJson(venue) };
 }
+
+export function bareVenue(id = 'qsncc-lg-5-8'): Venue {
+  const venue = { ...loadVenue(id) };
+  delete venue.geo;
+  return venue;
+}

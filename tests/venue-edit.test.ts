@@ -14,10 +14,9 @@ import {
   updateLandmark,
 } from '../src/lib/core/venueEdit';
 import type { EventRef } from '../src/lib/core/venueChecks';
-import { loadVenue } from '../src/lib/server/catalog';
-import { pinnedVenue } from './helpers/pinned-venue';
+import { bareVenue, pinnedVenue } from './helpers/pinned-venue';
 
-const base = loadVenue('qsncc-lg-5-8');
+const base = bareVenue();
 const fair: EventRef = { id: 'fair', name: { th: 'งาน', en: 'Fair' }, refs: ['stage', 'wc2'], ids: ['info1', 'stage'] };
 const toilet = {
   group: 'wc' as const,

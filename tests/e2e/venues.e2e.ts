@@ -3,8 +3,9 @@ import { readFileSync } from 'node:fs';
 
 const venue = JSON.parse(readFileSync('venues/qsncc-lg-5-8/venue.json', 'utf8'));
 const event = JSON.parse(readFileSync('events/bkkibf-2026/event.json', 'utf8'));
-const doc = {
-  venue,
+const bare = { ...venue, geo: undefined };
+const docFor = (v: typeof venue) => ({
+  venue: v,
   sha: 'sha-1',
   ref: 'main',
   pr: null,
@@ -16,9 +17,9 @@ const doc = {
       ids: event.landmarks.map((l: { id: string }) => l.id),
     },
   ],
-};
+});
 
-async function mock(page: Page) {
+async function mock(page: Page, v: typeof venue = venue) {
   const saved: Record<string, unknown>[] = [];
   await page.route(/\/api\/admin\/me$/, (r) =>
     r.fulfill({ json: { signedIn: true, hasPasskeys: true, passkeys: [] } }),
@@ -28,7 +29,7 @@ async function mock(page: Page) {
       json: { venues: [{ id: venue.id, name: venue.name, landmarks: venue.landmarks.length, pins: 0, pr: null }] },
     }),
   );
-  await page.route(/\/api\/admin\/venue\?id=/, (r) => r.fulfill({ json: doc }));
+  await page.route(/\/api\/admin\/venue\?id=/, (r) => r.fulfill({ json: docFor(v) }));
   await page.route(/\/api\/admin\/venue\/reference/, (r) => r.fulfill({ status: 404, json: { error: 'none' } }));
   await page.route(/\/api\/admin\/venue\/save$/, async (r) => {
     saved.push(r.request().postDataJSON());
@@ -110,7 +111,7 @@ const PNG = Buffer.from(
 );
 
 test('map pins: find the venue, click the plan, then the street map', async ({ page }) => {
-  await mock(page);
+  await mock(page, bare);
   await page.route(/tile\.openstreetmap\.org/, (r) => r.fulfill({ contentType: 'image/png', body: PNG }));
   await page.goto('/admin/');
   await page.getByRole('button', { name: /Halls 5–8/ }).click();
@@ -135,7 +136,7 @@ test('map pins: find the venue, click the plan, then the street map', async ({ p
 });
 
 test('map pins: with no street tiles, pasting coordinates still works', async ({ page }) => {
-  await mock(page);
+  await mock(page, bare);
   await page.route(/tile\.openstreetmap\.org/, (r) => r.fulfill({ status: 503, body: '' }));
   await page.goto('/admin/');
   await page.getByRole('button', { name: /Halls 5–8/ }).click();
@@ -150,10 +151,24 @@ test('map pins: with no street tiles, pasting coordinates still works', async ({
 });
 
 test('Add map pins from Guest spots opens the editor in map pins mode', async ({ page }) => {
+  test.skip(!!venue.geo, 'every venue already has map pins, so Guest spots shows its review screen');
   await mock(page);
   await page.goto('/admin/');
   await page.getByRole('navigation', { name: 'Admin sections' }).getByRole('button', { name: 'Guest spots' }).click();
   await page.getByRole('button', { name: 'Add map pins' }).click();
   await expect(page.getByRole('button', { name: 'Map pins' })).toHaveAttribute('aria-pressed', 'true');
   await expect(page.getByLabel("Paste the venue's coordinates")).toBeVisible();
+});
+
+test('map pins: a pinned venue shows its pins, the fit and its street entrances', async ({ page }) => {
+  test.skip(!venue.geo, 'qsncc-lg-5-8 has no map pins yet');
+  await mock(page);
+  await page.route(/tile\.openstreetmap\.org/, (r) => r.fulfill({ contentType: 'image/png', body: PNG }));
+  await page.goto('/admin/');
+  await page.getByRole('button', { name: /Halls 5–8/ }).click();
+  await page.getByRole('button', { name: 'Map pins' }).click();
+  await expect(page.locator('.pin-row')).toHaveCount(venue.geo.pins.length);
+  await expect(page.getByText('Map pin checks pass.')).toBeVisible();
+  await expect(page.getByRole('checkbox', { name: 'MRT QSNCC station (exit 3)' })).toBeChecked();
+  await expect(page.getByRole('button', { name: 'Save' })).toBeDisabled();
 });
