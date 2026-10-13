@@ -38,45 +38,60 @@
   let svg: SVGSVGElement;
   let vp: Viewport | null = null;
   let drag = $state<{ id: string; p: Point } | null>(null);
+  let grab: { id: string; sx: number; sy: number; dx: number; dy: number; moved: boolean } | null = null;
 
   const toPlan = (e: PointerEvent): Point => {
     const p = new DOMPoint(e.clientX, e.clientY).matrixTransform(svg.getScreenCTM()!.inverse());
-    return [Math.round(p.x), Math.round(p.y)];
+    return [p.x, p.y];
   };
   const at = (l: Landmark): Point => (drag?.id === l.id ? drag.p : [l.x, l.y]);
+  const canDrag = (id: string) => !readonly && mode === 'select' && !isDoor(venue, id);
 
   onMount(() => {
-    vp = createViewport(svg, venue, (t) => {
-      const id = t?.closest('[data-lm]')?.getAttribute('data-lm');
-      if (id) onSelect(id);
-    });
+    vp = createViewport(
+      svg,
+      venue,
+      (t, [x, y]) => {
+        if (readonly) {
+          const id = t?.closest('[data-lm]')?.getAttribute('data-lm');
+          if (id) onSelect(id);
+        } else if (mode === 'add') onAdd(Math.round(x), Math.round(y));
+        else if (mode === 'pins') onPlanPoint(Math.round(x), Math.round(y));
+        else {
+          const id = t?.closest('[data-lm]')?.getAttribute('data-lm');
+          if (id) onSelect(id);
+        }
+      },
+      { grab: (t) => !!t?.closest('[data-grab]') },
+    );
     vp.fitAll();
     return () => vp?.destroy();
   });
 
   function downLandmark(e: PointerEvent, id: string) {
-    if (readonly || mode !== 'select' || isDoor(venue, id)) return;
-    e.stopPropagation();
-    onSelect(id);
+    if (!canDrag(id)) return;
+    const l = venue.landmarks.find((x) => x.id === id)!;
+    const [px, py] = toPlan(e);
     (e.currentTarget as Element).setPointerCapture(e.pointerId);
-    drag = { id, p: toPlan(e) };
+    grab = { id, sx: e.clientX, sy: e.clientY, dx: l.x - px, dy: l.y - py, moved: false };
   }
-  const moveLandmark = (e: PointerEvent) => {
-    if (drag) drag = { ...drag, p: toPlan(e) };
-  };
+  function moveLandmark(e: PointerEvent) {
+    if (!grab) return;
+    if (!grab.moved && Math.hypot(e.clientX - grab.sx, e.clientY - grab.sy) > 4) grab.moved = true;
+    if (!grab.moved) return;
+    const [px, py] = toPlan(e);
+    drag = { id: grab.id, p: [Math.round(px + grab.dx), Math.round(py + grab.dy)] };
+  }
   function upLandmark() {
-    if (!drag) return;
-    const d = drag;
+    const g = grab,
+      d = drag;
+    grab = null;
     drag = null;
-    const l = venue.landmarks.find((x) => x.id === d.id);
-    if (l && (l.x !== d.p[0] || l.y !== d.p[1])) onMove(d.id, d.p[0], d.p[1]);
-  }
-  function downPlane(e: PointerEvent) {
-    if (readonly || mode === 'select') return;
-    e.stopPropagation();
-    const [x, y] = toPlan(e);
-    if (mode === 'add') onAdd(x, y);
-    else onPlanPoint(x, y);
+    if (!g) return;
+    if (!g.moved || !d) return onSelect(g.id);
+    onSelect(g.id);
+    const l = venue.landmarks.find((x) => x.id === g.id);
+    if (l && (l.x !== d.p[0] || l.y !== d.p[1])) onMove(g.id, d.p[0], d.p[1]);
   }
 </script>
 
@@ -94,13 +109,11 @@
   {#each venue.doors as d (d.id)}
     <rect x={d.gap[0]} y={d.gap[1]} width={d.gap[2] - d.gap[0]} height={d.gap[3] - d.gap[1]} class="pc-door" />
   {/each}
-  {#if mode !== 'select' && !readonly}
-    <rect x="0" y="0" width={venue.reference.width} height={venue.reference.height} class="pc-catch" onpointerdown={downPlane} role="presentation" />
-  {/if}
   {#each venue.landmarks as l (l.id)}
     {@const p = at(l)}
     <g
       data-lm={l.id}
+      data-grab={canDrag(l.id) ? '' : undefined}
       class="pc-lm"
       class:sel={l.id === selected}
       class:bad={unreachable.includes(l.id)}

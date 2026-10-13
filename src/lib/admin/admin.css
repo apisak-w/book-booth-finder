@@ -597,9 +597,6 @@
   fill: var(--sun);
   fill-opacity: 0.7;
 }
-.pc-catch {
-  fill: transparent;
-}
 .pc-lm circle {
   fill: var(--panel);
   stroke: var(--ink);

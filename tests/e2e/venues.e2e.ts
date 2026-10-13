@@ -172,3 +172,41 @@ test('map pins: a pinned venue shows its pins, the fit and its street entrances'
   await expect(page.getByRole('checkbox', { name: 'MRT QSNCC station (exit 3)' })).toBeChecked();
   await expect(page.getByRole('button', { name: 'Save' })).toBeDisabled();
 });
+
+test('an off-centre click only selects a landmark, a drag moves it', async ({ page }) => {
+  await mock(page);
+  await page.goto('/admin/');
+  await page.getByRole('button', { name: /Halls 5–8/ }).click();
+  const wc2 = venue.landmarks.find((l: { id: string }) => l.id === 'wc2');
+  const box = (await page.locator('[data-lm="wc2"]').boundingBox())!;
+  await page.mouse.click(box.x + box.width * 0.8, box.y + box.height * 0.8);
+  await expect(page.getByText(`Plan ${wc2.x}, ${wc2.y}`)).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Save' })).toBeDisabled();
+  const cx = box.x + box.width / 2,
+    cy = box.y + box.height / 2;
+  await page.mouse.move(cx, cy);
+  await page.mouse.down();
+  await page.mouse.move(cx + 30, cy + 40, { steps: 5 });
+  await page.mouse.move(cx + 60, cy + 80, { steps: 5 });
+  await page.mouse.up();
+  await expect(page.getByText(`Plan ${wc2.x}, ${wc2.y}`)).toHaveCount(0);
+  await page.getByRole('button', { name: 'Save' }).click();
+  await expect(page.getByRole('dialog')).toContainText(`Moved wc2 (${wc2.en})`);
+});
+
+test('panning in Add landmark mode does not add a landmark', async ({ page }) => {
+  await mock(page);
+  await page.goto('/admin/');
+  await page.getByRole('button', { name: /Halls 5–8/ }).click();
+  await page.getByRole('button', { name: 'Add landmark' }).click();
+  const box = (await page.locator('.plan-canvas').boundingBox())!;
+  const cx = box.x + box.width / 2,
+    cy = box.y + box.height / 2;
+  await page.mouse.move(cx, cy);
+  await page.mouse.down();
+  await page.mouse.move(cx + 80, cy + 40, { steps: 8 });
+  await page.mouse.up();
+  await expect(page.locator('[data-lm="wc7"]')).toHaveCount(0);
+  await page.mouse.click(cx, cy);
+  await expect(page.locator('[data-lm="wc7"]')).toHaveCount(1);
+});
