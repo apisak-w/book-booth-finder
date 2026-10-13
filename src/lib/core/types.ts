@@ -35,6 +35,7 @@ export type Venue = {
   doors: Door[];
   depth?: { back: number; front: number; text: { back: I18n; mid: I18n; front: I18n }; aisleHint: I18n };
   landmarks: Landmark[];
+  geo?: VenueGeo;
   origin: string;
 };
 

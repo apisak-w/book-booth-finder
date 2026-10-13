@@ -1,5 +1,7 @@
 import { test, expect } from 'bun:test';
+import { readFileSync } from 'node:fs';
 import { EventSchema, VenueSchema, BoothsFileSchema, formatIssues } from '../src/lib/server/schema';
+import { fakePins } from './helpers/fake-geo';
 
 const i18n = { th: 'ก', en: 'a' };
 const minimalEvent = {
@@ -56,4 +58,29 @@ test('an invalid codePattern is rejected by name', () => {
   const r = EventSchema.safeParse({ ...minimalEvent, codePattern: '^[A-Z' });
   expect(r.success).toBe(false);
   if (!r.success) expect(formatIssues(r.error)).toContain('codePattern');
+});
+
+const venueJson = () => JSON.parse(readFileSync('venues/qsncc-lg-5-8/venue.json', 'utf8'));
+
+test('a venue may have map pins', () => {
+  const r = VenueSchema.safeParse({ ...venueJson(), geo: { pins: fakePins(), entrances: ['mrt'] } });
+  expect(r.success).toBe(true);
+});
+
+test('a venue without map pins is still valid', () => {
+  const v = venueJson();
+  delete v.geo;
+  expect(VenueSchema.safeParse(v).success).toBe(true);
+});
+
+test('map pins need at least 3 pins and 1 entrance', () => {
+  expect(
+    VenueSchema.safeParse({ ...venueJson(), geo: { pins: fakePins().slice(0, 2), entrances: ['mrt'] } }).success,
+  ).toBe(false);
+  expect(VenueSchema.safeParse({ ...venueJson(), geo: { pins: fakePins(), entrances: [] } }).success).toBe(false);
+});
+
+test('map pins reject impossible coordinates', () => {
+  const pins = fakePins().map((p, k) => (k === 0 ? { ...p, lat: 95 } : p));
+  expect(VenueSchema.safeParse({ ...venueJson(), geo: { pins, entrances: ['mrt'] } }).success).toBe(false);
 });

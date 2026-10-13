@@ -52,6 +52,22 @@ export const VenueSchema: z.ZodType<Venue, unknown> = z.object({
     })
     .optional(),
   landmarks: z.array(landmark),
+  geo: z
+    .object({
+      pins: z
+        .array(
+          z.object({
+            id: z.string().min(1),
+            x: num,
+            y: num,
+            lat: num.min(-85).max(85),
+            lng: num.min(-180).max(180),
+          }),
+        )
+        .min(3),
+      entrances: z.array(z.string().min(1)).min(1),
+    })
+    .optional(),
   origin: z.string().min(1),
 });
 
