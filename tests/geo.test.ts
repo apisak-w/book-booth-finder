@@ -111,9 +111,10 @@ test('pinProblems passes a clean fit and names what is wrong', () => {
   expect(pinProblems(bent, M).some((p) => p.startsWith('fit error'))).toBe(true);
 });
 
+const stretched = (sx: number, sy: number) =>
+  fakePins().map((p) => ({ ...p, ...fakeLatLng(1400 + (p.x - 1400) * sx, 900 + (p.y - 900) * sy) }));
+
 test('pinProblems accepts a printed plan a few percent out of shape, not a badly stretched one', () => {
-  const stretched = (sx: number, sy: number) =>
-    fakePins().map((p) => ({ ...p, ...fakeLatLng(1400 + (p.x - 1400) * sx, 900 + (p.y - 900) * sy) }));
   expect(pinProblems(stretched(1.05, 0.95), M)).toEqual([]);
   expect(pinProblems(stretched(1.12, 0.88), M).some((p) => p.startsWith('the fit is stretched'))).toBe(true);
 });
