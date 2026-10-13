@@ -61,3 +61,10 @@ test('orderLike puts keys back in the order of the file, new keys last', () => {
     '{"a":1,"list":[{"id":"y","n":2},{"id":"z","n":3}],"z":0,"extra":true}',
   );
 });
+
+test('formatVenueJson matches oxfmt on packed numbers, wide Thai text and long lists', () => {
+  for (const f of ['nums', 'nested', 'thai', 'mixed']) {
+    const text = readFileSync(`tests/fixtures/oxfmt/${f}.json`, 'utf8');
+    expect(formatVenueJson(JSON.parse(text))).toBe(text);
+  }
+});

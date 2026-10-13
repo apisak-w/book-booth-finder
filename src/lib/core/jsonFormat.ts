@@ -1,5 +1,14 @@
 const WIDTH = 120;
 
+const WIDE = /[\u1100-\u115f\u2e80-\ua4cf\uac00-\ud7a3\uf900-\ufaff\ufe30-\ufe4f\uff00-\uff60\uffe0-\uffe6]/u;
+const MARK = /\p{M}/u;
+
+export function textWidth(s: string): number {
+  let w = 0;
+  for (const ch of s) if (!MARK.test(ch)) w += WIDE.test(ch) ? 2 : 1;
+  return w;
+}
+
 const isFull = (x: unknown) =>
   Array.isArray(x) ? x.length > 1 : !!x && typeof x === 'object' && Object.keys(x).length > 0;
 
@@ -9,7 +18,20 @@ function fmt(v: unknown, indent: string, used: number): string {
     const pad = indent + '  ';
     const inline = `[${v.map((x) => fmt(x, pad, 0)).join(', ')}]`;
     const nested = v.length > 1 && v.every(isFull);
-    if (!nested && !inline.includes('\n') && used + inline.length + 1 <= WIDTH) return inline;
+    if (!nested && !inline.includes('\n') && used + textWidth(inline) + 1 <= WIDTH) return inline;
+    if (v.length > 1 && v.every((x) => typeof x === 'number')) {
+      const lines: string[] = [];
+      let line = '';
+      for (const p of v.map((x) => JSON.stringify(x))) {
+        const next = line ? `${line}, ${p}` : p;
+        if (line && pad.length + next.length + 1 > WIDTH) {
+          lines.push(`${line},`);
+          line = p;
+        } else line = next;
+      }
+      lines.push(line);
+      return `[\n${lines.map((l) => pad + l).join('\n')}\n${indent}]`;
+    }
     return `[\n${v.map((x) => pad + fmt(x, pad, pad.length)).join(',\n')}\n${indent}]`;
   }
   if (v && typeof v === 'object') {
