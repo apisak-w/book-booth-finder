@@ -387,13 +387,6 @@
   font-weight: 600;
   cursor: pointer;
 }
-.signin-note {
-  max-width: 420px;
-  margin: 0;
-  font-size: 12.5px;
-  text-align: center;
-  color: var(--muted);
-}
 
 :root[data-theme='dark'] .signin-badge {
   color: #0c1428;

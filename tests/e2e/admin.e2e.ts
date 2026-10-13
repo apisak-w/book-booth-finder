@@ -30,6 +30,7 @@ test('signed out with a passkey: one big sign-in button, set-up tucked away', as
   await expect(page.getByLabel('Setup code')).toHaveCount(0);
   await page.getByRole('button', { name: 'Set up a passkey' }).click();
   await expect(page.getByLabel('Setup code')).toBeVisible();
+  await expect(page.getByText('The setup code works once')).toHaveCount(0);
 });
 
 test('first visit: set-up steps, and a wrong code shows inside the card', async ({ page }) => {
@@ -70,6 +71,7 @@ test('signed in: shows what guests suggest and opens a pull request on Move pin'
   await expect(place).toContainText('6 spots · suggests a move');
   await place.click();
   await expect(page.getByText('Map pin checks pass after the move.')).toBeVisible();
+  await expect(page.getByText('Spots are deleted')).toHaveCount(0);
   await page.getByRole('button', { name: 'Move pin' }).click();
   await expect(page.getByRole('link', { name: 'Open the pull request' })).toHaveAttribute(
     'href',

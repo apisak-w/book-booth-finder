@@ -87,5 +87,4 @@
       <button type="button" class="signin-link" onclick={() => (setupOpen = true)}>Set up a passkey</button>
     {/if}
   </div>
-  <p class="signin-note">The setup code works once. To recover, set a new ADMIN_SETUP_CODE in Cloudflare and redeploy.</p>
 </section>

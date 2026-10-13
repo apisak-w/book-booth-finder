@@ -1,6 +1,5 @@
 <script lang="ts">
   import { GOOD_ACCURACY_M, NEAR_PIN_M, type Filters } from '$lib/core/spotReview';
-  import { SPOT_KEEP_DAYS } from '$lib/core/spots';
   import type { DoorPlace } from './places';
   let {
     place,
@@ -46,7 +45,6 @@
       {#if place.last.pr}· <a href={place.last.pr} target="_blank" rel="noopener">pull request</a>{/if}
     </p>
   {/if}
-  <p class="admin-note">Spots are deleted {SPOT_KEEP_DAYS} days after the event.</p>
   <div class="admin-btns">
     <button type="button" class="btn" disabled={busy} onclick={onKeep}>Keep pin</button>
     <button type="button" class="btn move" disabled={busy || place.problems.length > 0} onclick={onMove}>Move pin</button>
