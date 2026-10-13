@@ -19,6 +19,15 @@
   --route: #13306b;
   --routeCase: #ffffff;
   --focus: #2f7fd1;
+  --s-ground: #f2efe9;
+  --s-water: #aad3df;
+  --s-park: #c8facc;
+  --s-building: #d9d0c9;
+  --s-road: #ffffff;
+  --s-path: #e8e2d6;
+  --s-label: #4a4a4a;
+  --you: #2f7fd1;
+  --tiles: 1;
   --display: 'Mitr', 'Anuphan', 'Noto Sans Thai', system-ui, sans-serif;
   --body: 'Anuphan', 'Noto Sans Thai', system-ui, -apple-system, 'Segoe UI', sans-serif;
 }
@@ -40,6 +49,15 @@
     --route: #ffd23f;
     --routeCase: #0c1428;
     --focus: #6aa8ff;
+    --s-ground: #141d33;
+    --s-water: #1f3a52;
+    --s-park: #1c3328;
+    --s-building: #2a3552;
+    --s-road: #3a4668;
+    --s-path: #2f3a58;
+    --s-label: #c9d4ee;
+    --you: #6aa8ff;
+    --tiles: 0.7;
   }
 }
 :root[data-theme='dark'] {
@@ -59,6 +77,15 @@
   --route: #ffd23f;
   --routeCase: #0c1428;
   --focus: #6aa8ff;
+  --s-ground: #141d33;
+  --s-water: #1f3a52;
+  --s-park: #1c3328;
+  --s-building: #2a3552;
+  --s-road: #3a4668;
+  --s-path: #2f3a58;
+  --s-label: #c9d4ee;
+  --you: #6aa8ff;
+  --tiles: 0.7;
 }
 *,
 *::before,
@@ -865,4 +892,115 @@ h2.sec.gap {
 }
 .badge.past {
   color: var(--muted);
+}
+
+/* street map and position */
+.street .outside {
+  fill-opacity: 0;
+}
+.s-ground {
+  fill: var(--s-ground);
+}
+.s-water {
+  fill: var(--s-water);
+  fill-rule: evenodd;
+}
+.s-park {
+  fill: var(--s-park);
+  fill-rule: evenodd;
+}
+.s-building {
+  fill: var(--s-building);
+}
+.s-road,
+.s-path {
+  fill: none;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+.s-road {
+  stroke: var(--s-road);
+}
+.s-path {
+  stroke: var(--s-path);
+}
+.s-edge {
+  fill: none;
+  stroke: var(--muted);
+  stroke-width: 2;
+  stroke-dasharray: 8 6;
+  vector-effect: non-scaling-stroke;
+}
+.s-label {
+  fill: var(--s-label);
+  font-family: var(--body);
+  text-anchor: middle;
+  paint-order: stroke;
+  stroke: var(--s-ground);
+  stroke-width: 0.25em;
+}
+#layer-street image {
+  opacity: var(--tiles);
+}
+.you-acc {
+  fill: var(--you);
+  fill-opacity: 0.14;
+  stroke: var(--you);
+  stroke-opacity: 0.45;
+  vector-effect: non-scaling-stroke;
+}
+#layer-you .dot {
+  fill: var(--you);
+  stroke: var(--panel);
+  stroke-width: 3;
+  vector-effect: non-scaling-stroke;
+}
+.you-leg {
+  fill: none;
+  stroke: var(--you);
+  stroke-width: 4;
+  stroke-dasharray: 1 8;
+  stroke-linecap: round;
+  vector-effect: non-scaling-stroke;
+}
+.streetinfo {
+  position: absolute;
+  left: 10px;
+  bottom: 10px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  align-items: center;
+  pointer-events: none;
+  max-width: calc(100% - 80px);
+}
+.chip.offline {
+  background: var(--panel);
+  color: var(--text);
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  padding: 4px 10px;
+  font-size: 13px;
+  font-weight: 600;
+}
+.credit {
+  background: var(--panel);
+  opacity: 0.85;
+  color: var(--muted);
+  font-size: 11px;
+  padding: 1px 6px;
+  border-radius: 4px;
+}
+.zoombar .compass[aria-pressed='true'] {
+  background: var(--ink);
+  color: var(--panel);
+}
+.needle-n {
+  fill: #e3452f;
+}
+.needle-s {
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2;
+  stroke-linejoin: round;
 }
