@@ -1,6 +1,7 @@
 import { georef, planToLatLng } from '../core/geo';
 import type { SpotsConfig } from '../core/spots';
-import type { EventFile, Venue } from '../core/types';
+import type { AdminVenue } from '../admin/types';
+import type { EventFile, Landmark, Venue } from '../core/types';
 import { listEventIds, loadEvent } from './catalog';
 
 export type CatalogItem = { id: string; event: EventFile; venue: Venue };
@@ -37,3 +38,32 @@ export function spotsConfigFrom(items: CatalogItem[]): SpotsConfig {
 }
 
 export const buildSpotsConfig = (root = process.cwd()) => spotsConfigFrom(catalogItems(root));
+
+export function adminVenuesFrom(items: CatalogItem[]): AdminVenue[] {
+  const byVenue = new Map<string, AdminVenue>();
+  for (const { id, event, venue } of items) {
+    if (!venue.geo) continue;
+    let v = byVenue.get(venue.id);
+    if (!v) {
+      const entrances = venue.geo.entrances
+        .map((e) => venue.landmarks.find((l) => l.id === e))
+        .filter((l): l is Landmark => !!l);
+      v = {
+        id: venue.id,
+        name: venue.name,
+        timezone: venue.timezone,
+        metersPerPx: venue.metersPerPx,
+        walls: venue.walls,
+        areas: venue.areas,
+        pins: venue.geo.pins,
+        entrances,
+        events: [],
+      };
+      byVenue.set(venue.id, v);
+    }
+    v.events.push({ id, name: event.name, start: event.dates.start, end: event.dates.end });
+  }
+  return [...byVenue.values()];
+}
+
+export const adminVenues = (root = process.cwd()) => adminVenuesFrom(catalogItems(root));

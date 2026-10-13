@@ -1,0 +1,247 @@
+.admin {
+  min-height: 100vh;
+  background: var(--panel);
+  color: var(--text);
+}
+.admin-top {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 16px;
+  background: var(--ink);
+  color: #fff;
+}
+.admin-top b {
+  margin-right: auto;
+  font-family: Mitr, sans-serif;
+  font-weight: 500;
+  font-size: 18px;
+}
+.admin-msg {
+  margin: 0;
+  min-height: 1.5em;
+  padding: 8px 16px;
+  color: var(--muted);
+}
+.admin-wait,
+.admin-signin {
+  max-width: 420px;
+  padding: 16px;
+}
+.admin-signin form {
+  display: grid;
+  gap: 10px;
+  margin: 10px 0;
+}
+.admin-signin label {
+  display: grid;
+  gap: 4px;
+  font-size: 14px;
+}
+.admin-signin input {
+  min-height: 44px;
+  padding: 0 10px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  font: inherit;
+}
+.admin-note {
+  margin: 0;
+  font-size: 13px;
+  color: var(--muted);
+}
+.admin-body {
+  display: grid;
+  grid-template-columns: 280px minmax(0, 1fr) 320px;
+  min-height: calc(100vh - 100px);
+}
+.admin-places {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 16px;
+  border-right: 1px solid var(--line);
+}
+.admin-places h2,
+.admin-decision h2 {
+  margin: 0 0 4px;
+  font-family: Mitr, sans-serif;
+  font-weight: 500;
+  font-size: 17px;
+}
+.admin-place {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 2px;
+  min-height: 44px;
+  padding: 10px 12px;
+  border: 0;
+  border-radius: 10px;
+  background: var(--chip);
+  color: var(--text);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+.admin-place span {
+  font-size: 12.5px;
+  color: var(--muted);
+}
+.admin-place[aria-current='true'] {
+  background: var(--ink);
+  color: #fff;
+}
+.admin-place[aria-current='true'] span {
+  color: #fff;
+  opacity: 0.85;
+}
+.admin-map {
+  position: relative;
+  background: var(--s-ground);
+  border-right: 1px solid var(--line);
+}
+.admin-map svg {
+  display: block;
+  width: 100%;
+  height: 100%;
+  min-height: 360px;
+}
+.am-wall {
+  fill: var(--floor);
+  fill-opacity: 0.85;
+  stroke: var(--wall);
+  stroke-width: 3;
+}
+.am-good {
+  fill: var(--blue);
+  fill-opacity: 0.55;
+}
+.am-left {
+  fill: #8a8f99;
+  fill-opacity: 0.5;
+}
+.am-pin {
+  fill: var(--sun);
+  stroke: var(--ink);
+}
+.am-mid {
+  fill: none;
+  stroke: var(--blue);
+}
+.am-move {
+  stroke: var(--ink);
+  stroke-dasharray: 6 5;
+}
+.am-key {
+  position: absolute;
+  left: 12px;
+  top: 12px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin: 0;
+  padding: 6px 10px;
+  list-style: none;
+  border-radius: 8px;
+  background: var(--panel);
+  font-size: 13px;
+}
+.am-key li {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.am-key span {
+  width: 12px;
+  height: 12px;
+  border-radius: 99px;
+}
+.k-pin {
+  background: var(--sun);
+  border: 2px solid var(--ink);
+}
+.k-mid {
+  border: 3px solid var(--blue);
+}
+.k-good {
+  background: var(--blue);
+  opacity: 0.6;
+}
+.k-left {
+  background: #8a8f99;
+  opacity: 0.6;
+}
+.admin-decision {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  padding: 20px;
+}
+.admin-decision fieldset {
+  display: grid;
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+.admin-decision legend {
+  margin-bottom: 6px;
+  font-size: 13px;
+  font-weight: 600;
+}
+.admin-decision label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 14px;
+}
+.admin-decision dl {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 6px 12px;
+  margin: 0;
+  font-size: 13px;
+}
+.admin-decision dt {
+  color: var(--muted);
+}
+.admin-decision dd {
+  margin: 0;
+  font-weight: 600;
+}
+.admin-problems {
+  margin: 0;
+  padding-left: 18px;
+  font-size: 13px;
+  color: #b3261e;
+}
+.admin-ok {
+  margin: 0;
+  font-size: 13px;
+}
+.admin-btns {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+  margin-top: auto;
+}
+.btn.move {
+  background: var(--sun);
+  border-color: var(--sun);
+  color: var(--sunInk);
+  font-weight: 600;
+}
+@media (max-width: 899px) {
+  .admin-body {
+    grid-template-columns: 1fr;
+  }
+  .admin-places {
+    border-right: 0;
+    border-bottom: 1px solid var(--line);
+  }
+  .admin-map svg {
+    height: 60vh;
+  }
+}

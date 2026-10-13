@@ -41,3 +41,14 @@ test.skipIf(!built)('the spots config is published', () => {
   const cfg = JSON.parse(readFileSync('_site/spots-config.json', 'utf8'));
   expect(Object.keys(cfg).sort()).toEqual(['events', 'venues']);
 });
+
+test.skipIf(!built)('the admin page is not indexed and passkey code stays out of the guest pages', () => {
+  expect(readFileSync('_site/admin/index.html', 'utf8')).toContain('noindex');
+  const dir = '_site/e/bkkibf-2026';
+  const html = readFileSync(join(dir, 'index.html'), 'utf8');
+  const chunks = [...html.matchAll(/href="([^"]*_app\/[^"]+\.js)"/g)].map((m) =>
+    m[1].startsWith('/') ? join('_site', m[1]) : join(dir, m[1]),
+  );
+  expect(chunks.length).toBeGreaterThan(0);
+  expect(chunks.filter((f) => readFileSync(f, 'utf8').includes('WebAuthn is not supported'))).toEqual([]);
+});
