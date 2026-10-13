@@ -116,6 +116,10 @@ The app stores nothing about who sends a spot, so it can't rate-limit by sender.
 
 If both passkeys are lost, set a new `ADMIN_SETUP_CODE`, redeploy and set up again. A passkey belongs to one web address, so moving to a custom domain also means setting up again there. Replace `GITHUB_TOKEN` before it expires.
 
+### Editing venues
+
+Venues opens first after sign-in. Open a venue to see it over its printed plan. Add, move, rename or delete landmarks, and use Map pins to pin the plan to the street map (click a spot on the plan, then the same spot on the street map, or paste its coordinates). Save sends every change to one pull request per venue on `admin/<venue-id>`. Check its Cloudflare preview, then merge. Guest-spot pin moves go to the same pull request. Walls, floor, halls and doors can't be edited here yet. Unsaved changes stay in this browser until you save or discard them.
+
 ### Trying it locally
 
 Create a `wrangler.toml` (git ignores it, so Cloudflare's Git builds never see it) and a `.dev.vars`:
