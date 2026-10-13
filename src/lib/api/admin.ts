@@ -29,6 +29,7 @@ import {
   type Ceremonies,
 } from './auth';
 import { jsonResponse, loadConfig, notSetUp, purge, type Env } from './db';
+import { Refused } from './errors';
 import { GitHubError, proposeChange, type GitHub } from './github';
 
 export type AdminDeps = { ceremonies: Ceremonies; github: (env: Env) => GitHub | null; now: () => Date };
@@ -44,8 +45,6 @@ export type Decision = {
 };
 type Ctx = { req: Request; env: Env; deps: AdminDeps; now: Date; url: URL; body: Record<string, unknown> };
 type Handler = (c: Ctx) => Promise<Response>;
-
-class Refused extends Error {}
 
 const withCookie = (res: Response, cookie: string) => {
   res.headers.append('set-cookie', cookie);

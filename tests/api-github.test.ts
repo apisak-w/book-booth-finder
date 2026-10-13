@@ -1,6 +1,16 @@
 import { test, expect } from 'bun:test';
-import { fromBase64, proposeChange, toBase64, type Change } from '../src/lib/api/github';
-import { fakeGitHub } from './helpers/fake-github';
+import {
+  fromBase64,
+  GitHubConflict,
+  listDir,
+  openPr,
+  proposeChange,
+  readFile,
+  readRaw,
+  toBase64,
+  type Change,
+} from '../src/lib/api/github';
+import { fakeGitHub, fakeRepo } from './helpers/fake-github';
 
 const text = '{\n  "name": { "th": "ฮอลล์ 5", "en": "Hall 5" }\n}\n';
 const change = (
@@ -74,4 +84,37 @@ test('a refused edit writes nothing, and GitHub errors are named', async () => {
   await expect(proposeChange(bad.github, change())).rejects.toThrow(
     'GitHub refused GET /contents/venues/v/venue.json: 422 Validation Failed',
   );
+});
+
+test('readFile, readRaw, listDir and openPr read the repo', async () => {
+  const repo = fakeRepo(
+    {
+      'venues/v/venue.json': '{"id":"v"}\n',
+      'venues/v/reference.jpg': new Uint8Array([1, 2, 3]),
+      'venues/w/venue.json': '{}',
+    },
+    { openPr: ['admin/v'] },
+  );
+  expect(await readFile(repo.github, 'venues/v/venue.json', 'main')).toEqual({
+    text: '{"id":"v"}\n',
+    sha: 'sha-venues/v/venue.json',
+  });
+  expect(await readFile(repo.github, 'venues/x/venue.json', 'main')).toBeNull();
+  expect([...new Uint8Array((await readRaw(repo.github, 'venues/v/reference.jpg', 'main'))!)]).toEqual([1, 2, 3]);
+  expect(await listDir(repo.github, 'venues', 'main')).toEqual([
+    { name: 'v', type: 'dir' },
+    { name: 'w', type: 'dir' },
+  ]);
+  expect(await listDir(repo.github, 'nothing', 'main')).toEqual([]);
+  expect(await openPr(repo.github, 'admin/v')).toEqual({ url: 'https://github.com/apisak-w/book-booth-finder/pull/9' });
+  expect(await openPr(repo.github, 'admin/w')).toBeNull();
+});
+
+test('a stale expected sha is refused before anything is written', async () => {
+  const gh = fakeGitHub(text);
+  await expect(proposeChange(gh.github, { ...change(), expectSha: 'older' })).rejects.toBeInstanceOf(GitHubConflict);
+  expect(writes(gh.calls)).toEqual([]);
+  const ok = fakeGitHub(text);
+  await proposeChange(ok.github, { ...change(), expectSha: 'file-sha' });
+  expect(writes(ok.calls)).toContain('PUT /contents/venues/v/venue.json');
 });
