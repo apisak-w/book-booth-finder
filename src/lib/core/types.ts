@@ -5,6 +5,14 @@ export type Point = [number, number];
 export type LatLng = { lat: number; lng: number };
 export type GeoPin = { id: string; x: number; y: number; lat: number; lng: number };
 export type VenueGeo = { pins: GeoPin[]; entrances: string[] };
+export const SHAPE_KINDS = ['park', 'water', 'building', 'road', 'path'] as const;
+export type ShapeKind = (typeof SHAPE_KINDS)[number];
+export type Surroundings = {
+  credit: string;
+  bounds: Box;
+  shapes: { kind: ShapeKind; d: string; w?: number }[];
+  labels: { x: number; y: number; text: I18n; size: number }[];
+};
 
 export const GROUP_ORDER = ['entry', 'wc', 'info', 'charge', 'stage', 'other'] as const;
 export type LandmarkGroup = (typeof GROUP_ORDER)[number];

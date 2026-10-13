@@ -1,11 +1,11 @@
 import { existsSync, readdirSync, readFileSync } from 'node:fs';
 import { join, relative } from 'node:path';
 import type { z } from 'zod';
-import { BoothsFileSchema, EventSchema, VenueSchema, formatIssues } from './schema';
+import { BoothsFileSchema, EventSchema, SurroundingsSchema, VenueSchema, formatIssues } from './schema';
 import { parseCSV } from '../core/csv';
 import { loadData } from '../core/prepare';
 import { checkEvent } from './checks';
-import type { EventBundle, EventSummary, Venue } from '../core/types';
+import type { EventBundle, EventSummary, Surroundings, Venue } from '../core/types';
 
 export type { EventBundle, EventSummary } from '../core/types';
 
@@ -42,6 +42,13 @@ export function loadVenue(id: string, root = cwd()): Venue {
   const venue = parseFile(VenueSchema, join(root, 'venues', id, 'venue.json'), root);
   if (venue.id !== id) throw new CatalogError(`venues/${id}/venue.json: id "${venue.id}" must equal the folder name`);
   return venue;
+}
+
+export const surroundingsPath = (id: string, root = cwd()) => join(root, 'venues', id, 'surroundings.json');
+
+export function loadSurroundings(id: string, root = cwd()): Surroundings | null {
+  const path = surroundingsPath(id, root);
+  return existsSync(path) ? parseFile(SurroundingsSchema, path, root) : null;
 }
 
 export function loadEvent(id: string, root = cwd()): EventBundle {

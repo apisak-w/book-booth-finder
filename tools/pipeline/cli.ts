@@ -17,6 +17,10 @@ import { spawn } from 'node:child_process';
 import { guessColumns, parseMap, readSheet, toCsv, toExhibitorRows } from './lib/exhibitors';
 import { stringifyJson } from './lib/json';
 import { validateNewEvent } from './lib/new-event';
+import { statSync } from 'node:fs';
+import { join } from 'node:path';
+import { georef } from '../../src/lib/core/geo';
+import { extentBox, latLngBox, osmToSurroundings, overpassQuery } from './lib/surroundings';
 
 const need = <T>(path: string, hint: string): T => {
   if (!existsSync(path))
@@ -201,6 +205,25 @@ export async function exhibitors(id: string) {
   console.log(`${out.rows.length} exhibitor rows written using columns ${JSON.stringify(map)}`);
 }
 
+export async function surroundings(id: string) {
+  const venue = loadVenue(id);
+  if (!venue.geo) fail([`venues/${id}/venue.json has no map pins. Add "geo" first (see CLAUDE.md, Street map)`]);
+  const g = georef(venue.geo!.pins);
+  const bounds = extentBox(venue, Number(flag('meters') ?? 400));
+  const res = await fetch('https://overpass-api.de/api/interpreter', {
+    method: 'POST',
+    headers: { 'user-agent': 'booth-finder venue pipeline' },
+    body: new URLSearchParams({ data: overpassQuery(latLngBox(g, bounds)) }),
+  });
+  if (!res.ok) fail([`OpenStreetMap (Overpass) answered ${res.status}. Wait a minute and run the command again`]);
+  const out = osmToSurroundings((await res.json()).elements, g, bounds, venue.metersPerPx);
+  const path = join('venues', id, 'surroundings.json');
+  writeFileSync(path, stringifyJson(out));
+  console.log(
+    `${out.shapes.length} shapes and ${out.labels.length} labels, ${Math.round(statSync(path).size / 1024)} KB, written to ${path}`,
+  );
+}
+
 const commands: Record<string, (id: string) => Promise<unknown>> = {
   new: create,
   detect,
@@ -210,6 +233,7 @@ const commands: Record<string, (id: string) => Promise<unknown>> = {
   'ocr-report': ocrReport,
   review,
   exhibitors,
+  surroundings,
 };
 if (!cmd || !commands[cmd] || !target)
   fail([`usage: bun tools/pipeline/cli.ts <${Object.keys(commands).join('|')}> <event-id>`]);

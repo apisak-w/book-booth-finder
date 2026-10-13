@@ -1,5 +1,6 @@
 import { test, expect, describe } from 'bun:test';
-import { listVenueIds, loadVenue } from '../src/lib/server/catalog';
+import { existsSync, statSync } from 'node:fs';
+import { listVenueIds, loadSurroundings, loadVenue, surroundingsPath } from '../src/lib/server/catalog';
 import { pointInPolygon } from '../src/lib/core/geometry';
 import { createGrid } from '../src/lib/core/grid';
 import { findRoute } from '../src/lib/core/routing';
@@ -57,6 +58,15 @@ for (const id of listVenueIds()) {
       expect(g.skewDeg).toBeLessThan(3);
       if (geo.pins.length >= 4) expect(g.residualM).toBeLessThan(5);
       for (const e of geo.entrances) expect(venue.landmarks.some((l) => l.id === e)).toBe(true);
+    });
+
+    test.skipIf(!existsSync(surroundingsPath(id)))('street drawing covers the plan and stays small', () => {
+      const s = loadSurroundings(id)!;
+      const [x0, y0, x1, y1] = s.bounds,
+        v = venue.view;
+      expect(x0 <= v.x && y0 <= v.y && x1 >= v.x + v.w && y1 >= v.y + v.h).toBe(true);
+      expect(s.shapes.length).toBeGreaterThan(0);
+      expect(statSync(surroundingsPath(id)).size).toBeLessThanOrEqual(150_000);
     });
   });
 }

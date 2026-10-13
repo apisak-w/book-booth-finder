@@ -5,6 +5,12 @@ export default {
   preprocess: vitePreprocess(),
   kit: {
     adapter: adapter({ pages: '_site', assets: '_site', fallback: '404.html', strict: true }),
-    prerender: { entries: ['*'], handleHttpError: 'fail' },
+    prerender: {
+      entries: ['*'],
+      handleHttpError: 'fail',
+      handleUnseenRoutes: ({ routes, message }) => {
+        if (routes.some((r) => r !== '/v/[id]/surroundings.json')) throw new Error(message);
+      },
+    },
   },
 };
