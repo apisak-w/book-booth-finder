@@ -127,7 +127,7 @@ export function pinProblems(pins: GeoPin[], metersPerPx: number): string[] {
   const off = g.mPerPx / metersPerPx - 1;
   if (g.mirrored) out.push('the fit is mirrored');
   if (Math.abs(off) >= 0.05) out.push(`scale is ${(off * 100).toFixed(1)}% off metersPerPx`);
-  if (g.aspect <= 0.95) out.push(`the fit is stretched (aspect ${g.aspect.toFixed(3)})`);
+  if (g.aspect <= 0.88) out.push(`the fit is stretched (aspect ${g.aspect.toFixed(3)})`);
   if (g.skewDeg >= 3) out.push(`the fit is skewed by ${g.skewDeg.toFixed(1)}°`);
   if (pins.length >= 4 && g.residualM >= 5) out.push(`fit error is ${g.residualM.toFixed(1)} m`);
   return out;
