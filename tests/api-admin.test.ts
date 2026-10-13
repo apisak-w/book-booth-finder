@@ -244,3 +244,10 @@ test('move without GitHub settings says what to set, and GitHub errors come back
   expect(bad.status).toBe(502);
   expect(db.raw.query('SELECT COUNT(*) AS n FROM decisions').get()).toEqual({ n: 0 });
 });
+
+test('without a D1 binding the admin API says what to set up', async () => {
+  env = { ...env, DB: undefined as unknown as Env['DB'] };
+  const r = await call('GET', 'me');
+  expect(r.status).toBe(503);
+  expect((await r.json()).error).toBe('Spots are not set up here yet. Add the D1 binding DB in Cloudflare');
+});

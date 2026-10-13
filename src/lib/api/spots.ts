@@ -1,10 +1,12 @@
 import { parseSpot, SPOTS_PER_EVENT } from '../core/spots';
-import { jsonResponse, loadConfig, purge, type Env } from './db';
+import { jsonResponse, loadConfig, notSetUp, purge, type Env } from './db';
 
 const MAX_BODY = 2048;
 
 export async function handleSpot(request: Request, env: Env, now = new Date()): Promise<Response> {
   if (request.method !== 'POST') return jsonResponse(405, { error: 'Use POST' });
+  const missing = notSetUp(env);
+  if (missing) return missing;
   if (!(request.headers.get('content-type') ?? '').toLowerCase().startsWith('application/json'))
     return jsonResponse(415, { error: 'Send JSON' });
   const text = await request.text();

@@ -25,6 +25,9 @@ export const jsonResponse = (status: number, body: unknown) =>
     headers: { 'content-type': 'application/json', 'cache-control': 'no-store' },
   });
 
+export const notSetUp = (env: Env) =>
+  env.DB ? null : jsonResponse(503, { error: 'Spots are not set up here yet. Add the D1 binding DB in Cloudflare' });
+
 export async function purge(db: Db, now: Date) {
   await db.prepare('DELETE FROM spots WHERE purge_after < ?').bind(now.toISOString().slice(0, 10)).run();
 }

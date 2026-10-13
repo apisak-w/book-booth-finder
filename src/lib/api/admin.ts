@@ -28,7 +28,7 @@ import {
   touchPasskey,
   type Ceremonies,
 } from './auth';
-import { jsonResponse, loadConfig, purge, type Env } from './db';
+import { jsonResponse, loadConfig, notSetUp, purge, type Env } from './db';
 import { GitHubError, proposeChange, type GitHub } from './github';
 
 export type AdminDeps = { ceremonies: Ceremonies; github: (env: Env) => GitHub | null; now: () => Date };
@@ -55,6 +55,8 @@ const EXPIRED = { error: 'This request expired. Try again' };
 const BAD_PASSKEY = { error: "That passkey didn't check out. Try again" };
 
 export async function handleAdmin(req: Request, env: Env, deps: AdminDeps): Promise<Response> {
+  const missing = notSetUp(env);
+  if (missing) return missing;
   const url = new URL(req.url),
     now = deps.now();
   const path = url.pathname.replace(/^\/api\/admin\/?/, '').replace(/\/$/, '');

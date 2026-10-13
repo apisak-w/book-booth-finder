@@ -85,3 +85,10 @@ test('an event with a full mailbox refuses more spots', async () => {
   expect(r.status).toBe(503);
   expect(await r.json()).toEqual({ error: 'Spots are full for this event' });
 });
+
+test('without a D1 binding the API says what to set up', async () => {
+  env = { ...env, DB: undefined as unknown as Env['DB'] };
+  const r = await send(good);
+  expect(r.status).toBe(503);
+  expect(await r.json()).toEqual({ error: 'Spots are not set up here yet. Add the D1 binding DB in Cloudflare' });
+});
