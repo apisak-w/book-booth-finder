@@ -125,3 +125,29 @@ test('a GPS hiccup after the first fix keeps locating', async ({ page }) => {
   await expect(page.locator('.outleg')).toBeVisible();
   await expect(page.locator('.from .hint')).toHaveCount(0);
 });
+
+test('the compass button shows on the street map, turns the map and stops on drag', async ({ page, context }) => {
+  await page.goto('/e/bkkibf-2026/#to=A42');
+  await page.getByRole('button', { name: 'EN', exact: true }).click();
+  await expect(page.getByRole('button', { name: 'Turn the map as I turn' })).toHaveCount(0);
+  await context.grantPermissions(['geolocation', 'accelerometer', 'gyroscope', 'magnetometer']);
+  await context.setGeolocation(at(-200, 560));
+  await page.locator('.locbtn').click();
+  const btn = page.getByRole('button', { name: 'Turn the map as I turn' });
+  await expect(btn).toBeVisible();
+  await btn.click();
+  await expect(page.getByRole('button', { name: 'Stop turning the map' })).toHaveAttribute('aria-pressed', 'true');
+  await page.evaluate(() => {
+    const e = new Event('deviceorientationabsolute') as Event & { alpha: number; absolute: boolean };
+    Object.assign(e, { alpha: 0, absolute: true });
+    dispatchEvent(e);
+  });
+  await expect(page.locator('#map-turn')).toHaveAttribute('transform', /rotate\(/);
+  const box = (await page.locator('#map').boundingBox())!;
+  await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2);
+  await page.mouse.down();
+  await page.mouse.move(box.x + box.width / 2 + 60, box.y + box.height / 2 + 10, { steps: 5 });
+  await page.mouse.up();
+  await expect(page.getByRole('button', { name: 'Turn the map as I turn' })).toHaveAttribute('aria-pressed', 'false');
+  await expect(page.locator('#map-turn')).not.toHaveAttribute('transform', /rotate\(/);
+});
