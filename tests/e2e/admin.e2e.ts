@@ -21,17 +21,39 @@ async function mock(page: Page, signedIn: boolean, list = spots) {
   await page.route(/\/api\/admin\/spots/, (r) => r.fulfill({ json: { spots: list, decisions: [] } }));
 }
 
-test('signed out: offers passkey sign-in and set-up', async ({ page }) => {
+test('signed out with a passkey: one big sign-in button, set-up tucked away', async ({ page }) => {
   await mock(page, false);
   await page.goto('/admin/');
+  await expect(page).toHaveTitle('Booth finder admin');
+  await expect(page.getByRole('heading', { name: 'Sign in to Booth finder admin' })).toBeVisible();
   await expect(page.getByRole('button', { name: 'Sign in with a passkey' })).toBeVisible();
-  await expect(page.getByText('Set up a passkey')).toBeVisible();
+  await expect(page.getByLabel('Setup code')).toHaveCount(0);
+  await page.getByRole('button', { name: 'Set up a passkey' }).click();
+  await expect(page.getByLabel('Setup code')).toBeVisible();
+});
+
+test('first visit: set-up steps, and a wrong code shows inside the card', async ({ page }) => {
+  await page.route(/\/api\/admin\/me$/, (r) =>
+    r.fulfill({ json: { signedIn: false, hasPasskeys: false, passkeys: [] } }),
+  );
+  await page.route(/\/api\/admin\/setup\/options$/, (r) =>
+    r.fulfill({ status: 403, json: { error: 'That setup code is wrong' } }),
+  );
+  await page.goto('/admin/');
+  await expect(page.getByRole('heading', { name: 'Set up your passkey' })).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Sign in with a passkey' })).toHaveCount(0);
+  await page.getByLabel('Setup code').fill('not the right code');
+  await page.getByRole('button', { name: 'Show code' }).click();
+  await expect(page.getByLabel('Setup code')).toHaveAttribute('type', 'text');
+  await page.getByRole('button', { name: 'Set up passkey' }).click();
+  await expect(page.locator('.signin-card [role="alert"]')).toHaveText('That setup code is wrong');
 });
 
 test('signed in with no venue pinned yet: says so', async ({ page }) => {
   test.skip(!!g, 'qsncc-lg-5-8 has map pins');
   await mock(page, true);
   await page.goto('/admin/');
+  await expect(page.getByRole('navigation', { name: 'Admin sections' })).toContainText('Guest spots');
   await expect(page.getByText('No venue has map pins yet.')).toBeVisible();
 });
 

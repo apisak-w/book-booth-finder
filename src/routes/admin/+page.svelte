@@ -4,7 +4,7 @@
 </script>
 
 <svelte:head>
-  <title>Review guest spots</title>
+  <title>Booth finder admin</title>
   <meta name="robots" content="noindex" />
 </svelte:head>
 

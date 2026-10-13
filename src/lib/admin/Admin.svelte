@@ -84,8 +84,11 @@
 
 <div class="admin">
   <header class="admin-top">
-    <b>Review guest spots</b>
+    <b>Booth finder admin</b>
     {#if me?.signedIn}
+      <nav class="admin-tabs" aria-label="Admin sections">
+        <span class="admin-tab" aria-current="page">Guest spots</span>
+      </nav>
       {#if venues.length > 1}
         <label
           >Venue
@@ -98,16 +101,19 @@
       <button type="button" class="btn" disabled={busy} onclick={() => run(async () => { await signOut(); await load(); })}>Sign out</button>
     {/if}
   </header>
-  <p class="admin-msg" role="status">
-    {message}
-    {#if link}<a href={link} target="_blank" rel="noopener">Open the pull request</a>{/if}
-  </p>
+  {#if !me || me.signedIn}
+    <p class="admin-msg" role="status">
+      {message}
+      {#if link}<a href={link} target="_blank" rel="noopener">Open the pull request</a>{/if}
+    </p>
+  {/if}
   {#if !me}
     <p class="admin-wait">Checking sign-in…</p>
   {:else if !me.signedIn}
     <SignIn
       hasPasskeys={me.hasPasskeys}
       {busy}
+      error={message}
       onSignIn={() => run(async () => { await signIn(); await load(); })}
       onSetUp={(code, name) => run(async () => { await setUp(code, name); await load(); })}
     />

@@ -1,4 +1,6 @@
 .admin {
+  display: flex;
+  flex-direction: column;
   min-height: 100vh;
   background: var(--panel);
   color: var(--text);
@@ -13,7 +15,6 @@
   color: #fff;
 }
 .admin-top b {
-  margin-right: auto;
   font-family: Mitr, sans-serif;
   font-weight: 500;
   font-size: 18px;
@@ -24,27 +25,9 @@
   padding: 8px 16px;
   color: var(--muted);
 }
-.admin-wait,
-.admin-signin {
+.admin-wait {
   max-width: 420px;
   padding: 16px;
-}
-.admin-signin form {
-  display: grid;
-  gap: 10px;
-  margin: 10px 0;
-}
-.admin-signin label {
-  display: grid;
-  gap: 4px;
-  font-size: 14px;
-}
-.admin-signin input {
-  min-height: 44px;
-  padding: 0 10px;
-  border: 1px solid var(--line);
-  border-radius: 10px;
-  font: inherit;
 }
 .admin-note {
   margin: 0;
@@ -244,4 +227,204 @@
   .admin-map svg {
     height: 60vh;
   }
+}
+
+.signin {
+  display: grid;
+  justify-items: center;
+  align-content: center;
+  gap: 14px;
+  flex: 1;
+  padding: 32px 16px;
+  background: var(--outside);
+}
+.signin-card {
+  width: min(100%, 420px);
+  padding: 28px 24px 24px;
+  border-radius: 20px;
+  background: var(--panel);
+  box-shadow: 0 12px 32px rgba(19, 48, 107, 0.14);
+}
+.signin-badge {
+  display: grid;
+  place-items: center;
+  width: 56px;
+  height: 56px;
+  margin-bottom: 16px;
+  border-radius: 999px;
+  background: var(--ink);
+  color: var(--sun);
+}
+.signin h1 {
+  margin: 0 0 6px;
+  font-family: Mitr, sans-serif;
+  font-weight: 500;
+  font-size: 22px;
+  line-height: 1.25;
+}
+.signin-lede {
+  margin: 0 0 20px;
+  font-size: 15px;
+  color: var(--muted);
+}
+.signin-steps {
+  display: grid;
+  gap: 16px;
+  margin: 0 0 20px;
+  padding: 0;
+  list-style: none;
+}
+.signin-steps li {
+  display: grid;
+  grid-template-columns: 28px minmax(0, 1fr);
+  gap: 12px;
+}
+.signin-step {
+  display: grid;
+  place-items: center;
+  width: 28px;
+  height: 28px;
+  border-radius: 999px;
+  background: var(--chip);
+  color: var(--ink);
+  font:
+    600 13px Mitr,
+    sans-serif;
+}
+.signin-field {
+  display: grid;
+  gap: 6px;
+  padding-top: 3px;
+}
+.signin-field label,
+.signin-label {
+  font-size: 14px;
+  font-weight: 600;
+}
+.signin-field input {
+  width: 100%;
+  min-height: 46px;
+  padding: 0 12px;
+  border: 1.5px solid var(--line);
+  border-radius: 12px;
+  background: var(--panel);
+  color: var(--text);
+  font: inherit;
+}
+.signin-field input:focus-visible {
+  outline: 2px solid var(--focus);
+  outline-offset: 1px;
+}
+.signin-code {
+  display: flex;
+  gap: 8px;
+}
+.signin-reveal {
+  flex: none;
+  min-height: 46px;
+  padding: 0 12px;
+  border: 1.5px solid var(--line);
+  border-radius: 12px;
+  background: var(--chip);
+  color: var(--ink);
+  font-family: inherit;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+}
+.signin-hint {
+  font-size: 13px;
+  color: var(--muted);
+}
+.signin-error {
+  margin: 0 0 14px;
+  padding: 10px 12px;
+  border-radius: 10px;
+  background: rgba(179, 38, 30, 0.1);
+  color: #b3261e;
+  font-size: 14px;
+  font-weight: 600;
+}
+.signin-go {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  width: 100%;
+  height: 52px;
+  border-radius: 14px;
+  font-size: 16px;
+}
+.signin-go:disabled {
+  opacity: 0.7;
+  cursor: progress;
+}
+.signin-or {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin: 20px 0 6px;
+  font-size: 13px;
+  color: var(--muted);
+}
+.signin-or::before,
+.signin-or::after {
+  content: '';
+  flex: 1;
+  height: 1px;
+  background: var(--line);
+}
+.signin-link {
+  display: block;
+  width: 100%;
+  min-height: 44px;
+  margin-top: 6px;
+  border: 0;
+  background: none;
+  color: var(--blue);
+  font-family: inherit;
+  font-size: 15px;
+  font-weight: 600;
+  cursor: pointer;
+}
+.signin-note {
+  max-width: 420px;
+  margin: 0;
+  font-size: 12.5px;
+  text-align: center;
+  color: var(--muted);
+}
+
+:root[data-theme='dark'] .signin-badge {
+  color: #0c1428;
+}
+:root[data-theme='dark'] .signin-error {
+  color: #ffb4ab;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme='light']) .signin-badge {
+    color: #0c1428;
+  }
+  :root:not([data-theme='light']) .signin-error {
+    color: #ffb4ab;
+  }
+}
+
+.admin-tabs {
+  display: flex;
+  gap: 4px;
+  margin-right: auto;
+}
+.admin-tab {
+  display: flex;
+  align-items: center;
+  height: 34px;
+  padding: 0 14px;
+  border-radius: 999px;
+  font-size: 14px;
+}
+.admin-tab[aria-current='page'] {
+  background: #fff;
+  color: var(--ink);
+  font-weight: 600;
 }
