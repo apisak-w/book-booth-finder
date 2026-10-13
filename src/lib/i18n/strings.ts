@@ -46,6 +46,27 @@ export type Strings = {
   noEvents: string;
   language: string;
   floorPlan: string;
+  useLocation: string;
+  useLocationHint: string;
+  locating: string;
+  stopLocating: string;
+  locOff: string;
+  locUnavailable: string;
+  locWeak: string;
+  locFar: (km: number) => string;
+  walkTo: (n: string) => string;
+  thenInside: (m: number) => string;
+  imInside: string;
+  arrived: (n: string) => string;
+  whichHall: string;
+  hallHint: string;
+  gpsGuess: string;
+  pickFromList: string;
+  turnWithMe: string;
+  stopTurning: string;
+  compassOff: string;
+  offlineMap: string;
+  you: string;
 };
 
 export const STRINGS: Record<Lang, Strings> = {
@@ -100,6 +121,27 @@ export const STRINGS: Record<Lang, Strings> = {
     noEvents: 'ยังไม่มีงาน',
     language: 'ภาษา',
     floorPlan: 'ผังงาน',
+    useLocation: 'ใช้ตำแหน่งของฉัน',
+    useLocationHint: 'เลือกทางเข้าที่ดีที่สุดให้ ตำแหน่งของคุณอยู่ในเครื่องนี้เท่านั้น',
+    locating: 'กำลังหาตำแหน่งของคุณ…',
+    stopLocating: 'หยุดใช้ตำแหน่ง',
+    locOff: 'เว็บนี้ปิดการใช้ตำแหน่งอยู่ เลือกจุดที่คุณอยู่จากรายการด้านล่าง หรือเปิดสิทธิ์ตำแหน่งในการตั้งค่าเบราว์เซอร์',
+    locUnavailable: 'หาตำแหน่งของคุณไม่ได้ เลือกจุดที่คุณอยู่จากรายการด้านล่าง',
+    locWeak: 'สัญญาณ GPS ตรงนี้อ่อน ลองออกไปที่โล่ง หรือเลือกจุดที่คุณอยู่จากรายการด้านล่าง',
+    locFar: (km) => `คุณอยู่ห่างจากงานประมาณ ${km} กม. ใช้แอปแผนที่ที่ใช้ประจำเพื่อเดินทางมาก่อน`,
+    walkTo: (n) => `เดินไปที่${n}`,
+    thenInside: (m) => `จากนั้นเดินต่อด้านในอีก ${m} ม.`,
+    imInside: 'ฉันเข้ามาด้านในแล้ว',
+    arrived: (n) => `คุณถึง${n}แล้ว เปลี่ยนเป็นผังในงานให้แล้ว`,
+    whichHall: 'คุณอยู่ฮอลล์ไหน',
+    hallHint: 'ดูป้ายชื่อฮอลล์ใกล้ตัว ในอาคาร GPS อาจคลาดไปทั้งฮอลล์',
+    gpsGuess: 'GPS คาดว่าอยู่ที่นี่',
+    pickFromList: 'ไม่แน่ใจ เลือกจากรายการ',
+    turnWithMe: 'หมุนแผนที่ตามทิศที่ฉันหัน',
+    stopTurning: 'หยุดหมุนแผนที่',
+    compassOff: 'ใช้เข็มทิศในเครื่องนี้ไม่ได้ แผนที่จะแสดงตามผังเดิม',
+    offlineMap: 'แผนที่ออฟไลน์',
+    you: 'ตำแหน่งของคุณ',
   },
   en: {
     title: 'Booth Finder',
@@ -152,6 +194,27 @@ export const STRINGS: Record<Lang, Strings> = {
     noEvents: 'No events yet.',
     language: 'Language',
     floorPlan: 'Floor plan',
+    useLocation: 'Use my location',
+    useLocationHint: 'Picks the best entrance for you. Your location stays on your phone.',
+    locating: 'Finding you…',
+    stopLocating: 'Stop using my location',
+    locOff: 'Location is off for this site. Pick where you are below, or allow location in your browser settings.',
+    locUnavailable: "We couldn't find your location. Pick where you are below.",
+    locWeak: 'GPS is weak here. Move into the open, or pick where you are below.',
+    locFar: (km) => `You're about ${km} km away. Use your usual map app to get here first.`,
+    walkTo: (n) => `Walk to ${n}`,
+    thenInside: (m) => `Then ${m} m inside`,
+    imInside: "I'm inside now",
+    arrived: (n) => `You're at ${n}. Switched to the hall plan.`,
+    whichHall: 'Which hall are you in?',
+    hallHint: 'Look for the hall sign near you. Indoors, GPS can be a whole hall out.',
+    gpsGuess: 'GPS guess',
+    pickFromList: 'Not sure? Pick from the list',
+    turnWithMe: 'Turn the map as I turn',
+    stopTurning: 'Stop turning the map',
+    compassOff: "The compass isn't available on this phone. The map stays as printed.",
+    offlineMap: 'Offline map',
+    you: 'You are here',
   },
 };
 

@@ -4,12 +4,21 @@
   import { loadData } from '$lib/core/prepare';
   import { createSearch, type SearchItem } from '$lib/core/search';
   import { parseHash, formatHash } from '$lib/core/hash';
-  import type { Booth, Dest, Landmark } from '$lib/core/types';
+  import { boxAround } from '$lib/core/panzoom';
+  import { georef } from '$lib/core/geo';
+  import { classify, hallChoices, hallStart } from '$lib/core/locate';
+  import { headingFrom, smoothAngle, turnAngle } from '$lib/core/compass';
+  import { WALK_M_PER_MIN } from '$lib/core/types';
+  import type { Booth, Dest, Landmark, Point, Surroundings } from '$lib/core/types';
   import { STRINGS, fmtRange, nameIn, textFor } from '$lib/i18n/strings';
   import { eventStatus } from '$lib/core/status';
   import { lang } from '$lib/i18n/lang.svelte';
   import { store } from '$lib/storage';
   import { Finder } from '$lib/ui/finder.svelte';
+  import { Locator } from '$lib/ui/locator.svelte';
+  import type { LocView } from '$lib/ui/locate';
+  import { TILE_CREDIT, TILE_URL } from '$lib/map/tileConfig';
+  import type { CompassView, StreetView, Turn, YouMark } from '$lib/map/street';
   import Header from '$lib/ui/Header.svelte';
   import FloorMap from '$lib/map/FloorMap.svelte';
   import Sheet from '$lib/ui/Sheet.svelte';
@@ -18,6 +27,7 @@
   import IdleView from '$lib/ui/IdleView.svelte';
   import ResultCard from '$lib/ui/ResultCard.svelte';
   import Toast from '$lib/ui/Toast.svelte';
+  import MapBanner from '$lib/ui/MapBanner.svelte';
 
   import type { EventBundle } from '$lib/core/types';
 
@@ -26,16 +36,90 @@
   const f = new Finder(data);
   const search = createSearch(data);
   const FROM_KEY = `bf:${data.event.id}:from`;
+  const geo = data.venue.geo ? georef(data.venue.geo.pins) : null;
+  const loc = new Locator();
 
   let map: FloorMap;
   let toast = $state({ message: '', show: false });
   let toastTimer: ReturnType<typeof setTimeout>;
   let isPast = $state(false);
+  let surroundings = $state<Surroundings | null>(null);
+  let hall = $state<{ guess: string | null } | null>(null);
+  let farKm = $state<number | null>(null);
+  let banner = $state('');
+  let bannerTimer: ReturnType<typeof setTimeout>;
+  let framed = '';
+  let turning = $state(false);
+  let heading = $state<number | null>(null);
 
   const s = $derived(STRINGS[lang.current]);
   const nameOf = $derived(nameIn(lang.current));
   const notice = $derived(isPast ? s.ended(fmtRange(data.event.dates.end, data.event.dates.end, lang.current)) : '');
   const results = $derived(f.query.trim() ? search(f.query) : []);
+
+  const where = $derived(geo && loc.fix ? classify(loc.fix, data, geo, f.dest ? f.entranceMeters(f.dest) : null) : null);
+  const outside = $derived(where?.kind === 'outside' ? where : null);
+  const street: StreetView | null = $derived(geo && outside ? { geo, surroundings, tileUrl: TILE_URL, credit: TILE_CREDIT } : null);
+  const you: YouMark | null = $derived(
+    outside ? { p: outside.p, accPx: outside.accuracyPx, leg: [outside.entrance.x, outside.entrance.y] } : null,
+  );
+  const turn: Turn | null = $derived(
+    geo && turning && heading !== null && outside ? { deg: turnAngle(geo.northDeg, heading), cx: outside.p[0], cy: outside.p[1] } : null,
+  );
+  const compass: CompassView | null = $derived(
+    geo && outside ? { on: turning, northDeg: geo.northDeg, toggle: () => (turning ? stopTurning() : startTurning()) } : null,
+  );
+  const locView: LocView | null = $derived(
+    geo
+      ? {
+          state: loc.state,
+          weak: where?.kind === 'weak',
+          farKm,
+          outside: outside
+            ? {
+                entrance: outside.entrance,
+                meters: outside.meters,
+                minutes: Math.max(1, Math.round(outside.meters / WALK_M_PER_MIN)),
+                inside: f.routeOk?.meters ?? null,
+              }
+            : null,
+          hall: hall ? { choices: hallChoices(data.venue, hall.guess), guess: hall.guess } : null,
+          onStart: startLocating,
+          onStop: () => stopLocating(true),
+          onInside: () => outside && handOff(outside.entrance),
+          onHall: pickHall,
+          onList: () => {
+            hall = null;
+            document.getElementById('from')?.focus();
+          },
+        }
+      : null,
+  );
+
+  $effect(() => {
+    const w = where;
+    if (!w) return;
+    untrack(() => {
+      if (w.kind === 'arrived') handOff(w.entrance);
+      else if (w.kind === 'inside') {
+        stopLocating(true);
+        hall = { guess: w.hall };
+      } else if (w.kind === 'far') {
+        stopLocating(true);
+        farKm = Math.round(w.meters / 100) / 10;
+      } else if (w.kind === 'outside') {
+        if (f.fromId !== w.entrance.id) f.fromId = w.entrance.id;
+        const key = `${w.entrance.id}:${f.dest?.kind === 'booth' ? f.dest.b.i : (f.dest?.lm.id ?? '')}`;
+        if (framed !== key) {
+          framed = key;
+          const pts: Point[] = [w.p, [w.entrance.x, w.entrance.y], ...(f.routeOk?.P ?? [])];
+          const b = boxAround(pts);
+          map.setBounds({ x: b[0] - 300, y: b[1] - 300, w: b[2] - b[0] + 600, h: b[3] - b[1] + 600 });
+          map.frameBox(b, 80);
+        }
+      }
+    });
+  });
 
   function writeHash() {
     try {
@@ -59,12 +143,16 @@
     else selectBooth(it.b);
   }
   function setFrom(id: string) {
+    if (loc.state === 'on' || loc.state === 'asking') stopLocating(false);
+    hall = null;
     f.fromId = id;
     store.set(FROM_KEY, id);
     writeHash();
     map.frame(f.dest, f.routeOk);
   }
   function clearRoute() {
+    if (loc.state === 'on' || loc.state === 'asking') stopLocating(true);
+    hall = null;
     f.dest = null;
     writeHash();
   }
@@ -72,6 +160,11 @@
     toast = { message, show: true };
     clearTimeout(toastTimer);
     toastTimer = setTimeout(() => (toast = { ...toast, show: false }), 1800);
+  }
+  function showBanner(message: string) {
+    banner = message;
+    clearTimeout(bannerTimer);
+    bannerTimer = setTimeout(() => (banner = ''), 5000);
   }
   async function share() {
     try {
@@ -88,6 +181,69 @@
     return !!dest;
   }
 
+  function startLocating() {
+    farKm = null;
+    hall = null;
+    loc.start();
+    if (!surroundings)
+      fetch(`/v/${data.venue.id}/surroundings.json`)
+        .then((r) => (r.ok ? r.json() : null))
+        .then((v: Surroundings | null) => (surroundings = v))
+        .catch(() => (surroundings = null));
+  }
+  function stopLocating(restore: boolean) {
+    loc.stop();
+    stopTurning();
+    framed = '';
+    map.setBounds(null);
+    if (restore) {
+      const saved = store.get(FROM_KEY);
+      f.fromId = saved && data.landmarkById[saved] ? saved : '';
+      map.frame(f.dest, f.routeOk);
+    }
+  }
+  function handOff(lm: Landmark) {
+    setFrom(lm.id);
+    showBanner(s.arrived(nameOf(lm)));
+  }
+  function pickHall(id: string) {
+    const start = hallStart(data, id);
+    hall = null;
+    if (start) setFrom(start);
+  }
+
+  const onOrient = (e: DeviceOrientationEvent) => {
+    const ios = (e as DeviceOrientationEvent & { webkitCompassHeading?: number }).webkitCompassHeading;
+    const h = headingFrom(
+      { webkitCompassHeading: ios, alpha: e.alpha, absolute: e.absolute || e.type === 'deviceorientationabsolute' },
+      screen.orientation?.angle ?? 0,
+    );
+    if (h !== null) heading = smoothAngle(heading, h);
+  };
+  async function startTurning() {
+    const DOE = globalThis.DeviceOrientationEvent as unknown as { requestPermission?: () => Promise<string> } | undefined;
+    if (!DOE) return showToast(s.compassOff);
+    try {
+      if (DOE.requestPermission && (await DOE.requestPermission()) !== 'granted') return showToast(s.compassOff);
+    } catch {
+      return showToast(s.compassOff);
+    }
+    heading = null;
+    turning = true;
+    if (outside) {
+      const [x, y] = outside.p;
+      map.frameBox([x - 250, y - 250, x + 250, y + 250], 0);
+    }
+    addEventListener('deviceorientationabsolute', onOrient as EventListener);
+    addEventListener('deviceorientation', onOrient);
+  }
+  function stopTurning() {
+    turning = false;
+    heading = null;
+    removeEventListener('deviceorientationabsolute', onOrient as EventListener);
+    removeEventListener('deviceorientation', onOrient);
+  }
+
   onMount(() => {
     isPast = eventStatus(data.event.dates, data.venue.timezone) === 'past';
     const stored = store.get(FROM_KEY);
@@ -98,7 +254,11 @@
     });
     const onHash = () => { if (readHash()) map.frame(f.dest, f.routeOk); };
     addEventListener('hashchange', onHash);
-    return () => removeEventListener('hashchange', onHash);
+    return () => {
+      removeEventListener('hashchange', onHash);
+      loc.stop();
+      stopTurning();
+    };
   });
 </script>
 
@@ -115,10 +275,16 @@
     {data}
     dest={f.dest}
     route={f.routeOk}
+    {street}
+    {you}
+    {turn}
+    {compass}
+    onUserPan={() => turning && stopTurning()}
     onSelectBooth={selectBooth}
     onSelectPlace={selectPlace}
     onFit={() => (f.dest ? map.frame(f.dest, f.routeOk) : map.fitAll(true))}
   >
+    <MapBanner message={banner} />
     <Toast message={toast.message} show={toast.show} />
   </FloorMap>
   <Sheet open={f.sheetOpen} toggleLabel={f.sheetOpen ? s.hide : s.show} onToggle={() => (f.sheetOpen = !f.sheetOpen)}>
@@ -135,7 +301,7 @@
     {#if f.query.trim()}
       <Results items={results} query={f.query} {data} lang={lang.current} onPick={pick} />
     {:else if f.dest}
-      <ResultCard {data} lang={lang.current} dest={f.dest} fromId={f.fromId} route={f.route} onFrom={setFrom} onClear={clearRoute} onShare={share} />
+      <ResultCard {data} lang={lang.current} dest={f.dest} fromId={f.fromId} route={f.route} loc={locView} onFrom={setFrom} onClear={clearRoute} onShare={share} />
     {:else}
       <IdleView {data} lang={lang.current} {notice} onPick={(kind, id) => (kind === 'booth' ? selectBooth(data.byCode[id][0]) : selectPlace(data.landmarkById[id]))} />
     {/if}

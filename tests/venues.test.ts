@@ -1,9 +1,11 @@
 import { test, expect, describe } from 'bun:test';
-import { listVenueIds, loadVenue } from '../src/lib/server/catalog';
+import { existsSync, statSync } from 'node:fs';
+import { listVenueIds, loadSurroundings, loadVenue, surroundingsPath } from '../src/lib/server/catalog';
 import { pointInPolygon } from '../src/lib/core/geometry';
 import { createGrid } from '../src/lib/core/grid';
 import { findRoute } from '../src/lib/core/routing';
 import { isRouteOk, type Box, type Point } from '../src/lib/core/types';
+import { georef } from '../src/lib/core/geo';
 
 const segHitsBox = ([ax, ay]: Point, [bx, by]: Point, [x0, y0, x1, y1]: Box) => {
   for (let k = 0; k <= 50; k++) {
@@ -45,6 +47,26 @@ for (const id of listVenueIds()) {
         (l) => l.id !== origin.id && !isRouteOk(findRoute(grid, venue, origin, { kind: 'place', lm: l })),
       );
       expect(bad.map((l) => l.id)).toEqual([]);
+    });
+
+    test.skipIf(!venue.geo)('map pins match the plan', () => {
+      const geo = venue.geo!;
+      const g = georef(geo.pins);
+      expect(g.mirrored).toBe(false);
+      expect(Math.abs(g.mPerPx / venue.metersPerPx - 1)).toBeLessThan(0.05);
+      expect(g.aspect).toBeGreaterThan(0.95);
+      expect(g.skewDeg).toBeLessThan(3);
+      if (geo.pins.length >= 4) expect(g.residualM).toBeLessThan(5);
+      for (const e of geo.entrances) expect(venue.landmarks.some((l) => l.id === e)).toBe(true);
+    });
+
+    test.skipIf(!existsSync(surroundingsPath(id)))('street drawing covers the plan and stays small', () => {
+      const s = loadSurroundings(id)!;
+      const [x0, y0, x1, y1] = s.bounds,
+        v = venue.view;
+      expect(x0 <= v.x && y0 <= v.y && x1 >= v.x + v.w && y1 >= v.y + v.h).toBe(true);
+      expect(s.shapes.length).toBeGreaterThan(0);
+      expect(statSync(surroundingsPath(id)).size).toBeLessThanOrEqual(150_000);
     });
   });
 }

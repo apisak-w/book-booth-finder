@@ -10,7 +10,7 @@ test('no exclamation marks in copy', () => {
   const all =
     JSON.stringify(STRINGS) +
     Object.values(STRINGS)
-      .map((s) => s.noRes('x') + s.ended('x'))
+      .map((s) => s.noRes('x') + s.ended('x') + s.locFar(1.2) + s.walkTo('x') + s.thenInside(9) + s.arrived('x'))
       .join('');
   expect(all.includes('!')).toBe(false);
 });

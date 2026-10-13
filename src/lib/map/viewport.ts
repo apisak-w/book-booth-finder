@@ -1,15 +1,35 @@
-import { boxFor, clampVB, ease, frameTarget, lerpVB, zoomAt, LABEL_MIN_PX_PER_UNIT, type VB } from '../core/panzoom';
-import type { Dest, RouteOk, Venue } from '../core/types';
+import {
+  boxFor,
+  clampVB,
+  ease,
+  frameTarget,
+  lerpVB,
+  unionRect,
+  zoomAt,
+  LABEL_MIN_PX_PER_UNIT,
+  type VB,
+} from '../core/panzoom';
+import type { Box, Dest, Rect, RouteOk, Venue } from '../core/types';
 
 export type Viewport = {
   fitAll(animated?: boolean): void;
   zoomCenter(k: number): void;
   frame(dest: Dest | null, route: RouteOk | null): void;
+  frameBox(box: Box, pad: number): void;
+  setBounds(r: Rect | null): void;
   destroy(): void;
 };
 
-export function createViewport(svg: SVGSVGElement, venue: Venue, onTap: (target: Element | null) => void): Viewport {
+export type ViewportHooks = { onView?: (vb: VB, pxPerUnit: number) => void; onPan?: () => void };
+
+export function createViewport(
+  svg: SVGSVGElement,
+  venue: Venue,
+  onTap: (target: Element | null) => void,
+  hooks: ViewportHooks = {},
+): Viewport {
   const view = venue.view;
+  let bounds: Rect = view;
   let vb: VB = { ...view },
     anim = 0;
   const reduceMotion = matchMedia('(prefers-reduced-motion: reduce)').matches;
@@ -19,10 +39,12 @@ export function createViewport(svg: SVGSVGElement, venue: Venue, onTap: (target:
   };
   const apply = () => {
     svg.setAttribute('viewBox', `${vb.x} ${vb.y} ${vb.w} ${vb.h}`);
-    svg.classList.toggle('labels-off', svg.getBoundingClientRect().width / vb.w < LABEL_MIN_PX_PER_UNIT);
+    const ppu = svg.getBoundingClientRect().width / vb.w;
+    svg.classList.toggle('labels-off', ppu < LABEL_MIN_PX_PER_UNIT);
+    hooks.onView?.(vb, ppu);
   };
   const set = (next: VB) => {
-    vb = clampVB(next, view, aspect());
+    vb = clampVB(next, bounds, aspect());
     apply();
   };
   const toSvg = (cx: number, cy: number) => {
@@ -75,6 +97,7 @@ export function createViewport(svg: SVGSVGElement, venue: Venue, onTap: (target:
       const [a, b] = [...pointers.values()];
       pinch = { d: Math.hypot(a.x - b.x, a.y - b.y), mx: (a.x + b.x) / 2, my: (a.y + b.y) / 2 };
       if (down) down.moved = true;
+      hooks.onPan?.();
     }
   };
   const onMove = (e: PointerEvent) => {
@@ -91,9 +114,10 @@ export function createViewport(svg: SVGSVGElement, venue: Venue, onTap: (target:
       set({ ...vb, x: vb.x + p0.x - p1.x, y: vb.y + p0.y - p1.y });
       pinch = { d, mx, my };
     } else if (pointers.size === 1 && down) {
-      if (Math.hypot(e.clientX - down.x, e.clientY - down.y) > 6) {
+      if (!down.moved && Math.hypot(e.clientX - down.x, e.clientY - down.y) > 6) {
         down.moved = true;
         svg.classList.add('dragging');
+        hooks.onPan?.();
       }
       if (down.moved) {
         const p = toSvg(e.clientX, e.clientY);
@@ -146,6 +170,13 @@ export function createViewport(svg: SVGSVGElement, venue: Venue, onTap: (target:
     frame(dest, route) {
       const t = frameTarget(dest, route);
       if (t) requestAnimationFrame(() => animateTo(boxFor(...t.box, t.pad, aspect())));
+    },
+    frameBox(box, pad) {
+      requestAnimationFrame(() => animateTo(boxFor(...box, pad, aspect())));
+    },
+    setBounds(r) {
+      bounds = unionRect(view, r);
+      set(vb);
     },
     destroy() {
       cancelAnimationFrame(anim);

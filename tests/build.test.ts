@@ -1,6 +1,7 @@
 import { test, expect } from 'bun:test';
 import { existsSync, readdirSync, readFileSync, statSync } from 'node:fs';
 import { join } from 'node:path';
+import { listVenueIds, surroundingsPath } from '../src/lib/server/catalog';
 
 const built = existsSync('_site/index.html');
 const walk = (dir: string): string[] =>
@@ -24,4 +25,9 @@ test.skipIf(!built)('no source material or tooling is published', () => {
 test.skipIf(!built)('Zod is not in the client bundle', () => {
   const js = walk('_site/_app').filter((f) => f.endsWith('.js'));
   expect(js.filter((f) => readFileSync(f, 'utf8').includes('ZodError'))).toEqual([]);
+});
+
+test.skipIf(!built)('each venue street drawing is published', () => {
+  for (const id of listVenueIds().filter((v) => existsSync(surroundingsPath(v))))
+    expect(existsSync(`_site/v/${id}/surroundings.json`)).toBe(true);
 });

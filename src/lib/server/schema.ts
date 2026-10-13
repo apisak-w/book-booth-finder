@@ -1,6 +1,6 @@
 import { z } from 'zod';
-import { GROUP_ORDER, ICON_NAMES } from '../core/types';
-import type { Venue, EventFile, BoothsFile } from '../core/types';
+import { GROUP_ORDER, ICON_NAMES, SHAPE_KINDS } from '../core/types';
+import type { Venue, EventFile, BoothsFile, Surroundings } from '../core/types';
 
 const num = z.number().finite();
 const slug = z.string().regex(/^[a-z0-9][a-z0-9-]*$/);
@@ -52,6 +52,22 @@ export const VenueSchema: z.ZodType<Venue, unknown> = z.object({
     })
     .optional(),
   landmarks: z.array(landmark),
+  geo: z
+    .object({
+      pins: z
+        .array(
+          z.object({
+            id: z.string().min(1),
+            x: num,
+            y: num,
+            lat: num.min(-85).max(85),
+            lng: num.min(-180).max(180),
+          }),
+        )
+        .min(3),
+      entrances: z.array(z.string().min(1)).min(1),
+    })
+    .optional(),
   origin: z.string().min(1),
 });
 
@@ -90,6 +106,19 @@ export const EventSchema: z.ZodType<EventFile, unknown> = z
 export const BoothsFileSchema: z.ZodType<BoothsFile, unknown> = z.object({
   booths: z.array(rect.extend({ c: z.string().min(1), cat: z.string().min(1), extra: z.array(rect).optional() })),
   pillars: z.array(rect.extend({ cat: z.string().min(1), inner: rect })),
+});
+
+export const SurroundingsSchema: z.ZodType<Surroundings, unknown> = z.object({
+  credit: z.string().min(1),
+  bounds: box,
+  shapes: z.array(
+    z.object({
+      kind: z.enum(SHAPE_KINDS),
+      d: z.string().regex(/^(M-?\d+ -?\d+(L-?\d+ -?\d+)*Z?)+$/),
+      w: num.positive().optional(),
+    }),
+  ),
+  labels: z.array(z.object({ x: num, y: num, text: i18n, size: num.positive() })),
 });
 
 export const formatIssues = (err: z.ZodError) =>

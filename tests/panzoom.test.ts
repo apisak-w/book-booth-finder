@@ -1,5 +1,15 @@
 import { test, expect } from 'bun:test';
-import { clampVB, boxFor, zoomAt, frameTarget, lerpVB, ease, MIN_W } from '../src/lib/core/panzoom';
+import {
+  clampVB,
+  boxFor,
+  zoomAt,
+  frameTarget,
+  lerpVB,
+  ease,
+  MIN_W,
+  unionRect,
+  boxAround,
+} from '../src/lib/core/panzoom';
 
 const view = { x: 180, y: 240, w: 2230, h: 1420 };
 
@@ -60,4 +70,19 @@ test('ease and lerp', () => {
   expect(ease(0)).toBe(0);
   expect(ease(1)).toBe(1);
   expect(lerpVB({ x: 0, y: 0, w: 0, h: 0 }, { x: 10, y: 10, w: 10, h: 10 }, 0.5)).toEqual({ x: 5, y: 5, w: 5, h: 5 });
+});
+
+test('unionRect grows to cover both rectangles', () => {
+  expect(unionRect(view, null)).toEqual(view);
+  expect(unionRect(view, { x: -500, y: 300, w: 100, h: 100 })).toEqual({ x: -500, y: 240, w: 2910, h: 1420 });
+});
+
+test('boxAround spans every point', () => {
+  expect(
+    boxAround([
+      [5, 9],
+      [-2, 4],
+      [7, -1],
+    ]),
+  ).toEqual([-2, -1, 7, 9]);
 });

@@ -49,6 +49,15 @@ Events live in `events/<event-id>/`. The id appears in URLs and printed QR codes
 
 Venues live in `venues/<venue-id>/`: a `venue.json` and a `reference.jpg` whose pixels define the venue's coordinate space. Write `venue.json` by hand against the reference image (see `venues/qsncc-lg-5-8/venue.json`), then run `bun run test`. The venue tests check that doors sit on walls, areas don't overlap and every venue landmark is reachable.
 
+## Street map tiles
+
+Set these in the Cloudflare Pages build settings to show street tiles while a guest is locating:
+
+- `VITE_TILE_URL`: a raster tile URL template with `{z}`, `{x}` and `{y}`, for a style without text labels (labels would appear upside down, because tiles are turned to match the plan). Restrict the key to this site's domain.
+- `VITE_TILE_CREDIT`: the provider's credit line.
+
+Without them, guests see the bundled street drawing with an "Offline map" chip. A venue needs map pins (`geo` in `venue.json`) before guests see "Use my location"; then run `bun run venue:surroundings <venue-id>` for the bundled drawing.
+
 ## Share links and QR codes
 
 ```

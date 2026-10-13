@@ -5,10 +5,13 @@
   import { buildSteps } from '$lib/core/directions';
   import { STRINGS, nameIn, textFor, type Lang } from '$lib/i18n/strings';
   import StartPicker from './StartPicker.svelte';
+  import OutdoorLeg from './OutdoorLeg.svelte';
+  import HallConfirm from './HallConfirm.svelte';
+  import type { LocView } from './locate';
   let {
-    data, lang, dest, fromId, route, onFrom, onClear, onShare,
+    data, lang, dest, fromId, route, loc = null, onFrom, onClear, onShare,
   }: {
-    data: EventData; lang: Lang; dest: Dest; fromId: string; route: RouteResult | null;
+    data: EventData; lang: Lang; dest: Dest; fromId: string; route: RouteResult | null; loc?: LocView | null;
     onFrom: (id: string) => void; onClear: () => void; onShare: () => void;
   } = $props();
   const s = $derived(STRINGS[lang]);
@@ -35,9 +38,20 @@
     </div>
   {/if}
 
-  <StartPicker {data} {lang} value={fromId} onChange={onFrom} />
+  <StartPicker {data} {lang} value={fromId} onChange={onFrom} {loc} />
 
-  {#if !fromId}
+  {#if loc?.hall}
+    <HallConfirm {data} {lang} choices={loc.hall.choices} guess={loc.hall.guess} onPick={loc.onHall} onList={loc.onList} />
+  {:else if loc?.outside}
+    <OutdoorLeg
+      {lang}
+      name={nameOf(loc.outside.entrance)}
+      meters={loc.outside.meters}
+      minutes={loc.outside.minutes}
+      inside={loc.outside.inside}
+      onInside={loc.onInside}
+    />
+  {:else if !fromId}
     <p class="hint">{s.pickHint}</p>
   {:else if route && 'same' in route}
     <p class="hint">{s.same}</p>

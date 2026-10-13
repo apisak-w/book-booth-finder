@@ -2,6 +2,17 @@ export type I18n = { th: string; en: string };
 export type Rect = { x: number; y: number; w: number; h: number };
 export type Box = [number, number, number, number];
 export type Point = [number, number];
+export type LatLng = { lat: number; lng: number };
+export type GeoPin = { id: string; x: number; y: number; lat: number; lng: number };
+export type VenueGeo = { pins: GeoPin[]; entrances: string[] };
+export const SHAPE_KINDS = ['park', 'water', 'building', 'road', 'path'] as const;
+export type ShapeKind = (typeof SHAPE_KINDS)[number];
+export type Surroundings = {
+  credit: string;
+  bounds: Box;
+  shapes: { kind: ShapeKind; d: string; w?: number }[];
+  labels: { x: number; y: number; text: I18n; size: number }[];
+};
 
 export const GROUP_ORDER = ['entry', 'wc', 'info', 'charge', 'stage', 'other'] as const;
 export type LandmarkGroup = (typeof GROUP_ORDER)[number];
@@ -32,6 +43,7 @@ export type Venue = {
   doors: Door[];
   depth?: { back: number; front: number; text: { back: I18n; mid: I18n; front: I18n }; aisleHint: I18n };
   landmarks: Landmark[];
+  geo?: VenueGeo;
   origin: string;
 };
 
