@@ -2,10 +2,10 @@ import { toBase64, type GitHub } from '../../src/lib/api/github';
 
 type Call = { method: string; path: string; body?: Record<string, unknown> };
 const REPO = 'apisak-w/book-booth-finder';
+const reply = (status: number, data: unknown) => Response.json(data, { status });
 
 export function fakeGitHub(fileText: string, opts: { openPr?: boolean; branch?: boolean; fail?: string } = {}) {
   const calls: Call[] = [];
-  const reply = (status: number, data: unknown) => Response.json(data, { status });
   const fake = async (url: string | URL | Request, init?: RequestInit) => {
     const method = init?.method ?? 'GET';
     const path = String(url).replace(`https://api.github.com/repos/${REPO}`, '');
