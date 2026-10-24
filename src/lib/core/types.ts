@@ -53,11 +53,16 @@ export type FoyerZone = Rect & { c: string; vertical?: boolean };
 export type QuickPick = ['booth', string] | ['place', string];
 export type TextKey = 'ph' | 'searchLabel' | 'exhibitors';
 
+export type Hours = { open: string; close: string };
+export type PosterInfo = { file: string; width: number; height: number };
+
 export type EventFile = {
   id: string;
   name: I18n;
   subtitle?: I18n;
   dates: { start: string; end: string };
+  poster?: string;
+  hours?: Hours;
   venue: string;
   codePattern: string;
   categories: Record<string, Category>;
@@ -113,4 +118,6 @@ export type EventSummary = {
   dates: { start: string; end: string };
   venueName: I18n;
   timezone: string;
+  poster?: PosterInfo;
+  hours?: Hours;
 };

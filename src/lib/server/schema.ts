@@ -10,6 +10,7 @@ const i18n = z.object({ th: z.string().min(1), en: z.string().min(1) });
 const rect = z.object({ x: num, y: num, w: num.positive(), h: num.positive() });
 const box = z.tuple([num, num, num, num]);
 const point = z.tuple([num, num]);
+const hhmm = z.string().regex(/^([01]\d|2[0-3]):[0-5]\d$/);
 
 const landmark = i18n.extend({
   id: z.string().regex(/^[a-z][a-z0-9-]*$/),
@@ -77,6 +78,14 @@ export const EventSchema: z.ZodType<EventFile, unknown> = z
     name: i18n,
     subtitle: i18n.optional(),
     dates: z.object({ start: isoDate, end: isoDate }),
+    poster: z
+      .string()
+      .regex(/^poster\.(jpg|webp)$/)
+      .optional(),
+    hours: z
+      .object({ open: hhmm, close: hhmm })
+      .refine((h) => h.open < h.close, { message: 'hours.open must be before hours.close' })
+      .optional(),
     venue: slug,
     codePattern: z
       .string()
