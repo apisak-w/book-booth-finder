@@ -5,6 +5,7 @@ export default {
   preprocess: vitePreprocess(),
   kit: {
     adapter: adapter({ pages: '_site', assets: '_site', fallback: '404.html', strict: true }),
+    inlineStyleThreshold: 32 * 1024,
     prerender: {
       entries: ['*'],
       handleHttpError: 'fail',
