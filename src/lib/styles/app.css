@@ -1,3 +1,5 @@
+@import './fonts.css';
+
 /* Tokens on :root; dark theme redefines them. */
 :root {
   box-sizing: border-box;

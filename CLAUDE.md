@@ -78,7 +78,7 @@ Commit messages follow [Conventional Commits 1.0.0](https://www.conventionalcomm
 
 ## Design
 
-Mitr for display, Anuphan for body. Tokens on `:root` in `src/lib/styles/app.css`, dark mode under `prefers-color-scheme` and `[data-theme]`. The large booth code on the result card is the signature element. Route draws once and the pin pulses, both respect reduced motion. Below 900 px a bottom sheet (46vh, Less/More), at 900 px and above a 400 px side panel.
+Mitr for display, Anuphan for body, self-hosted from `@fontsource` (Thai and Latin subsets only) in `src/lib/styles/fonts.css`. Page CSS is inlined into the HTML (`inlineStyleThreshold`) so first paint needs no extra request; `static/_headers` caches `/_app/immutable/*` for a year. Tokens on `:root` in `src/lib/styles/app.css`, dark mode under `prefers-color-scheme` and `[data-theme]`. The large booth code on the result card is the signature element. Route draws once and the pin pulses, both respect reduced motion. Below 900 px a bottom sheet (46vh, Less/More), at 900 px and above a 400 px side panel.
 
 ## Gotchas
 

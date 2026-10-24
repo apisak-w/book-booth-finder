@@ -5,6 +5,8 @@
     "": {
       "name": "booth-finder",
       "devDependencies": {
+        "@fontsource/anuphan": "^5.3.0",
+        "@fontsource/mitr": "^5.3.0",
         "@playwright/test": "^1.63.0",
         "@simplewebauthn/browser": "14.0.0",
         "@simplewebauthn/server": "14.0.3",
@@ -29,6 +31,10 @@
   },
   "packages": {
     "@emnapi/runtime": ["@emnapi/runtime@1.11.3", "", { "dependencies": { "tslib": "^2.4.0" } }, "sha512-Xz4Tpyki7XyrpbUK1jR1AhdAdaXyhhY4lZ3neLodmhpuWfy2PAQN5B46sAiU4liOXGLkHypn/qU+jvfWSCYYLA=="],
+
+    "@fontsource/anuphan": ["@fontsource/anuphan@5.3.0", "", {}, "sha512-1vWJrY2shVTVE4Bv1BheXKQKWI4DxNSWF64++zt7wbRuYef8QV1tJItvHHxN6+1fknwanIM8RKsXiR0RuHPlhA=="],
+
+    "@fontsource/mitr": ["@fontsource/mitr@5.3.0", "", {}, "sha512-94SSDRpCqQppyPist8DRrF02iu0ri9i0SJ8X7WtKvUpV8d2aSLBhZdT6i9YIoEgbGzZED88YiJ2ph1RrlhOavQ=="],
 
     "@hexagon/base64": ["@hexagon/base64@1.1.28", "", {}, "sha512-lhqDEAvWixy3bZ+UOYbPwUbBkwBq5C1LAJ/xPC8Oi+lL54oyakv/npbA0aU2hgCsx/1NUd4IBvV03+aUBWxerw=="],
 
