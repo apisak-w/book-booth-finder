@@ -12,6 +12,11 @@
     "start": "2026-10-23",
     "end": "2026-11-01"
   },
+  "poster": "poster.jpg",
+  "hours": {
+    "open": "10:00",
+    "close": "21:00"
+  },
   "venue": "qsncc-lg-5-7",
   "codePattern": "^[A-S]\\d{2}$",
   "categories": {

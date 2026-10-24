@@ -96,3 +96,9 @@ test('a poster wider than 1100 px fails', async () => {
   await jpeg(join(r, 'events/wide-poster/poster.jpg'), 1101, 300);
   await expect(eventSummaries(r)).rejects.toThrow(/wide-poster\/poster.jpg: .*1100 px/);
 });
+
+test('Book Expo 2026 has its poster and hours', async () => {
+  const s = (await eventSummaries()).find((e) => e.id === 'bookexpo-2026');
+  expect(s?.poster).toEqual({ file: 'poster.jpg', width: 1030, height: 367 });
+  expect(s?.hours).toEqual({ open: '10:00', close: '21:00' });
+});
