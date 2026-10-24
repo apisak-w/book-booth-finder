@@ -44,6 +44,20 @@ export type Strings = {
   openMap: string;
   notFound: string;
   noEvents: string;
+  dayOf: (n: number, m: number) => string;
+  until: (date: string) => string;
+  hours: (open: string, close: string) => string;
+  opensIn: (n: number) => string;
+  opensTomorrow: string;
+  findBooth: string;
+  previewMap: string;
+  pastNote: string;
+  noLive: string;
+  noLiveHint: string;
+  noUpcoming: string;
+  noUpcomingHint: string;
+  noPast: string;
+  noPastHint: string;
   language: string;
   floorPlan: string;
   useLocation: string;
@@ -129,6 +143,20 @@ export const STRINGS: Record<Lang, Strings> = {
     openMap: 'เปิดแผนที่',
     notFound: 'ไม่พบงานนี้ กลับไปเลือกจากรายการงาน',
     noEvents: 'ยังไม่มีงาน',
+    dayOf: (n, m) => `วันที่ ${n} จาก ${m}`,
+    until: (date) => `ถึง ${date}`,
+    hours: (open, close) => `เปิด ${open}–${close} น.`,
+    opensIn: (n) => `เริ่มในอีก ${n} วัน`,
+    opensTomorrow: 'เริ่มพรุ่งนี้',
+    findBooth: 'หาบูธ',
+    previewMap: 'ดูผังงานล่วงหน้า',
+    pastNote: 'งานนี้จบไปแล้ว แผนที่ยังใช้ได้',
+    noLive: 'ตอนนี้ยังไม่มีงานที่กำลังจัด',
+    noLiveHint: 'ดูงานที่กำลังจะมาในแท็บถัดไป',
+    noUpcoming: 'ยังไม่มีงานที่กำลังจะมา',
+    noUpcomingHint: 'งานใหม่จะขึ้นที่นี่เมื่อผู้จัดส่งผังมา',
+    noPast: 'ยังไม่มีงานที่จบแล้ว',
+    noPastHint: 'งานจะขึ้นที่นี่หลังจากจบงาน',
     language: 'ภาษา',
     floorPlan: 'ผังงาน',
     useLocation: 'ใช้ตำแหน่งของฉัน',
@@ -212,6 +240,20 @@ export const STRINGS: Record<Lang, Strings> = {
     openMap: 'Open map',
     notFound: "We can't find this event. Pick one from the event list.",
     noEvents: 'No events yet.',
+    dayOf: (n, m) => `Day ${n} of ${m}`,
+    until: (date) => `Until ${date}`,
+    hours: (open, close) => `Open ${open}–${close}`,
+    opensIn: (n) => `Opens in ${n} days`,
+    opensTomorrow: 'Opens tomorrow',
+    findBooth: 'Find a booth',
+    previewMap: 'Preview the map',
+    pastNote: 'This event has ended. The map still works.',
+    noLive: 'Nothing is on right now',
+    noLiveHint: "See what's coming up in the next tab.",
+    noUpcoming: 'No events coming up yet',
+    noUpcomingHint: 'New events show here when the organiser sends the plan.',
+    noPast: 'No past events yet',
+    noPastHint: 'Events show here after they end.',
     language: 'Language',
     floorPlan: 'Floor plan',
     useLocation: 'Use my location',
@@ -264,3 +306,5 @@ export function fmtRange(start: string, end: string, lang: Lang): string {
   });
   return start === end ? f.format(d(start)) : f.formatRange(d(start), d(end));
 }
+
+export const fmtTime = (hhmm: string, lang: Lang) => (lang === 'th' ? hhmm.replace(':', '.') : hhmm);
