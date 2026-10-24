@@ -84,3 +84,17 @@ test('map pins reject impossible coordinates', () => {
   const pins = fakePins().map((p, k) => (k === 0 ? { ...p, lat: 95 } : p));
   expect(VenueSchema.safeParse({ ...venueJson(), geo: { pins, entrances: ['mrt'] } }).success).toBe(false);
 });
+
+test('poster must be poster.jpg or poster.webp', () => {
+  expect(EventSchema.safeParse({ ...minimalEvent, poster: 'poster.jpg' }).success).toBe(true);
+  expect(EventSchema.safeParse({ ...minimalEvent, poster: 'poster.webp' }).success).toBe(true);
+  expect(EventSchema.safeParse({ ...minimalEvent, poster: 'source/plan.jpg' }).success).toBe(false);
+  expect(EventSchema.safeParse({ ...minimalEvent, poster: 'poster.png' }).success).toBe(false);
+});
+
+test('hours are HH:MM with open before close', () => {
+  expect(EventSchema.safeParse({ ...minimalEvent, hours: { open: '10:00', close: '21:00' } }).success).toBe(true);
+  expect(EventSchema.safeParse({ ...minimalEvent, hours: { open: '21:00', close: '10:00' } }).success).toBe(false);
+  expect(EventSchema.safeParse({ ...minimalEvent, hours: { open: '10', close: '21:00' } }).success).toBe(false);
+  expect(EventSchema.safeParse({ ...minimalEvent, hours: { open: '24:00', close: '25:00' } }).success).toBe(false);
+});

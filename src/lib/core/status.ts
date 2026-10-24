@@ -17,6 +17,19 @@ export function eventStatus(dates: { start: string; end: string }, timezone: str
   return today < dates.start ? 'upcoming' : today > dates.end ? 'past' : 'live';
 }
 
+const daysBetween = (a: string, b: string) =>
+  Math.round((Date.parse(`${b}T00:00:00Z`) - Date.parse(`${a}T00:00:00Z`)) / 86_400_000);
+
+export function dayOf(dates: { start: string; end: string }, timezone: string, now = new Date()) {
+  return { day: daysBetween(dates.start, todayIn(timezone, now)) + 1, total: daysBetween(dates.start, dates.end) + 1 };
+}
+
+export const daysUntil = (start: string, timezone: string, now = new Date()) =>
+  daysBetween(todayIn(timezone, now), start);
+
+export const openingTab = (statuses: Status[]): Status =>
+  statuses.includes('live') ? 'live' : statuses.includes('upcoming') ? 'upcoming' : 'past';
+
 const RANK: Record<Status, number> = { live: 0, upcoming: 1, past: 2 };
 
 export function sortEvents<T extends { dates: { start: string; end: string }; timezone: string }>(

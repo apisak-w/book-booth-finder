@@ -1,5 +1,5 @@
 import { test, expect } from 'bun:test';
-import { eventStatus, sortEvents, todayIn } from '../src/lib/core/status';
+import { dayOf, daysUntil, eventStatus, openingTab, sortEvents, todayIn } from '../src/lib/core/status';
 
 const dates = { start: '2026-03-26', end: '2026-04-06' };
 const tz = 'Asia/Bangkok';
@@ -39,4 +39,24 @@ test('todayIn does not depend on a locale date format', () => {
   } finally {
     Intl.DateTimeFormat = orig;
   }
+});
+
+test('day of counts calendar days in the venue time zone', () => {
+  const bx = { start: '2026-10-23', end: '2026-11-01' };
+  expect(dayOf(bx, tz, new Date('2026-10-24T03:00:00Z'))).toEqual({ day: 2, total: 10 });
+  expect(dayOf(bx, tz, new Date('2026-10-22T17:00:00Z'))).toEqual({ day: 1, total: 10 });
+  expect(dayOf(bx, tz, new Date('2026-11-01T16:30:00Z'))).toEqual({ day: 10, total: 10 });
+});
+
+test('days until uses the venue date, not the phone date', () => {
+  expect(daysUntil('2026-10-23', tz, new Date('2026-10-20T03:00:00Z'))).toBe(3);
+  expect(daysUntil('2026-10-23', tz, new Date('2026-10-21T17:30:00Z'))).toBe(1);
+  expect(daysUntil('2026-10-23', tz, new Date('2026-10-22T17:00:00Z'))).toBe(0);
+});
+
+test('opening tab prefers live, then upcoming, then past', () => {
+  expect(openingTab(['past', 'live', 'upcoming'])).toBe('live');
+  expect(openingTab(['past', 'upcoming'])).toBe('upcoming');
+  expect(openingTab(['past'])).toBe('past');
+  expect(openingTab([])).toBe('past');
 });

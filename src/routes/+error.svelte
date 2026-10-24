@@ -10,6 +10,6 @@
   <Header title={s.title} backHref="/" backLabel={s.allEvents} />
   <main class="events">
     <p class="notice">{page.status === 404 ? s.notFound : page.error?.message}</p>
-    <a class="event-card" href="/"><b>{s.allEvents}</b></a>
+    <a class="event-card" href="/"><div class="event-body"><b>{s.allEvents}</b></div></a>
   </main>
 </div>

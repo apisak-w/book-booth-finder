@@ -27,6 +27,10 @@ test.skipIf(!built)('no source material or tooling is published', () => {
   expect(leaked).toEqual([]);
 });
 
+test.skipIf(!built)('event posters are published with a hashed name', () => {
+  expect(walk('_site').some((f) => /_app\/immutable\/assets\/poster\.[\w-]+\.jpg$/.test(f))).toBe(true);
+});
+
 test.skipIf(!built)('Zod is not in the client bundle', () => {
   const js = walk('_site/_app').filter((f) => f.endsWith('.js'));
   expect(js.filter((f) => readFileSync(f, 'utf8').includes('ZodError'))).toEqual([]);

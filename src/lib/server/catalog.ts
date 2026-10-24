@@ -1,11 +1,12 @@
-import { existsSync, readdirSync, readFileSync } from 'node:fs';
+import { existsSync, readdirSync, readFileSync, statSync } from 'node:fs';
 import { join, relative } from 'node:path';
+import sharp from 'sharp';
 import type { z } from 'zod';
 import { BoothsFileSchema, EventSchema, SurroundingsSchema, VenueSchema, formatIssues } from './schema';
 import { parseCSV } from '../core/csv';
 import { loadData } from '../core/prepare';
 import { checkEvent } from './checks';
-import type { EventBundle, EventSummary, Surroundings, Venue } from '../core/types';
+import type { EventBundle, EventSummary, PosterInfo, Surroundings, Venue } from '../core/types';
 
 export type { EventBundle, EventSummary } from '../core/types';
 
@@ -51,12 +52,20 @@ export function loadSurroundings(id: string, root = cwd()): Surroundings | null 
   return existsSync(path) ? parseFile(SurroundingsSchema, path, root) : null;
 }
 
+const MAX_POSTER_BYTES = 102_400;
+const MAX_POSTER_WIDTH = 1100;
+
 export function loadEvent(id: string, root = cwd()): EventBundle {
   const dir = join(root, 'events', id);
   const event = parseFile(EventSchema, join(dir, 'event.json'), root);
   if (event.id !== id) throw new CatalogError(`events/${id}/event.json: id "${event.id}" must equal the folder name`);
   if (!listVenueIds(root).includes(event.venue))
     throw new CatalogError(`events/${id}/event.json: venue "${event.venue}" has no venues/${event.venue}/venue.json`);
+  if (event.poster) {
+    const rel = `events/${id}/${event.poster}`;
+    if (!existsSync(join(dir, event.poster))) throw new CatalogError(`${rel}: file is missing`);
+    if (statSync(join(dir, event.poster)).size > MAX_POSTER_BYTES) throw new CatalogError(`${rel}: larger than 100 KB`);
+  }
   const venue = loadVenue(event.venue, root);
   const booths = parseFile(BoothsFileSchema, join(dir, 'booths.json'), root);
   const csvPath = join(dir, 'exhibitors.csv');
@@ -71,16 +80,26 @@ export function loadCheckedEvent(id: string, root = cwd()): EventBundle {
   return bundle;
 }
 
-export function eventSummaries(root = cwd()): EventSummary[] {
-  return listEventIds(root).map((id) => {
-    const { event, venue } = loadEvent(id, root);
-    return {
-      id,
-      name: event.name,
-      subtitle: event.subtitle,
-      dates: event.dates,
-      venueName: venue.name,
-      timezone: venue.timezone,
-    };
-  });
+export function eventSummaries(root = cwd()): Promise<EventSummary[]> {
+  return Promise.all(
+    listEventIds(root).map(async (id) => {
+      const { event, venue } = loadEvent(id, root);
+      return {
+        id,
+        name: event.name,
+        subtitle: event.subtitle,
+        dates: event.dates,
+        venueName: venue.name,
+        timezone: venue.timezone,
+        poster: event.poster ? await posterInfo(id, event.poster, root) : undefined,
+        hours: event.hours,
+      };
+    }),
+  );
+}
+
+async function posterInfo(id: string, file: string, root: string): Promise<PosterInfo> {
+  const { width = 0, height = 0 } = await sharp(join(root, 'events', id, file)).metadata();
+  if (width > MAX_POSTER_WIDTH) throw new CatalogError(`events/${id}/${file}: wider than 1100 px (${width} px)`);
+  return { file, width, height };
 }
