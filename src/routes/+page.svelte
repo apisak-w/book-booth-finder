@@ -2,7 +2,7 @@
   import { onMount } from 'svelte';
   import { goto } from '$app/navigation';
   import { eventStatus, openingTab, sortEvents, LEGACY_EVENT, type Status } from '$lib/core/status';
-  import { STRINGS } from '$lib/i18n/strings';
+  import { STRINGS, fmtRange, nameIn } from '$lib/i18n/strings';
   import { lang } from '$lib/i18n/lang.svelte';
   import Header from '$lib/ui/Header.svelte';
   import EventTabs from '$lib/ui/EventTabs.svelte';
@@ -58,6 +58,17 @@
       </div>
     {:else}
       <div class="tabs-wait" aria-hidden="true"></div>
+      <div class="tabpanel">
+        {#each data.events as e (e.id)}
+          <a class="event-card" href="/e/{e.id}/">
+            <div class="event-body">
+              <b>{nameIn(lang.current)(e.name)}</b>
+              <span class="meta">{nameIn(lang.current)(e.venueName)}</span>
+              <span class="meta">{fmtRange(e.dates.start, e.dates.end, lang.current)}</span>
+            </div>
+          </a>
+        {/each}
+      </div>
     {/if}
   </main>
 </div>

@@ -51,6 +51,7 @@ test('a poster that fails to load leaves a usable card', async ({ page }) => {
   const card = page.locator('.event-card.live');
   await expect(card.getByText('หาบูธ')).toBeVisible();
   expect(await card.locator('img.poster').evaluate((i: HTMLImageElement) => i.naturalWidth)).toBe(0);
+  await expect(card.locator('img.poster')).toBeHidden();
   expect((await card.locator('.poster-box').boundingBox())?.height).toBeGreaterThan(60);
 });
 
@@ -75,4 +76,15 @@ test('old share links redirect to the 2026 event', async ({ page }) => {
 test('unknown event shows the not-found page', async ({ page }) => {
   await page.goto('/e/does-not-exist/');
   await expect(page.locator('.notice')).toContainText('ไม่พบงานนี้');
+  expect((await page.getByRole('link', { name: 'งานทั้งหมด' }).last().boundingBox())?.height).toBeGreaterThanOrEqual(44);
+});
+
+test.describe('before the script runs', () => {
+  test.use({ javaScriptEnabled: false });
+
+  test('every event is already a link', async ({ page }) => {
+    await page.goto('/');
+    await expect(page.locator('a.event-card[href="/e/bookexpo-2026/"]')).toBeVisible();
+    await expect(page.locator('a.event-card[href="/e/bkkibf-2026/"]')).toBeVisible();
+  });
 });

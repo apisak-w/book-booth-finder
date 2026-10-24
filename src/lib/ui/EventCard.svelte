@@ -18,6 +18,7 @@
     event.hours && status !== 'past' ? s.hours(fmtTime(event.hours.open, lang), fmtTime(event.hours.close, lang)) : '',
   );
   const src = $derived(event.poster ? posterUrl(event.id, event.poster.file) : undefined);
+  let failed = $state(false);
   const cta = $derived(status === 'live' ? s.findBooth : status === 'upcoming' ? s.previewMap : s.openMap);
 </script>
 
@@ -26,11 +27,13 @@
     <div class="poster-box" style:aspect-ratio="{event.poster.width} / {event.poster.height}">
       <img
         class="poster"
+        class:failed
         {src}
         alt=""
         width={event.poster.width}
         height={event.poster.height}
         loading={eager ? 'eager' : 'lazy'}
+        onerror={() => (failed = true)}
       />
     </div>
   {/if}

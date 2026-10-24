@@ -914,6 +914,9 @@ h2.sec.gap {
   height: 100%;
   object-fit: cover;
 }
+.poster.failed {
+  visibility: hidden;
+}
 .event-body {
   display: flex;
   flex-direction: column;
