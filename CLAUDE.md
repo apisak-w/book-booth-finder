@@ -68,6 +68,8 @@ Each venue uses pixels of its own `reference.jpg`. Everything for that venue and
 
 ## Commits
 
+Branch names follow [Conventional Branch 1.1.0](https://conventionalbranch.org) (`feat/street-tiles`, `fix/booth-labels`, `claude/<slug>`) plus `admin/<venue-id>` and the `v2` trunk. CI checks it with `tools/branch.ts`; run `bun tools/branch.ts` to check the current branch.
+
 Commit messages follow [Conventional Commits 1.0.0](https://www.conventionalcommits.org/en/v1.0.0/): `<type>[optional scope]: <description>`, with an optional body and footers.
 
 - Types: `feat` (new feature), `fix` (bug fix), `docs`, `style`, `refactor`, `perf`, `test`, `build`, `ci`, `chore`, `revert`.
